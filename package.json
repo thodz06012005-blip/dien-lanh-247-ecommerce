@@ -1,0 +1,17 @@
+{
+  "name": "dien-lanh-247-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:user": "cd frontend-user && npm.cmd run dev",
+    "dev:admin": "cd frontend-admin && npm.cmd run dev",
+    "dev:mock": "cd mock-api && npm.cmd run dev",
+    "dev:all": "concurrently \"npm.cmd run dev:mock\" \"npm.cmd run dev:user\" \"npm.cmd run dev:admin\"",
+    "build:user": "cd frontend-user && npm.cmd run build",
+    "build:admin": "cd frontend-admin && npm.cmd run build",
+    "build:all": "npm.cmd run build:user && npm.cmd run build:admin"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,0 +1,277 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  --color-secondary-50: #f8fafc;
+  --color-secondary-100: #f1f5f9;
+  --color-secondary-200: #e2e8f0;
+  --color-secondary-300: #cbd5e1;
+  --color-secondary-400: #94a3b8;
+  --color-secondary-500: #64748b;
+  --color-secondary-600: #475569;
+  --color-secondary-700: #334155;
+  --color-secondary-800: #1e293b;
+  --color-secondary-900: #0f172a;
+
+  --color-primary-blue: #2563eb;
+  --color-ice-cyan: #06b6d4;
+  --color-deep-navy: #061527;
+  --color-soft-bg: #f8fafc;
+  --color-cta-orange: #f97316;
+
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ─── EXISTING UTILITIES (preserved) ──────────────────────────── */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
+  }
+
+  .glass-dark {
+    background: rgba(6, 21, 39, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  .premium-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 30px -10px rgba(6, 21, 39, 0.04);
+    border-radius: 2rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .premium-card:hover {
+    transform: translateY(-6px);
+    border-color: #bfdbfe;
+    box-shadow: 0 20px 40px -15px rgba(37, 99, 235, 0.08);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-orange {
+    background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .soft-shadow {
+    box-shadow: 0 10px 30px -10px rgba(6, 21, 39, 0.04);
+  }
+
+  /* ─── NEW PREMIUM UTILITIES ──────────────────────────────────── */
+
+  /* Mesh gradient nền cao cấp cho section dark */
+  .premium-mesh-bg {
+    background-color: #061527;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% 40%, rgba(37, 99, 235, 0.12) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 50% at 80% 70%, rgba(6, 182, 212, 0.1) 0%, transparent 65%),
+      radial-gradient(ellipse 40% 40% at 50% 0%, rgba(249, 115, 22, 0.06) 0%, transparent 60%);
+  }
+
+  /* Blueprint grid overlay — nền kỹ thuật tinh tế */
+  .blueprint-grid {
+    background-image:
+      linear-gradient(rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Glow nhẹ dưới section */
+  .section-glow {
+    position: relative;
+  }
+  .section-glow::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 120px;
+    background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Product stage: nền sản phẩm sạch, cao cấp */
+  .product-stage {
+    background: radial-gradient(ellipse 80% 70% at 50% 50%, #e8f0fd 0%, #f8fafc 70%);
+    border-radius: 2rem;
+  }
+
+  /* Floating card: nổi, glass nhẹ */
+  .floating-card {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow:
+      0 4px 16px rgba(6, 21, 39, 0.08),
+      0 1px 4px rgba(6, 21, 39, 0.04);
+    border-radius: 1rem;
+  }
+
+  /* Kicker label kiểu premium */
+  .premium-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #2563eb;
+  }
+
+  /* Heading lớn premium */
+  .premium-heading {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+  }
+
+  /* Heading trên nền dark */
+  .premium-heading-dark {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+  }
+
+  /* Mô tả phụ chuẩn */
+  .premium-description {
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.75;
+    max-width: 44ch;
+  }
+
+  /* Badge sale nổi bật */
+  .sale-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    background: linear-gradient(135deg, #f97316, #ef4444);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: 0.4rem;
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);
+  }
+
+  /* Card sản phẩm premium */
+  .product-card-premium {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 1.5rem;
+    box-shadow: 0 2px 12px rgba(6, 21, 39, 0.04), 0 1px 3px rgba(6, 21, 39, 0.03);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+  }
+
+  .product-card-premium:hover {
+    border-color: #bfdbfe;
+    box-shadow:
+      0 20px 48px -12px rgba(37, 99, 235, 0.12),
+      0 4px 12px rgba(6, 21, 39, 0.06);
+    transform: translateY(-8px);
+  }
+
+  /* Category card premium */
+  .category-card-premium {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 1.5rem;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+  }
+
+  .category-card-premium:hover {
+    border-color: #dbeafe;
+    box-shadow: 0 16px 40px -12px rgba(37, 99, 235, 0.1);
+    transform: translateY(-5px);
+  }
+
+  /* Divider gradient */
+  .divider-gradient {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+  }
+
+  /* CTA Button — Orange premium */
+  .btn-cta-orange {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+    font-weight: 700;
+    border-radius: 0.875rem;
+    padding: 0.875rem 2rem;
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-cta-orange:hover {
+    box-shadow: 0 8px 24px rgba(249, 115, 22, 0.4);
+    transform: translateY(-1px);
+  }
+
+  /* Section alternating dark */
+  .section-dark {
+    background: #061527;
+    color: white;
+  }
+
+  /* Number highlight kiểu Apple/Vercel */
+  .stat-number {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+body {
+  @apply bg-[#f8fafc] text-slate-900 font-sans antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

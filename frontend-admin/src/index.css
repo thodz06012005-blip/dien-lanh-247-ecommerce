@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', 'Be Vietnam Pro', system-ui, sans-serif;
+
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+}
+
+@utility admin-card {
+  @apply bg-white border border-slate-200/60 rounded-2xl shadow-sm transition-all duration-200;
+}
+@utility admin-card-hover {
+  @apply hover:shadow-md hover:border-slate-300/60;
+}
+@utility stat-card {
+  @apply admin-card p-6 flex flex-col gap-3 relative overflow-hidden;
+}
+@utility status-dot {
+  @apply w-2 h-2 rounded-full inline-block shrink-0;
+}
+@utility sidebar-gradient {
+  background: linear-gradient(180deg, #0C1B2E 0%, #061527 100%);
+}
+@utility admin-table-header {
+  @apply bg-slate-50/80 text-slate-500 font-semibold text-xs uppercase tracking-wide py-3 px-4 text-left border-b border-slate-200/80 sticky top-0 z-10 backdrop-blur-sm;
+}
+@utility page-fade-in {
+  animation: pageFadeIn 0.3s ease-out forwards;
+}
+@utility chart-grid {
+  @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+}
+@utility mini-sparkline {
+  @apply absolute bottom-0 right-0 left-0 h-10 opacity-30 pointer-events-none;
+}
+@utility dashboard-widget {
+  @apply admin-card p-6 flex flex-col;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body {
+  @apply bg-[#F5F7FB] text-slate-800 font-sans antialiased m-0 p-0;
+}
+
+/* Custom Scrollbar for elegant look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
