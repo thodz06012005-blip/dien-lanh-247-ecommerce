@@ -6,8 +6,14 @@ export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.category.findMany({
+    const categories = await this.prisma.category.findMany({
       include: { children: true },
+      orderBy: { id: 'asc' },
     });
+
+    return {
+      success: true,
+      data: categories,
+    };
   }
 }

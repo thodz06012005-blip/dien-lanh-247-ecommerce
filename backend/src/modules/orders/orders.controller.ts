@@ -63,24 +63,36 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   @Get('admin/orders')
-  findAllAdmin() {
-    return this.ordersService.findAllAdmin();
+  async findAllAdmin() {
+    const orders = await this.ordersService.findAllAdmin();
+    return {
+      success: true,
+      data: orders,
+    };
   }
 
   // Admin: View a specific order
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   @Get('admin/orders/:id')
-  findOneAdmin(@Param('id') id: string) {
-    return this.ordersService.findOneAdmin(id);
+  async findOneAdmin(@Param('id') id: string) {
+    const order = await this.ordersService.findOneAdmin(id);
+    return {
+      success: true,
+      data: order,
+    };
   }
 
   // Admin: Update order status
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   @Patch('admin/orders/:id/status')
-  updateStatusAdmin(@Param('id') id: string, @Body() updateStatusDto: UpdateOrderStatusDto) {
-    return this.ordersService.updateStatusAdmin(id, updateStatusDto);
+  async updateStatusAdmin(@Param('id') id: string, @Body() updateStatusDto: UpdateOrderStatusDto) {
+    const order = await this.ordersService.updateStatusAdmin(id, updateStatusDto);
+    return {
+      success: true,
+      message: 'Cập nhật trạng thái đơn hàng thành công',
+      data: order,
+    };
   }
 }
-
