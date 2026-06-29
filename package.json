@@ -16,7 +16,9 @@
     "lint:user": "npm --prefix frontend-user run lint",
     "lint:admin": "npm --prefix frontend-admin run lint",
     "check:all": "npm run check:mock && npm run typecheck:user && npm run typecheck:admin && npm run lint:user && npm run lint:admin",
-    "db:reset": "npm --prefix mock-api run reset-db"
+    "db:reset": "npm --prefix mock-api run reset-db",
+    "test:mock": "node tests/test_order_pricing.js && node tests/test_service_request_lifecycle.js && node tests/test_technician_rules.js && node tests/test_enum_contract.js",
+    "test:backend": "node tests/test_nestjs_api.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -12,6 +12,31 @@ import { UserRole } from '@prisma/client';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  // 1. Search route (must be before :identifier)
+  @Get('products/search')
+  search(@Query('q') q: string) {
+    return this.productsService.findAll({ q, limit: 10 });
+  }
+
+  // 2. Featured route (must be before :identifier)
+  @Get('products/featured')
+  featured() {
+    return this.productsService.findAll({ limit: 6 });
+  }
+
+  // 3. Find one product by ID or Slug (must be after search and featured)
+  @Get('products/:identifier')
+  findOne(@Param('identifier') identifier: string) {
+    return this.productsService.findOne(identifier);
+  }
+
+  // 4. Find all products (supports dual paths)
+  @Get(['products', 'admin/products'])
+  findAll(@Query() query: ProductQueryDto) {
+    return this.productsService.findAll(query);
+  }
+
+  // 5. Create product
   @Post(['products', 'admin/products'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
@@ -19,16 +44,7 @@ export class ProductsController {
     return this.productsService.create(createProductDto);
   }
 
-  @Get(['products', 'admin/products'])
-  findAll(@Query() query: ProductQueryDto) {
-    return this.productsService.findAll(query);
-  }
-
-  @Get('products/:id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.productsService.findOne(id);
-  }
-
+  // 6. Update product
   @Patch(['products/:id', 'admin/products/:id'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
@@ -36,6 +52,7 @@ export class ProductsController {
     return this.productsService.update(id, updateProductDto);
   }
 
+  // 7. Delete product
   @Delete(['products/:id', 'admin/products/:id'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)

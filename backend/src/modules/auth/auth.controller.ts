@@ -13,17 +13,25 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-    const tokens = await this.authService.register(registerDto);
+    const { tokens, user } = await this.authService.register(registerDto);
     this.setTokenCookies(res, tokens);
-    return { message: 'Đăng ký thành công' };
+    return {
+      success: true,
+      message: 'Đăng ký thành công',
+      data: user,
+    };
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const tokens = await this.authService.login(loginDto);
+    const { tokens, user } = await this.authService.login(loginDto);
     this.setTokenCookies(res, tokens);
-    return { message: 'Đăng nhập thành công' };
+    return {
+      success: true,
+      message: 'Đăng nhập thành công',
+      data: user,
+    };
   }
 
   @UseGuards(AuthGuard('jwt-refresh'))
@@ -33,7 +41,10 @@ export class AuthController {
     const user = req.user as any;
     const tokens = await this.authService.refreshTokens(user.userId, user.refreshToken);
     this.setTokenCookies(res, tokens);
-    return { message: 'Refresh token thành công' };
+    return {
+      success: true,
+      message: 'Refresh token thành công',
+    };
   }
 
   @UseGuards(JwtAuthGuard)
@@ -43,13 +54,20 @@ export class AuthController {
     await this.authService.logout(user.userId);
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
-    return { message: 'Đăng xuất thành công' };
+    return {
+      success: true,
+      message: 'Đăng xuất thành công',
+    };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getProfile(@CurrentUser() user: any) {
-    return user;
+    const dbUser = await this.authService.getUserProfile(user.userId);
+    return {
+      success: true,
+      data: dbUser,
+    };
   }
 
   private setTokenCookies(res: Response, tokens: { accessToken: string; refreshToken: string }) {

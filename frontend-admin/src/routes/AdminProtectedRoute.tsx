@@ -54,8 +54,18 @@ export default function AdminProtectedRoute({ requiredRole = 'owner', children }
   }
 
   // Role check
-  if (requiredRole && admin?.role !== requiredRole) {
-    return <Navigate to="/403" replace />;
+  const allowedRoles = ['admin', 'superadmin', 'owner'];
+  const currentRole = admin?.role?.toLowerCase();
+
+  if (requiredRole) {
+    const reqRole = requiredRole.toLowerCase();
+    if (reqRole === 'owner') {
+      if (!allowedRoles.includes(currentRole || '')) {
+        return <Navigate to="/403" replace />;
+      }
+    } else if (currentRole !== reqRole) {
+      return <Navigate to="/403" replace />;
+    }
   }
 
   return children ? <>{children}</> : <Outlet />;

@@ -30,7 +30,11 @@ export class AuthService {
       },
     });
 
-    return this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
+
+    const { password, refreshToken, ...userWithoutSecrets } = user;
+    return { tokens, user: userWithoutSecrets };
   }
 
   async login(dto: LoginDto) {
@@ -48,7 +52,20 @@ export class AuthService {
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
-    return tokens;
+
+    const { password, refreshToken: rt, ...userWithoutSecrets } = user;
+    return { tokens, user: userWithoutSecrets };
+  }
+
+  async getUserProfile(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    const { password, refreshToken, ...userWithoutSecrets } = user;
+    return userWithoutSecrets;
   }
 
   async refreshTokens(userId: number, oldRefreshToken: string) {
