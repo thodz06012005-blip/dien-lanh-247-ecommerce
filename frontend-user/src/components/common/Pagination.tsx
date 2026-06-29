@@ -48,7 +48,7 @@ export default function Pagination({
       <button
         disabled={currentPage === 1}
         onClick={() => onPageChange(currentPage - 1)}
-        className="w-9 h-9 rounded-xl bg-white disabled:opacity-50 text-slate-700 border border-slate-200 hover:border-slate-350 hover:bg-slate-50 flex items-center justify-center transition-all cursor-pointer"
+        className="w-9 h-9 rounded-xl bg-white disabled:opacity-50 text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 flex items-center justify-center transition-all cursor-pointer"
         title="Trang trước"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -61,7 +61,7 @@ export default function Pagination({
       <button
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(currentPage + 1)}
-        className="w-9 h-9 rounded-xl bg-white disabled:opacity-50 text-slate-700 border border-slate-200 hover:border-slate-355 hover:bg-slate-50 flex items-center justify-center transition-all cursor-pointer"
+        className="w-9 h-9 rounded-xl bg-white disabled:opacity-50 text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 flex items-center justify-center transition-all cursor-pointer"
         title="Trang sau"
       >
         <ChevronRight className="w-4 h-4" />

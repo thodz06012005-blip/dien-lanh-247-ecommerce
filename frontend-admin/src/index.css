@@ -13,6 +13,20 @@
   --color-primary-700: #1d4ed8;
   --color-primary-800: #1e40af;
   --color-primary-900: #1e3a8a;
+
+  --animate-spin-slow: spin 8s linear infinite;
+  --animate-shake: shake 0.4s ease-in-out;
+  --animate-fade-in: fadeIn 0.5s ease-out forwards;
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
 
 @utility admin-card {

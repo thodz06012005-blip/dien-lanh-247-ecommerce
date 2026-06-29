@@ -136,7 +136,7 @@ export default function ProductDetail() {
           <div className="flex flex-col gap-5">
             <div className="flex justify-between items-center">
               <span className="text-4xs font-black text-slate-400 uppercase tracking-widest leading-none">
-                Thương hiệu: <span className="text-primary-650 font-extrabold">{product.brandId.toUpperCase()}</span>
+                Thương hiệu: <span className="text-primary-600 font-extrabold">{product.brandId.toUpperCase()}</span>
               </span>
               <span className="text-4xs font-bold text-slate-400 leading-none">
                 SKU: {product.sku}
@@ -161,7 +161,7 @@ export default function ProductDetail() {
                   />
                 ))}
               </div>
-              <span className="text-xs font-bold text-slate-705">{product.rating.toFixed(1)} / 5</span>
+              <span className="text-xs font-bold text-slate-700">{product.rating.toFixed(1)} / 5</span>
               <span className="text-slate-200">|</span>
               <span className="text-xs font-semibold text-slate-500">{product.reviewCount} Đánh giá</span>
             </div>
@@ -328,7 +328,7 @@ export default function ProductDetail() {
           </div>
 
           {/* Visual Trust Badge */}
-          <div className="mt-4 p-3.5 rounded-2xl bg-cyan-50/30 border border-cyan-150 flex items-center gap-3">
+          <div className="mt-4 p-3.5 rounded-2xl bg-cyan-50/30 border border-cyan-200 flex items-center gap-3">
             <ImageWithFallback
               src={visualAssets.productDetailTrust}
               alt="Trust Verification"
@@ -447,14 +447,14 @@ export default function ProductDetail() {
                       <span className="text-3xs text-slate-400">({product.reviewCount} đánh giá)</span>
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-850 text-xs">Đánh giá từ khách hàng đã mua</h4>
+                      <h4 className="font-bold text-slate-800 text-xs">Đánh giá từ khách hàng đã mua</h4>
                       <p className="text-3xs text-slate-400 mt-1 max-w-sm">Tất cả đánh giá đều đến từ khách hàng đã đặt hàng COD hoặc sử dụng dịch vụ lắp ráp của Điện Lạnh 247.</p>
                     </div>
                   </div>
                   
                   <div className="border-t border-slate-100 pt-6 flex flex-col gap-5">
                     <div className="flex gap-4 p-4 rounded-2xl border border-slate-50">
-                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-650 text-sm">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm">
                         N
                       </div>
                       <div>
@@ -465,7 +465,7 @@ export default function ProductDetail() {
                       </div>
                     </div>
                     <div className="flex gap-4 p-4 rounded-2xl border border-slate-50">
-                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-650 text-sm">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm">
                         T
                       </div>
                       <div>
@@ -488,7 +488,7 @@ export default function ProductDetail() {
         <section className="w-full">
           <div className="mb-6">
             <h2 className="text-base md:text-lg font-black text-slate-950">Sản phẩm liên quan</h2>
-            <p className="text-3xs text-slate-450 mt-0.5">Những lựa chọn tương tự được khách hàng quan tâm.</p>
+            <p className="text-3xs text-slate-400 mt-0.5">Những lựa chọn tương tự được khách hàng quan tâm.</p>
           </div>
           <ProductGrid products={relatedProducts} />
         </section>

@@ -98,7 +98,7 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
               className={`w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all flex-shrink-0 cursor-pointer bg-white ${
                 activeIndex === idx
                   ? 'border-[#2563EB] ring-4 ring-[#2563EB]/10 scale-95'
-                  : 'border-slate-100 hover:border-slate-350 hover:scale-102'
+                  : 'border-slate-100 hover:border-slate-300 hover:scale-102'
               }`}
             >
               <ImageWithFallback

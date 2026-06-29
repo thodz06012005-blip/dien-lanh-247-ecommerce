@@ -80,14 +80,14 @@ export default function Register() {
           </h2>
           <p className="text-xs text-slate-500 mt-2">
             Đã có tài khoản Điện Lạnh 247?{' '}
-            <Link to="/login" className="font-bold text-primary-600 hover:text-primary-755 transition-colors">
+            <Link to="/login" className="font-bold text-primary-600 hover:text-primary-700 transition-colors">
               Đăng nhập ngay
             </Link>
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-100 text-red-650 p-4 rounded-2xl text-2xs text-center leading-relaxed">
+          <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl text-2xs text-center leading-relaxed">
             {error}
           </div>
         )}

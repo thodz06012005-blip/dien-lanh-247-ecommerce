@@ -234,6 +234,11 @@ export default function Cart() {
                         >
                           {item.product.name}
                         </Link>
+                        {item.product.quantity <= 10 && (
+                          <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md mt-1.5 inline-block w-fit">
+                            Chỉ còn {item.product.quantity} sản phẩm
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex flex-col sm:flex-row sm:items-end justify-between mt-5 gap-4">
@@ -241,7 +246,7 @@ export default function Cart() {
                         <div className="flex items-center justify-center border border-slate-200 rounded-xl w-fit mx-auto sm:mx-0 p-1 bg-slate-50/50">
                           <button
                             onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1))}
-                            className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-primary-650 hover:bg-white rounded-lg transition-all active:scale-90 cursor-pointer"
+                            className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white rounded-lg transition-all active:scale-90 cursor-pointer"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
@@ -250,7 +255,8 @@ export default function Cart() {
                           </span>
                           <button
                             onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                            className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-primary-650 hover:bg-white rounded-lg transition-all active:scale-90 cursor-pointer"
+                            disabled={item.quantity >= item.product.quantity}
+                            className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white rounded-lg transition-all active:scale-90 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
@@ -338,7 +344,7 @@ export default function Cart() {
                           isCurrent
                             ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-500/10'
                             : isDisabled
-                            ? 'opacity-50 bg-slate-50 border-slate-150 cursor-not-allowed'
+                            ? 'opacity-50 bg-slate-50 border-slate-200 cursor-not-allowed'
                             : 'bg-white border-slate-200 hover:border-primary-400 hover:bg-primary-50/10 cursor-pointer'
                         }`}
                       >

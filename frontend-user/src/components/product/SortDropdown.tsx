@@ -24,7 +24,7 @@ export default function SortDropdown({ value, onChange }: SortDropdownProps) {
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="appearance-none pr-8 pl-4 py-2 bg-white border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:border-slate-350 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-600 transition-all cursor-pointer shadow-2xs"
+          className="appearance-none pr-8 pl-4 py-2 bg-white border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-600 transition-all cursor-pointer shadow-2xs"
         >
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>

@@ -12,9 +12,11 @@ import {
   Snowflake,
   Search,
   Bell,
-  ChevronDown
+  ChevronDown,
+  Wrench
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useAdminAuthStore } from '../store/adminAuthStore';
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -23,9 +25,20 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const admin = useAdminAuthStore((state) => state.admin);
+  const logoutStore = useAdminAuthStore((state) => state.logout);
+
+  const handleLogout = async () => {
+    await logoutStore();
+    navigate('/login');
+  };
+
   // Auto close mobile drawer on route change
   useEffect(() => {
-    setIsMobileOpen(false);
+    const timer = setTimeout(() => {
+      setIsMobileOpen(false);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [location.pathname]);
 
   const menuGroups = [
@@ -35,6 +48,13 @@ export default function AdminLayout() {
         { path: '/', label: 'Tổng quan', icon: <LayoutDashboard className="h-[18px] w-[18px] shrink-0" /> },
         { path: '/orders', label: 'Đơn hàng', icon: <ShoppingBag className="h-[18px] w-[18px] shrink-0" /> },
         { path: '/products', label: 'Sản phẩm', icon: <Package className="h-[18px] w-[18px] shrink-0" /> },
+      ]
+    },
+    {
+      title: 'Dịch vụ',
+      items: [
+        { path: '/service-requests', label: 'Yêu cầu sửa chữa', icon: <Wrench className="h-[18px] w-[18px] shrink-0" /> },
+        { path: '/technicians', label: 'Quản lý thợ kỹ thuật', icon: <Users className="h-[18px] w-[18px] shrink-0" /> },
       ]
     },
     {
@@ -52,8 +72,27 @@ export default function AdminLayout() {
     '/products': 'Quản lý Sản phẩm',
     '/customers': 'Quản lý Khách hàng',
     '/settings': 'Cài đặt Hệ thống',
+    '/service-requests': 'Yêu cầu dịch vụ sửa chữa',
+    '/technicians': 'Quản lý Thợ kỹ thuật',
   };
-  const currentPageTitle = breadcrumbs[location.pathname] || 'Dashboard';
+
+  const getBreadcrumbTitle = (pathname: string) => {
+    if (pathname.startsWith('/service-requests/')) {
+      return 'Yêu cầu sửa chữa / Chi tiết yêu cầu';
+    }
+    if (pathname.startsWith('/orders/')) {
+      return 'Quản lý Đơn hàng / Chi tiết đơn hàng';
+    }
+    if (pathname.startsWith('/products/')) {
+      return 'Quản lý Sản phẩm / Chi tiết sản phẩm';
+    }
+    if (pathname.startsWith('/technicians/')) {
+      return 'Quản lý Thợ kỹ thuật / Chi tiết thợ';
+    }
+    return breadcrumbs[pathname] || 'Dashboard';
+  };
+
+  const currentPageTitle = getBreadcrumbTitle(location.pathname);
 
   const sidebarContent = (
     <>
@@ -83,7 +122,7 @@ export default function AdminLayout() {
               </span>
             )}
             {group.items.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
               return (
                 <Link
                   key={item.path}
@@ -115,12 +154,12 @@ export default function AdminLayout() {
         collapsed && 'justify-center p-3'
       )}>
         <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-center font-bold text-sm shrink-0">
-          A
+          {admin?.name?.[0] || 'A'}
         </div>
         {!collapsed && (
           <div className="flex flex-col min-w-0">
-            <strong className="text-sm font-semibold text-slate-200 truncate">Administrator</strong>
-            <span className="text-xs text-slate-400 truncate">Quản trị viên</span>
+            <strong className="text-sm font-semibold text-slate-200 truncate">{admin?.name || 'Administrator'}</strong>
+            <span className="text-xs text-slate-400 truncate">{admin?.email || 'owner@dienlanh247.vn'}</span>
           </div>
         )}
       </div>
@@ -182,10 +221,16 @@ export default function AdminLayout() {
 
           {/* Top Actions */}
           <div className="flex items-center gap-2 lg:gap-5">
-            <button className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+            <button 
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-not-allowed opacity-50"
+              title="Tính năng tìm kiếm đang được phát triển"
+            >
               <Search className="h-[18px] w-[18px]" />
             </button>
-            <button className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+            <button 
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-not-allowed opacity-50"
+              title="Tính năng thông báo đang được phát triển"
+            >
               <Bell className="h-[18px] w-[18px]" />
               <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 border border-white" />
             </button>
@@ -207,11 +252,11 @@ export default function AdminLayout() {
                 className="flex items-center gap-3 p-1 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200"
               >
                 <div className="flex flex-col items-end text-right hidden sm:flex">
-                  <span className="text-sm font-medium text-slate-900 leading-tight">Administrator</span>
-                  <span className="text-xs text-slate-500 mt-0.5">Quản trị viên</span>
+                  <span className="text-sm font-medium text-slate-900 leading-tight">{admin?.name || 'Administrator'}</span>
+                  <span className="text-xs text-slate-500 mt-0.5">{admin?.email || 'owner@dienlanh247.vn'}</span>
                 </div>
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 border border-blue-200 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                  A
+                  {admin?.name?.[0] || 'A'}
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
               </button>
@@ -236,10 +281,7 @@ export default function AdminLayout() {
                     </button>
                     <hr className="border-slate-100 my-1" />
                     <button
-                      onClick={() => {
-                        setShowProfileDropdown(false);
-                        alert('Đăng xuất thành công');
-                      }}
+                      onClick={handleLogout}
                       className="flex items-center gap-2.5 px-4 py-2 text-left text-red-600 hover:bg-red-50 cursor-pointer w-full transition-colors"
                     >
                       <LogOut className="w-4 h-4" />

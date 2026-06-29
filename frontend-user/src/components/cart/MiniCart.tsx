@@ -91,7 +91,7 @@ export default function MiniCart({ isOpen, onClose }: MiniCartProps) {
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-350 hover:text-white transition-all cursor-pointer relative z-10"
+                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition-all cursor-pointer relative z-10"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -170,6 +170,11 @@ export default function MiniCart({ isOpen, onClose }: MiniCartProps) {
                           <span className="text-[9px] text-slate-400 font-semibold block mt-0.5">
                             SKU: {item.product.sku}
                           </span>
+                          {item.product.quantity <= 10 && (
+                            <span className="text-[9px] font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded mt-1 inline-block w-fit">
+                              Chỉ còn {item.product.quantity} sản phẩm
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex justify-between items-center mt-2.5">
@@ -186,7 +191,8 @@ export default function MiniCart({ isOpen, onClose }: MiniCartProps) {
                             </span>
                             <button
                               onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                              className="w-5.5 h-5.5 flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white rounded transition-all active:scale-75 cursor-pointer"
+                              disabled={item.quantity >= item.product.quantity}
+                              className="w-5.5 h-5.5 flex items-center justify-center text-slate-500 hover:text-primary-600 hover:bg-white rounded transition-all active:scale-75 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               <Plus className="w-2.5 h-2.5" />
                             </button>

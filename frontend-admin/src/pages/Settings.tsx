@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
+import { AxiosError } from 'axios';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import LoadingState from '../components/ui/LoadingState';
@@ -30,14 +31,14 @@ export default function Settings() {
 
   // Update settings mutation
   const updateSettings = useMutation({
-    mutationFn: async (values: any) => {
+    mutationFn: async (values: typeof formData) => {
       return api.patch('/admin/settings', values);
     },
     onSuccess: () => {
       alert('Cập nhật cấu hình hệ thống thành công');
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
     },
-    onError: (err: any) => {
+    onError: (err: AxiosError<{ message?: string }>) => {
       alert(err.response?.data?.message || 'Có lỗi xảy ra khi lưu cấu hình');
     }
   });
@@ -45,7 +46,10 @@ export default function Settings() {
   // Populate form values when data loads
   useEffect(() => {
     if (data?.data) {
-      setFormData(data.data);
+      const timer = setTimeout(() => {
+        setFormData(data.data);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [data]);
 

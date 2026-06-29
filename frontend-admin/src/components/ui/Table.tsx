@@ -23,6 +23,7 @@ interface TableProps<T> {
     total: number;
     onChange: (page: number) => void;
   };
+  minWidth?: string;
 }
 
 export default function Table<T extends { key?: string | number }>({
@@ -31,6 +32,7 @@ export default function Table<T extends { key?: string | number }>({
   isLoading = false,
   emptyText = 'Trống',
   pagination,
+  minWidth = '1000px',
 }: TableProps<T>) {
   if (isLoading) {
     return <LoadingState />;
@@ -43,7 +45,7 @@ export default function Table<T extends { key?: string | number }>({
   return (
     <div className="w-full flex flex-col">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left border-collapse">
+        <table className="w-full text-sm text-left border-collapse" style={{ minWidth }}>
           <thead>
             <tr>
               {columns.map((col) => (

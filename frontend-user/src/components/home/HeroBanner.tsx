@@ -1,50 +1,57 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, ShieldCheck, Zap, Truck, CheckCircle, Phone } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Zap, Truck, CheckCircle, Calendar, BadgeCheck, Wrench, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../ui/Button';
 
 const floatingCards = [
   {
-    icon: <ShieldCheck className="w-4 h-4 text-cyan-400" />,
-    label: 'Chính hãng',
-    value: '24T Bảo hành',
+    icon: <ShieldCheck className="w-5 h-5 text-cyan-400" />,
+    label: 'Thợ kỹ thuật',
+    value: 'Đã xác minh',
     color: 'from-cyan-500/20 to-blue-500/10',
     delay: 0,
     offsetClass: 'top-[12%] left-[-4%] lg:left-[-8%]',
-    animateY: [0, -10, 0],
-  },
-  {
-    icon: <Truck className="w-4 h-4 text-orange-400" />,
-    label: 'Giao lắp',
-    value: 'Siêu tốc 2H',
-    color: 'from-orange-500/20 to-red-500/10',
-    delay: 0.8,
-    offsetClass: 'bottom-[22%] left-[-4%] lg:left-[-8%]',
-    animateY: [0, 10, 0],
-  },
-  {
-    icon: <Zap className="w-4 h-4 text-blue-400" />,
-    label: 'Hỗ trợ KT',
-    value: 'Trực 24/7',
-    color: 'from-blue-500/20 to-indigo-500/10',
-    delay: 1.5,
-    offsetClass: 'top-[8%] right-[-4%] lg:right-[-8%]',
     animateY: [0, -8, 0],
   },
   {
-    icon: <CheckCircle className="w-4 h-4 text-green-400" />,
-    label: 'Thanh toán',
-    value: 'COD an toàn',
+    icon: <Truck className="w-5 h-5 text-orange-400" />,
+    label: 'Dịch vụ tận nơi',
+    value: 'Có mặt trong 2h',
+    color: 'from-orange-500/20 to-red-500/10',
+    delay: 0.8,
+    offsetClass: 'bottom-[22%] left-[-4%] lg:left-[-8%]',
+    animateY: [0, 8, 0],
+  },
+  {
+    icon: <Zap className="w-5 h-5 text-blue-400" />,
+    label: 'Báo giá trước',
+    value: 'Không phí ẩn',
+    color: 'from-blue-500/20 to-indigo-500/10',
+    delay: 1.5,
+    offsetClass: 'top-[8%] right-[-4%] lg:right-[-8%]',
+    animateY: [0, -6, 0],
+  },
+  {
+    icon: <CheckCircle className="w-5 h-5 text-green-400" />,
+    label: 'Bảo hành dài',
+    value: '3 - 12 tháng',
     color: 'from-green-500/20 to-emerald-500/10',
     delay: 2.2,
     offsetClass: 'bottom-[10%] right-[-4%] lg:right-[-8%]',
-    animateY: [0, 8, 0],
+    animateY: [0, 6, 0],
   },
+];
+
+const trustBadges = [
+  { icon: <BadgeCheck className="w-4.5 h-4.5 text-cyan-400" />, label: 'Thợ kỹ thuật đã xác minh' },
+  { icon: <Wrench className="w-4.5 h-4.5 text-orange-400" />, label: 'Báo giá minh bạch trước khi sửa' },
+  { icon: <ShieldCheck className="w-4.5 h-4.5 text-green-400" />, label: 'Bảo hành an tâm 3-12 tháng' },
+  { icon: <ShieldAlert className="w-4.5 h-4.5 text-blue-400" />, label: 'Hỗ trợ khẩn cấp 24/7' },
 ];
 
 export default function HeroBanner() {
   return (
-    <section className="relative bg-[#061527] overflow-hidden min-h-[88vh] flex flex-col justify-center pt-24 pb-16 lg:pb-24">
+    <section className="relative bg-gradient-to-b from-[#020b14] via-[#061527] to-[#041221] overflow-hidden min-h-[90vh] flex flex-col justify-center pt-28 pb-16 lg:pb-24">
       {/* Blueprint grid overlay */}
       <div className="absolute inset-0 blueprint-grid opacity-100 pointer-events-none" />
 
@@ -64,11 +71,11 @@ export default function HeroBanner() {
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/8 mb-7"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/8 mb-6"
           >
             <Zap className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400 animate-pulse" />
-            <span className="text-[0.65rem] font-extrabold tracking-widest uppercase text-cyan-300">
-              Giao lắp siêu tốc trong 2h — Nội thành HN &amp; HCM
+            <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-300">
+              Hệ thống kỹ thuật điện lạnh toàn diện tại Hà Nội
             </span>
           </motion.div>
 
@@ -77,15 +84,10 @@ export default function HeroBanner() {
             initial={{ opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.08 }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6"
+            className="text-[32px] sm:text-[44px] lg:text-[48px] xl:text-[56px] font-black text-white leading-[1.08] tracking-tight mb-5"
           >
-            Thiết bị điện lạnh<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-300">
-              Chính hãng.
-            </span>{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-400">
-              Lắp ngay.
-            </span>
+            Dịch vụ điện lạnh cao cấp<br className="hidden sm:block" />
+            Lắp đặt &amp; sửa chữa <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-[#F97316]">siêu tốc.</span>
           </motion.h1>
 
           {/* Subtitle */}
@@ -93,10 +95,9 @@ export default function HeroBanner() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.18 }}
-            className="text-sm md:text-base text-slate-300/90 mb-10 leading-relaxed max-w-[46ch]"
+            className="text-sm sm:text-base text-slate-200/90 mb-8 leading-[1.65] max-w-[560px]"
           >
-            Hệ thống phân phối điều hòa, tủ lạnh, máy giặt chính hãng Daikin, Panasonic, LG. 
-            Giao hàng trong ngày, lắp đặt hoàn chỉnh chỉ trong 2h bởi kỹ thuật viên tay nghề cao.
+            Điện Lạnh 247 cung cấp giải pháp toàn diện: bán thiết bị chính hãng, lắp đặt tiêu chuẩn, sửa chữa tận nơi và bảo trì định kỳ bởi đội ngũ kỹ thuật viên giàu kinh nghiệm.
           </motion.p>
 
           {/* CTAs */}
@@ -104,41 +105,37 @@ export default function HeroBanner() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.28 }}
-            className="flex flex-wrap gap-3 w-full sm:w-auto"
+            className="flex flex-col sm:flex-row gap-3.5 w-full sm:w-auto mb-8"
           >
-            <Link to="/products" className="flex-1 sm:flex-initial min-w-0">
-              <button className="btn-cta-orange w-full sm:w-auto flex items-center justify-center gap-2 text-sm px-8 py-3.5">
-                Mua sắm ngay
-                <ArrowRight className="w-4 h-4" />
+            <Link to="/service-booking" className="w-full sm:w-auto min-w-0">
+              <button className="btn-cta-orange w-full sm:w-auto flex items-center justify-center gap-2 text-sm font-bold px-7 py-3.5 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 hover:-translate-y-0.5 transition-all cursor-pointer">
+                <Calendar className="w-4 h-4 shrink-0" />
+                Đặt lịch sửa chữa ngay
               </button>
             </Link>
-            <a href="tel:09998888777" className="flex-1 sm:flex-initial min-w-0">
+            <Link to="/products" className="w-full sm:w-auto min-w-0">
               <Button
                 variant="outline"
                 size="lg"
-                className="w-full sm:w-auto bg-white/6 hover:bg-white/12 text-white border-white/15 hover:border-white/30 backdrop-blur-sm font-bold rounded-[0.875rem] py-3.5 px-7 text-sm"
+                className="w-full sm:w-auto bg-white/5 hover:bg-white/10 text-white border-white/10 hover:border-white/25 backdrop-blur-sm font-bold rounded-xl py-3.5 px-7 text-sm hover:-translate-y-0.5 transition-all"
               >
-                <Phone className="w-4 h-4 mr-2 shrink-0" />
-                Gọi tư vấn miễn phí
+                Mua sắm thiết bị
+                <ArrowRight className="w-4 h-4 ml-1.5 shrink-0" />
               </Button>
-            </a>
+            </Link>
           </motion.div>
 
-          {/* Stats row */}
+          {/* Trust Badges */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.42 }}
-            className="flex gap-8 mt-10 pt-8 border-t border-white/8"
+            transition={{ duration: 0.65, delay: 0.38 }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 border-t border-white/8 pt-6 w-full"
           >
-            {[
-              { value: '15.000+', label: 'Khách hàng hài lòng' },
-              { value: '99%', label: 'Lắp đúng hẹn' },
-              { value: '5 năm', label: 'Kinh nghiệm ngành' },
-            ].map((s) => (
-              <div key={s.label}>
-                <p className="text-xl font-black text-white tracking-tight leading-none">{s.value}</p>
-                <p className="text-[0.65rem] text-slate-400 mt-1 font-medium">{s.label}</p>
+            {trustBadges.map((badge, idx) => (
+              <div key={idx} className="flex items-center gap-2.5 text-slate-300">
+                {badge.icon}
+                <span className="text-xs font-semibold tracking-wide">{badge.label}</span>
               </div>
             ))}
           </motion.div>
@@ -162,18 +159,34 @@ export default function HeroBanner() {
             <div className="absolute inset-0 blueprint-grid opacity-60" />
 
             <img
-              src="https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=700&auto=format&fit=crop"
-              alt="Thiết bị điện lạnh cao cấp"
+              src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=700&auto=format&fit=crop"
+              alt="Kỹ thuật viên Điện Lạnh 247 sửa chữa chuyên nghiệp"
               className="relative z-10 w-full h-full object-cover opacity-75 mix-blend-luminosity"
             />
             {/* Gradient overlay */}
             <div className="absolute inset-0 z-20 bg-gradient-to-t from-slate-950/70 via-transparent to-blue-900/10" />
 
             {/* Inner badge */}
-            <div className="absolute bottom-5 left-5 z-30">
-              <span className="inline-block px-3 py-1.5 rounded-full bg-orange-500/90 text-white text-[0.6rem] font-extrabold uppercase tracking-wider shadow-lg shadow-orange-500/30">
-                Ưu đãi đến 30%
+            <div className="absolute bottom-5 left-5 z-35">
+              <span className="inline-block px-3 py-1.5 rounded-full bg-orange-500/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-orange-500/30">
+                Cam kết chất lượng 5 sao
               </span>
+            </div>
+          </motion.div>
+
+          {/* iOS Widget Schedule Simulation Overlay */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1.2, duration: 0.5 }}
+            className="absolute bottom-4 right-[-4%] lg:right-[-6%] z-30 bg-slate-950/90 border border-white/10 backdrop-blur-md rounded-2xl p-4 shadow-xl max-w-[200px]"
+          >
+            <p className="text-[9px] font-bold text-cyan-400 uppercase tracking-widest leading-none mb-2">Trạng thái điều phối</p>
+            <h4 className="text-xs font-bold text-white mb-1">Vệ sinh điều hòa</h4>
+            <p className="text-[10px] text-slate-400">Khách hàng: Anh Minh (Cầu Giấy)</p>
+            <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-green-400 font-medium">
+              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+              <span>KTV đang đến (15 phút)</span>
             </div>
           </motion.div>
 
@@ -182,15 +195,15 @@ export default function HeroBanner() {
             <motion.div
               key={card.label}
               animate={{ y: card.animateY }}
-              transition={{ repeat: Infinity, duration: 3.5 + card.delay * 0.3, delay: card.delay * 0.15, ease: 'easeInOut' }}
-              className={`absolute ${card.offsetClass} floating-card px-4 py-3 flex items-center gap-3 min-w-[130px]`}
+              transition={{ repeat: Infinity, duration: 4.5 + card.delay * 0.4, delay: card.delay * 0.2, ease: 'easeInOut' }}
+              className={`absolute ${card.offsetClass} floating-card px-4 py-3 flex items-center gap-2.5 min-w-[150px] z-30`}
             >
-              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center shrink-0`}>
+              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center shrink-0`}>
                 {card.icon}
               </div>
               <div>
-                <p className="text-[0.58rem] font-bold text-slate-400 uppercase tracking-wider leading-none">{card.label}</p>
-                <p className="text-[0.72rem] font-black text-slate-900 mt-0.5 leading-none">{card.value}</p>
+                <p className="text-[10px] font-semibold text-slate-500 tracking-wide leading-none">{card.label}</p>
+                <p className="text-xs font-bold text-slate-900 mt-1.5 leading-none">{card.value}</p>
               </div>
             </motion.div>
           ))}
@@ -203,21 +216,20 @@ export default function HeroBanner() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.5 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
           {[
-            { icon: <ShieldCheck className="w-5 h-5 text-cyan-400" />, title: '100% Chính Hãng', desc: 'CO/CQ đầy đủ, bảo hành hãng' },
-            { icon: <Truck className="w-5 h-5 text-orange-400" />, title: 'Giao Lắp 2H', desc: 'Nội thành Hà Nội & HCM' },
-            { icon: <Zap className="w-5 h-5 text-blue-400" />, title: 'Kỹ Thuật 24/7', desc: 'Xử lý sự cố mọi lúc mọi nơi' },
-            { icon: <CheckCircle className="w-5 h-5 text-green-400" />, title: 'Thanh Toán COD', desc: 'Nhận hàng, kiểm tra mới trả' },
+            { icon: <ShieldCheck className="w-6 h-6 text-cyan-400" />, title: 'Cam kết chính hãng 100%', desc: 'Thiết bị đầy đủ CO/CQ, kiểm tra nguồn gốc rõ ràng.' },
+            { icon: <CheckCircle className="w-6 h-6 text-green-400" />, title: 'Bảo hành tận nơi', desc: 'Tiếp nhận nhanh, hỗ trợ xử lý trong thời gian bảo hành.' },
+            { icon: <Zap className="w-6 h-6 text-blue-400" />, title: 'Báo giá minh bạch', desc: 'Kỹ thuật viên kiểm tra và báo giá trước khi sửa.' },
           ].map((item, i) => (
-            <div key={i} className="flex gap-3 items-center p-4 rounded-2xl bg-white/4 border border-white/7 backdrop-blur-sm hover:bg-white/7 transition-colors">
-              <div className="w-10 h-10 bg-white/6 border border-white/8 rounded-xl flex items-center justify-center shrink-0">
+            <div key={i} className="flex gap-4 items-center p-5 rounded-2xl bg-white/4 border border-white/7 backdrop-blur-sm hover:bg-white/8 transition-colors">
+              <div className="w-12 h-12 bg-white/5 border border-white/8 rounded-xl flex items-center justify-center shrink-0">
                 {item.icon}
               </div>
               <div>
-                <p className="text-xs font-bold text-white leading-snug">{item.title}</p>
-                <p className="text-[0.6rem] text-slate-400 mt-0.5">{item.desc}</p>
+                <p className="text-[15px] font-extrabold text-white leading-snug">{item.title}</p>
+                <p className="text-[13px] text-slate-300 mt-1 leading-relaxed">{item.desc}</p>
               </div>
             </div>
           ))}

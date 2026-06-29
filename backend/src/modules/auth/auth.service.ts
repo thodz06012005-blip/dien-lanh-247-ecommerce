@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException, ConflictException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../core/database/prisma.service';
@@ -71,11 +71,68 @@ export class AuthService {
     return tokens;
   }
 
+  async loginAdmin(dto: LoginDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    }
+
+    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      throw new ForbiddenException('Truy cập bị từ chối');
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException('Tài khoản đã bị khóa');
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
+
+    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 phút
+
+    return {
+      admin: {
+        id: String(user.id),
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        email: user.email,
+        role: user.role.toLowerCase(),
+        status: user.isActive ? 'active' : 'inactive',
+      },
+      token: tokens.accessToken,
+      expiresAt,
+    };
+  }
+
+  async getAdminProfile(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+    return {
+      admin: {
+        id: String(user.id),
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        email: user.email,
+        role: user.role.toLowerCase(),
+        status: user.isActive ? 'active' : 'inactive',
+      },
+    };
+  }
+
   async logout(userId: number) {
     await this.prisma.user.update({
       where: { id: userId },
       data: { refreshToken: null },
     });
+  }
+
+  async logoutAdmin(userId: number) {
+    await this.logout(userId);
   }
 
   private async generateTokens(userId: number, email: string, role: string) {

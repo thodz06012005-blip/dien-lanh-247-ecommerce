@@ -15,24 +15,31 @@ import { visualAssets } from '../constants/visualAssets';
 import PageTransition from '../components/common/PageTransition';
 import { useSettings } from '../hooks/useSettings';
 
-export default function Orders() {
+export default function Orders({ isEmbed = false }: { isEmbed?: boolean }) {
   const { settings } = useSettings();
-  const { isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const { showSuccess, showError } = useToastStore();
   const navigate = useNavigate();
 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [cancelModalOrderId, setCancelModalOrderId] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [phoneLookup, setPhoneLookup] = useState<string>('');
+  const [activePhone, setActivePhone] = useState<string>('');
+
+  const currentPhone = user?.phone || activePhone;
 
   // Load user orders list
   const { data: ordersData, isLoading, error, refetch } = useQuery({
-    queryKey: ['orders'],
+    queryKey: ['orders', currentPhone],
     queryFn: async () => {
-      const res = await api.get('/orders');
+      if (!currentPhone) {
+        return { success: true, data: [] };
+      }
+      const res = await api.get('/orders', { params: { phone: currentPhone } });
       return res.data;
     },
-    enabled: isAuthenticated,
+    enabled: !!currentPhone,
   });
 
   const orders = (ordersData?.data as Order[] || []);
@@ -49,7 +56,9 @@ export default function Orders() {
     if (!cancelModalOrderId) return;
     setIsCancelling(true);
     try {
-      const res = await api.patch(`/orders/${cancelModalOrderId}/cancel`);
+      const res = await api.patch(`/orders/${cancelModalOrderId}/cancel`, null, {
+        params: { phone: currentPhone },
+      });
       if (res.data?.success) {
         showSuccess(`Hủy đơn hàng ${cancelModalOrderId} thành công!`);
         setCancelModalOrderId(null);
@@ -74,20 +83,64 @@ export default function Orders() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (!isAuthenticated) {
+  const handleClearLookup = () => {
+    setActivePhone('');
+    setPhoneLookup('');
+  };
+
+  if (!currentPhone) {
     return (
       <PageTransition>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center flex flex-col items-center justify-center min-h-[50vh]">
-          <div className="w-20 h-20 bg-slate-100 rounded-[2rem] flex items-center justify-center mb-6 text-slate-400">
+        <div className="max-w-md mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[50vh]">
+          <div className="w-20 h-20 bg-blue-50/85 text-blue-600 rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-blue-100">
             <ClipboardList className="w-9 h-9" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Bạn chưa đăng nhập</h2>
-          <p className="text-xs text-slate-500 mt-2 max-w-sm leading-relaxed">
-            Vui lòng đăng nhập để xem lịch sử mua hàng, bảo hành sản phẩm và quản lý trạng thái các đơn hàng của bạn.
+          
+          <h2 className="text-xl font-bold text-slate-800 text-center">Tra cứu đơn hàng</h2>
+          <p className="text-xs text-slate-500 mt-2 text-center max-w-sm leading-relaxed mb-6">
+            Vui lòng đăng nhập tài khoản thành viên hoặc nhập số điện thoại đặt hàng để tra cứu lịch sử mua hàng.
           </p>
-          <Button variant="primary" className="mt-6 rounded-xl text-xs py-2.5 px-6 font-bold" onClick={() => navigate('/login')}>
-            Đăng nhập ngay
-          </Button>
+
+          <div className="w-full flex flex-col gap-4">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (phoneLookup.trim()) {
+                setActivePhone(phoneLookup.trim());
+              } else {
+                showError('Vui lòng nhập số điện thoại');
+              }
+            }} className="flex flex-col gap-3 p-5 bg-white border border-slate-100 rounded-2xl shadow-xs">
+              <label className="text-3xs font-extrabold uppercase text-slate-400 tracking-wider">
+                Tra cứu qua Số điện thoại
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nhập số điện thoại..."
+                  value={phoneLookup}
+                  onChange={(e) => setPhoneLookup(e.target.value)}
+                  className="flex-1 px-4 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <Button type="submit" variant="primary" className="rounded-xl text-3xs font-extrabold uppercase py-2 px-4">
+                  Tra cứu
+                </Button>
+              </div>
+            </form>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-slate-100"></div>
+              <span className="flex-shrink mx-4 text-slate-400 text-3xs uppercase font-extrabold tracking-wider">Hoặc</span>
+              <div className="flex-grow border-t border-slate-100"></div>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full rounded-xl text-xs py-3 px-6 font-bold"
+              onClick={() => navigate('/login')}
+            >
+              Đăng nhập tài khoản thành viên
+            </Button>
+          </div>
         </div>
       </PageTransition>
     );
@@ -106,17 +159,17 @@ export default function Orders() {
   const hotlineNumber = settings?.hotline || '1900 247';
   const zaloContact = settings?.zalo || '0900 000 247';
 
-  return (
-    <PageTransition>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        
-        {/* Render Order History List */}
-        {selectedOrder === null ? (
-          <div>
-            {/* Breadcrumbs */}
-            <Breadcrumb items={[{ name: 'Đơn hàng của tôi' }]} />
+  const mainContent = (
+    <div className={isEmbed ? "w-full" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"}>
+      
+      {/* Render Order History List */}
+      {selectedOrder === null ? (
+        <div>
+          {/* Breadcrumbs */}
+          {!isEmbed && <Breadcrumb items={[{ name: 'Đơn hàng của tôi' }]} />}
 
-            {/* Premium Hero Banner */}
+          {/* Premium Hero Banner */}
+          {!isEmbed && (
             <div className="relative mb-10 overflow-hidden bg-slate-900 rounded-[2rem] shadow-xl border border-slate-800 p-6 md:p-10 flex flex-col justify-center min-h-[160px] md:min-h-[200px]">
               {/* Background gradient & image overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-[#061527] via-[#061527]/95 to-transparent z-10" />
@@ -140,6 +193,23 @@ export default function Orders() {
                 </p>
               </div>
             </div>
+          )}
+
+            {activePhone && (
+              <div className="mb-8 p-5 bg-blue-50/50 border border-blue-100 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-3xs">
+                <div className="flex items-center gap-2.5 text-xs text-slate-700">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                  <span className="font-bold">Đang hiển thị đơn hàng cho số điện thoại:</span>
+                  <span className="bg-blue-100/80 text-blue-800 font-extrabold px-2.5 py-1 rounded-xl tracking-wide">{activePhone}</span>
+                </div>
+                <button 
+                  onClick={handleClearLookup} 
+                  className="text-3xs font-extrabold uppercase text-slate-500 hover:text-slate-800 border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 rounded-xl transition-all cursor-pointer shadow-3xs w-fit"
+                >
+                  Thay đổi số điện thoại
+                </button>
+              </div>
+            )}
 
             {isLoading ? (
               <div className="flex flex-col gap-4">
@@ -217,7 +287,7 @@ export default function Orders() {
                       {/* Right: Price & Action */}
                       <div className="flex items-center justify-between md:justify-end gap-5 w-full md:w-auto border-t md:border-t-0 border-slate-100 pt-3 md:pt-0">
                         <div className="text-left md:text-right">
-                          <span className="text-4xs text-slate-450 block font-bold uppercase tracking-wider">Tổng thanh toán</span>
+                          <span className="text-4xs text-slate-400 block font-bold uppercase tracking-wider">Tổng thanh toán</span>
                           <strong className="text-sm font-black text-primary-600">
                             {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.totalAmount)}
                           </strong>
@@ -251,12 +321,14 @@ export default function Orders() {
           /* Render Order Detail View */
           <div>
             {/* Breadcrumbs for detail */}
-            <Breadcrumb
-              items={[
-                { name: 'Đơn hàng của tôi', path: '/orders', onClick: handleBackToList },
-                { name: `Đơn hàng ${selectedOrder.id}` },
-              ]}
-            />
+            {!isEmbed && (
+              <Breadcrumb
+                items={[
+                  { name: 'Đơn hàng của tôi', path: '/orders', onClick: handleBackToList },
+                  { name: `Đơn hàng ${selectedOrder.id}` },
+                ]}
+              />
+            )}
 
             {/* Back to list button */}
             <button
@@ -286,13 +358,13 @@ export default function Orders() {
               </div>
 
               <div className="flex items-center gap-3 relative z-10">
-                <span className={`text-[10px] font-extrabold px-3.5 py-1.5 rounded-full border uppercase tracking-wider ${statusConfigs[selectedOrder.status]?.colorClass || 'bg-slate-850 text-slate-400'}`}>
+                <span className={`text-[10px] font-extrabold px-3.5 py-1.5 rounded-full border uppercase tracking-wider ${statusConfigs[selectedOrder.status]?.colorClass || 'bg-slate-800 text-slate-400'}`}>
                   {statusConfigs[selectedOrder.status]?.label || selectedOrder.status}
                 </span>
                 {selectedOrder.status === 'pending' && (
                   <button
                     onClick={(e) => handleOpenCancelModal(e, selectedOrder.id)}
-                    className="px-4 py-2 text-2xs font-extrabold bg-red-600/10 border border-red-200 text-red-650 hover:bg-red-600/20 rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2 text-2xs font-extrabold bg-red-600/10 border border-red-200 text-red-600 hover:bg-red-600/20 rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     Hủy đơn hàng
                   </button>
@@ -365,7 +437,7 @@ export default function Orders() {
                             >
                               {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
                             </div>
-                            <span className={`text-[10px] font-black uppercase tracking-wider mt-3 whitespace-nowrap ${isActive ? 'text-cyan-600' : isCompleted ? 'text-emerald-600' : 'text-slate-450'}`}>
+                            <span className={`text-[10px] font-black uppercase tracking-wider mt-3 whitespace-nowrap ${isActive ? 'text-cyan-600' : isCompleted ? 'text-emerald-600' : 'text-slate-400'}`}>
                               {step.label}
                             </span>
                             {step.date && (
@@ -400,7 +472,7 @@ export default function Orders() {
                               isCompleted 
                                 ? 'bg-emerald-500 text-white shadow'
                                 : isActive
-                                ? 'bg-cyan-500 text-white ring-2 ring-cyan-150 shadow'
+                                ? 'bg-cyan-500 text-white ring-2 ring-cyan-100 shadow'
                                 : 'bg-slate-100 text-slate-400 border border-slate-200'
                             }`}>
                               {isCompleted ? '✓' : idx + 1}
@@ -446,7 +518,7 @@ export default function Orders() {
                         <h4 className="text-xs font-black text-slate-900 line-clamp-2 leading-relaxed">
                           {item.name}
                         </h4>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-3xs text-slate-450 mt-1 font-semibold">
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-3xs text-slate-400 mt-1 font-semibold">
                           <span>SKU: {item.sku}</span>
                           <span>|</span>
                           <span>Số lượng: {item.quantity}</span>
@@ -599,7 +671,16 @@ export default function Orders() {
             </div>
           </div>
         </Modal>
-      </div>
+    </div>
+  );
+
+  if (isEmbed) {
+    return mainContent;
+  }
+
+  return (
+    <PageTransition>
+      {mainContent}
     </PageTransition>
   );
 }

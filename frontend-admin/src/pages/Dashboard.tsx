@@ -18,6 +18,24 @@ interface RecentOrder {
   date: string;
 }
 
+interface DashboardOrder {
+  id: string;
+  code: string;
+  status: string;
+  total: number;
+  createdAt: string;
+  deliveredAt?: string;
+}
+
+interface DashboardProduct {
+  id: string;
+  name: string;
+  sku: string;
+  stock: number;
+  lowStockThreshold: number;
+  thumbnail: string;
+}
+
 export default function Dashboard() {
   // Fetch dashboard stats
   const { data: statsData, isLoading: isLoadingStats, error: errorStats } = useQuery({
@@ -48,8 +66,8 @@ export default function Dashboard() {
   });
 
   const stats = statsData?.data;
-  const orders = ordersData?.data || [];
-  const products = productsData?.data || [];
+  const orders: DashboardOrder[] = ordersData?.data || [];
+  const products: DashboardProduct[] = productsData?.data || [];
 
   const columns: TableColumn<RecentOrder>[] = [
     {
@@ -119,10 +137,10 @@ export default function Dashboard() {
   });
   
   const revenueTrendData = last7Days.map(dateStr => {
-    return orders.filter((o: any) => o.status === 'delivered' && o.deliveredAt && o.deliveredAt.startsWith(dateStr)).reduce((sum: number, o: any) => sum + o.total, 0);
+    return orders.filter((o: DashboardOrder) => o.status === 'delivered' && o.deliveredAt && o.deliveredAt.startsWith(dateStr)).reduce((sum: number, o: DashboardOrder) => sum + o.total, 0);
   });
   const orderCount7Days = last7Days.map(dateStr => {
-    return orders.filter((o: any) => o.createdAt && o.createdAt.startsWith(dateStr)).length;
+    return orders.filter((o: DashboardOrder) => o.createdAt && o.createdAt.startsWith(dateStr)).length;
   });
   
   const revenueTrendLabels = last7Days.map(dateStr => {
@@ -143,7 +161,7 @@ export default function Dashboard() {
   const donutData = statuses.map(s => ({
     label: s.label,
     color: s.color,
-    count: orders.filter((o: any) => o.status === s.key).length
+    count: orders.filter((o: DashboardOrder) => o.status === s.key).length
   })).filter(d => d.count > 0);
   
   const totalDonut = donutData.reduce((sum, d) => sum + d.count, 0);
@@ -156,16 +174,16 @@ export default function Dashboard() {
   });
   
   const monthlySalesData = last6Months.map(monthStr => {
-    return orders.filter((o: any) => o.status === 'delivered' && o.deliveredAt && o.deliveredAt.startsWith(monthStr)).reduce((sum: number, o: any) => sum + o.total, 0);
+    return orders.filter((o: DashboardOrder) => o.status === 'delivered' && o.deliveredAt && o.deliveredAt.startsWith(monthStr)).reduce((sum: number, o: DashboardOrder) => sum + o.total, 0);
   });
   const monthlySalesLabels = last6Months.map(monthStr => `T${monthStr.split('-')[1]}`);
 
   // 4. Low Stock Products
   const lowStockProducts = products
-    .filter((p: any) => p.stock <= p.lowStockThreshold)
-    .sort((a: any, b: any) => a.stock - b.stock)
+    .filter((p: DashboardProduct) => p.stock <= p.lowStockThreshold)
+    .sort((a: DashboardProduct, b: DashboardProduct) => a.stock - b.stock)
     .slice(0, 5)
-    .map((p: any) => ({
+    .map((p: DashboardProduct) => ({
       id: p.id,
       name: p.name,
       sku: p.sku,
@@ -275,7 +293,7 @@ export default function Dashboard() {
         title="Đơn hàng gần đây" 
         noPadding 
         headerRight={
-          <Link to="/orders" className="text-2xs font-extrabold text-primary-600 hover:text-primary-750 flex items-center gap-0.5 uppercase tracking-wide">
+          <Link to="/orders" className="text-2xs font-extrabold text-primary-600 hover:text-primary-700 flex items-center gap-0.5 uppercase tracking-wide">
             Xem tất cả
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
@@ -283,7 +301,7 @@ export default function Dashboard() {
       >
         <Table
           columns={columns}
-          dataSource={(stats?.recentOrders || []).map((o: any, idx: number) => ({ ...o, key: o.orderNumber || idx }))}
+          dataSource={(stats?.recentOrders || []).map((o: RecentOrder, idx: number) => ({ ...o, key: o.orderNumber || String(idx) }))}
           emptyText="Chưa có đơn hàng nào hôm nay."
         />
       </Card>

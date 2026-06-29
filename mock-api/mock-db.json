@@ -107,8 +107,8 @@
     }
   ],
   "settings": {
-    "storeName": "Điện Lạnh Uy Tín",
-    "hotline": "0999 888 777",
+    "storeName": "Điện Lạnh 247",
+    "hotline": "1900 1234",
     "zalo": "0987654321",
     "email": "support@dienlanh247.vn",
     "address": "123 Đường Cầu Giấy, Hà Nội",
@@ -116,6 +116,72 @@
     "freeShippingThreshold": 10000000
   },
   "products": [
+    {
+      "id": "dh-daikin-ftkf25xvmv",
+      "name": "Điều hòa Daikin Inverter 1 HP FTKF25XVMV",
+      "slug": "dieu-hoa-daikin-inverter-1-hp-ftkf25xvmv",
+      "sku": "FTKF25XVMV",
+      "categoryId": "dieu-hoa",
+      "brandId": "daikin",
+      "basePrice": 11990000,
+      "salePrice": 10490000,
+      "isFeatured": true,
+      "isBestSeller": true,
+      "isNewArrival": false,
+      "stock": 18,
+      "rating": 4.8,
+      "reviewCount": 45,
+      "images": [
+        "https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=600&auto=format&fit=crop"
+      ],
+      "description": "Điều hòa Daikin FTKF25XVMV sở hữu thiết kế hiện đại, công nghệ luồng gió Coanda độc quyền giúp bảo vệ sức khỏe, cùng công nghệ tiết kiệm điện Inverter tiên tiến mang lại cảm giác dễ chịu và hóa đơn tiền điện thấp hơn.",
+      "specifications": [
+        {
+          "name": "Công suất lạnh",
+          "value": "1 HP (9.200 BTU)"
+        },
+        {
+          "name": "Phạm vi sử dụng",
+          "value": "Dưới 15m² (từ 30 đến 45 m³)"
+        },
+        {
+          "name": "Công nghệ tiết kiệm điện",
+          "value": "Inverter - Tiết kiệm điện năng vượt trội"
+        },
+        {
+          "name": "Loại Gas",
+          "value": "R32 thân thiện môi trường"
+        },
+        {
+          "name": "Đặc điểm nổi bật",
+          "value": "Luồng gió Coanda, phin lọc Enzyme Blue tích hợp PM2.5"
+        },
+        {
+          "name": "Xuất xứ",
+          "value": "Việt Nam"
+        },
+        {
+          "name": "Năm ra mắt",
+          "value": "2023"
+        },
+        {
+          "name": "Bảo hành",
+          "value": "Cục lạnh 1 năm, Máy nén 5 năm"
+        }
+      ],
+      "features": [
+        "Công nghệ Inverter tiết kiệm điện tối ưu, vận hành cực kỳ êm ái",
+        "Luồng gió Coanda tránh thổi trực tiếp vào cơ thể, bảo vệ sức khỏe cả nhà",
+        "Phin lọc Enzyme Blue kết hợp lọc bụi mịn PM2.5 khử mùi diệt khuẩn",
+        "Chức năng chống ẩm mốc giúp dàn lạnh luôn sạch sẽ khô ráo"
+      ],
+      "thumbnail": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=600&auto=format&fit=crop",
+      "status": "active",
+      "lowStockThreshold": 3,
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
+    },
     {
       "id": "dh-panasonic-xu9zkh8",
       "name": "Điều hòa Panasonic Inverter 1 HP CU/CS-XU9ZKH-8",
@@ -128,11 +194,12 @@
       "isFeatured": true,
       "isBestSeller": false,
       "isNewArrival": true,
-      "stock": 11,
+      "stock": 12,
       "rating": 4.9,
       "reviewCount": 32,
       "images": [
-        "https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=600&auto=format&fit=crop"
+        "https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=600&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=600&auto=format&fit=crop"
       ],
       "description": "Dòng điều hòa cao cấp Panasonic XU9ZKH-8 tích hợp công nghệ Nanoe™ X thế hệ II lọc không khí sạch vượt trội suốt 24 giờ, kết hợp Inverter và Eco thông minh AI giúp tối đa hóa khả năng tiết kiệm điện năng.",
       "specifications": [
@@ -178,8 +245,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T19:00:52.872Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "tl-lg-grb256bl",
@@ -244,8 +311,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1571175432290-ef713134d131?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "mg-lg-fv1410s4w",
@@ -305,8 +372,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "bnl-ariston-vitaly20",
@@ -366,8 +433,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "mlkk-sharp-fpjm30ev",
@@ -427,12 +494,12 @@
       "thumbnail": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "ms-electrolux-eds854n3sb",
-      "name": "Máy sấy thông hơi Electrolux 8.5 Kg EDS854N3SB",
+      "name": "Máy sấy quần áo Electrolux EDS854N3SB 8.5 Kg",
       "slug": "may-say-thong-hoi-electrolux-85-kg-eds854n3sb",
       "sku": "EDS854N3SB",
       "categoryId": "may-say",
@@ -442,7 +509,7 @@
       "isFeatured": true,
       "isBestSeller": false,
       "isNewArrival": true,
-      "stock": 7,
+      "stock": 8,
       "rating": 4.8,
       "reviewCount": 15,
       "images": [
@@ -484,8 +551,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T19:00:52.872Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "td-sanaky-vh2599a1",
@@ -545,8 +612,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1571175432290-ef713134d131?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "lk-block-daikin-1hp",
@@ -594,15 +661,15 @@
         }
       ],
       "features": [
-        "Máy nén chính hãng Daikin đảm bảo hiệu suất nén cao và tiết kiệm điện năng",
+        "Máy nén chính hãng Daikin đảm bảo hiệu suất nén cao and tiết kiệm điện năng",
         "Vận hành cực êm ái ít tiếng ồn khó chịu",
         "Độ bền vật liệu cao, chống ăn mòn và quá tải tốt"
       ],
       "thumbnail": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "lk-remote-daikin",
@@ -616,7 +683,7 @@
       "isFeatured": false,
       "isBestSeller": true,
       "isNewArrival": false,
-      "stock": 120,
+      "stock": 119,
       "rating": 4.5,
       "reviewCount": 88,
       "images": [
@@ -653,8 +720,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1595787143151-e601da948ea8?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.598Z"
     },
     {
       "id": "dv-bao-duong-dh",
@@ -706,8 +773,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "dh-daikin-ftkf35xvmv",
@@ -763,8 +830,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "tl-panasonic-bz221qskv",
@@ -828,8 +895,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "mg-samsung-ww90t3040ww",
@@ -885,8 +952,8 @@
       "thumbnail": "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     },
     {
       "id": "mlkk-xiaomi-4lite",
@@ -946,119 +1013,43 @@
       "thumbnail": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=600&auto=format&fit=crop",
       "status": "active",
       "lowStockThreshold": 3,
-      "createdAt": "2026-06-19T15:28:18.447Z",
-      "updatedAt": "2026-06-19T15:28:18.447Z"
+      "createdAt": "2026-06-29T05:16:26.481Z",
+      "updatedAt": "2026-06-29T05:16:26.481Z"
     }
   ],
   "orders": [
     {
-      "id": "DL247-497593",
-      "code": "DL247-497593",
-      "customerName": "user Demo",
-      "phone": "0987654321",
-      "email": "user@gmail.com",
+      "id": "DL247-336694",
+      "code": "DL247-336694",
+      "customerName": "Customer Test Payment",
+      "phone": "0911222333",
+      "email": "",
       "address": {
         "province": "Hà Nội",
         "district": "Quận Cầu Giấy",
-        "detail": "Số 12 Ngõ 34 Trần Thái Tông"
+        "detail": "123 Test"
       },
       "note": "",
       "items": [
         {
-          "productId": "ms-electrolux-eds854n3sb",
-          "name": "Máy sấy thông hơi Electrolux 8.5 Kg EDS854N3SB",
-          "sku": "EDS854N3SB",
-          "thumbnail": "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?q=80&w=600&auto=format&fit=crop",
-          "price": 9990000,
+          "productId": "lk-remote-daikin",
+          "name": "Điều khiển điều hòa Daikin Inverter 2 chiều đa năng",
+          "sku": "REMOTE-DK-INV",
+          "thumbnail": "https://images.unsplash.com/photo-1595787143151-e601da948ea8?q=80&w=600&auto=format&fit=crop",
+          "price": 180000,
           "quantity": 1,
-          "total": 9990000
-        },
-        {
-          "productId": "dh-panasonic-xu9zkh8",
-          "name": "Điều hòa Panasonic Inverter 1 HP CU/CS-XU9ZKH-8",
-          "sku": "CU/CS-XU9ZKH-8",
-          "thumbnail": "https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=600&auto=format&fit=crop",
-          "price": 14790000,
-          "quantity": 1,
-          "total": 14790000
+          "total": 180000
         }
       ],
-      "subtotal": 24780000,
+      "subtotal": 180000,
       "shippingFee": 30000,
       "discount": 0,
-      "total": 24810000,
+      "total": 210000,
       "paymentMethod": "COD",
       "paymentStatus": "unpaid",
       "status": "pending",
-      "createdAt": "2026-06-19T19:00:52.872Z",
-      "updatedAt": "2026-06-19T19:00:52.872Z"
-    },
-    {
-      "id": "DL247-137874",
-      "code": "DL247-137874",
-      "customerName": "user Demo",
-      "phone": "0987654321",
-      "email": "user@gmail.com",
-      "address": {
-        "province": "Hà Nội",
-        "district": "Quận Cầu Giấy",
-        "detail": "Số 12 Ngõ 34 Trần Thái Tông"
-      },
-      "note": "",
-      "items": [
-        {
-          "productId": "dh-daikin-ftkf25xvmv",
-          "name": "Điều hòa Daikin Inverter 1 HP FTKF25XVMV",
-          "sku": "FTKF25XVMV",
-          "thumbnail": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=600&auto=format&fit=crop",
-          "price": 10490000,
-          "quantity": 1,
-          "total": 10490000
-        }
-      ],
-      "subtotal": 10490000,
-      "shippingFee": 30000,
-      "discount": 0,
-      "total": 10520000,
-      "paymentMethod": "COD",
-      "paymentStatus": "unpaid",
-      "status": "processing",
-      "createdAt": "2026-06-19T15:50:44.934Z",
-      "updatedAt": "2026-06-19T15:50:56.064Z"
-    },
-    {
-      "id": "DL247-409419",
-      "code": "DL247-409419",
-      "customerName": "Trần Minh Đức",
-      "phone": "0901234567",
-      "email": "duc.tm@gmail.com",
-      "address": {
-        "province": "Hà Nội",
-        "district": "Quận Cầu Giấy",
-        "detail": "Số 10 Trần Thái Tông"
-      },
-      "note": "Giao buổi tối",
-      "items": [
-        {
-          "productId": "dh-daikin-ftkf25xvmv",
-          "name": "Điều hòa Daikin Inverter 1 HP FTKF25XVMV",
-          "sku": "FTKF25XVMV",
-          "thumbnail": "https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=600&auto=format&fit=crop",
-          "price": 10490000,
-          "quantity": 2,
-          "total": 20980000
-        }
-      ],
-      "subtotal": 20980000,
-      "shippingFee": 30000,
-      "discount": 0,
-      "total": 21010000,
-      "paymentMethod": "COD",
-      "paymentStatus": "paid",
-      "status": "delivered",
-      "createdAt": "2026-06-19T15:28:18.479Z",
-      "updatedAt": "2026-06-19T15:28:18.544Z",
-      "deliveredAt": "2026-06-19T15:28:18.544Z"
+      "createdAt": "2026-06-29T05:16:26.599Z",
+      "updatedAt": "2026-06-29T05:16:26.599Z"
     },
     {
       "id": "DL247-849204",
@@ -1068,7 +1059,7 @@
       "email": "nam.nv@gmail.com",
       "address": {
         "province": "Hà Nội",
-        "district": "Quận Cầu Giấy",
+        "district": "Cầu Giấy",
         "detail": "Số 12 Ngõ 34 Trần Thái Tông"
       },
       "note": "Giao giờ hành chính",
@@ -1102,7 +1093,7 @@
       "email": "nam.nv@gmail.com",
       "address": {
         "province": "Hà Nội",
-        "district": "Quận Cầu Giấy",
+        "district": "Cầu Giấy",
         "detail": "Số 12 Ngõ 34 Trần Thái Tông"
       },
       "items": [
@@ -1133,19 +1124,282 @@
       "name": "Nguyễn Văn Nam",
       "phone": "0987654321",
       "email": "nam.nv@gmail.com",
-      "orderCount": 4,
-      "totalSpent": 45149000,
+      "orderCount": 2,
+      "totalSpent": 9819000,
       "createdAt": "2026-06-15T09:12:00.000Z"
     },
     {
-      "id": "cust-1781882898479",
-      "name": "Trần Minh Đức",
-      "phone": "0901234567",
-      "email": "duc.tm@gmail.com",
+      "id": "cust-1782710186599",
+      "name": "Customer Test Payment",
+      "phone": "0911222333",
+      "email": "",
       "orderCount": 1,
-      "totalSpent": 21010000,
-      "createdAt": "2026-06-19T15:28:18.479Z"
+      "totalSpent": 210000,
+      "createdAt": "2026-06-29T05:16:26.599Z"
     }
   ],
-  "contacts": []
+  "contacts": [],
+  "serviceCategories": [
+    {
+      "id": "sua-dieu-hoa",
+      "name": "Sửa điều hòa",
+      "slug": "sua-dieu-hoa",
+      "icon": "Wind",
+      "description": "Sửa chữa các loại điều hòa treo tường, âm trần, tủ đứng"
+    },
+    {
+      "id": "ve-sinh-dieu-hoa",
+      "name": "Vệ sinh điều hòa",
+      "slug": "ve-sinh-dieu-hoa",
+      "icon": "Droplets",
+      "description": "Vệ sinh bảo dưỡng điều hòa định kỳ, xịt rửa chuyên sâu"
+    },
+    {
+      "id": "lap-dat-dieu-hoa",
+      "name": "Lắp đặt điều hòa",
+      "slug": "lap-dat-dieu-hoa",
+      "icon": "Drill",
+      "description": "Lắp đặt điều hòa mới, di dời máy, thay đổi vị trí"
+    },
+    {
+      "id": "sua-tu-lanh",
+      "name": "Sửa tủ lạnh",
+      "slug": "sua-tu-lanh",
+      "icon": "Snowflake",
+      "description": "Sửa chữa tủ lạnh, tủ đông các hãng"
+    },
+    {
+      "id": "sua-may-giat",
+      "name": "Sửa máy giặt",
+      "slug": "sua-may-giat",
+      "icon": "WashingMachine",
+      "description": "Sửa chữa máy giặt cửa trước, cửa trên các hãng"
+    },
+    {
+      "id": "bao-tri-dinh-ky",
+      "name": "Bảo trì định kỳ",
+      "slug": "bao-tri-dinh-ky",
+      "icon": "Wrench",
+      "description": "Gói bảo trì định kỳ cho các thiết bị điện lạnh"
+    }
+  ],
+  "serviceRequests": [
+    {
+      "id": "SR-186605",
+      "customerName": "Customer District Test",
+      "customerPhone": "0912345678",
+      "customerAddress": "123 Test St",
+      "district": "Quận Cầu Giấy",
+      "serviceCategoryId": "ve-sinh-dieu-hoa",
+      "applianceType": "Điều hòa",
+      "issueDescription": "Bảo trì",
+      "images": [],
+      "preferredDate": "2026-07-20",
+      "preferredTimeSlot": "10:00 - 12:00",
+      "note": "",
+      "status": "pending",
+      "assignedTechnicianId": null,
+      "priority": "medium",
+      "estimatedPrice": 0,
+      "finalPrice": 0,
+      "paymentStatus": "unpaid",
+      "statusHistory": [
+        {
+          "status": "pending",
+          "note": "Khách hàng vừa gửi yêu cầu dịch vụ",
+          "updatedBy": "customer",
+          "createdAt": "2026-06-29T05:16:26.605Z"
+        }
+      ],
+      "createdAt": "2026-06-29T05:16:26.605Z",
+      "updatedAt": "2026-06-29T05:16:26.605Z"
+    },
+    {
+      "id": "SR-186485",
+      "customerName": "Customer 4",
+      "customerPhone": "0911111111",
+      "customerAddress": "123 Test St",
+      "district": "Quận Cầu Giấy",
+      "serviceCategoryId": "ve-sinh-dieu-hoa",
+      "applianceType": "Điều hòa",
+      "issueDescription": "Vệ sinh máy",
+      "images": [],
+      "preferredDate": "2026-07-10",
+      "preferredTimeSlot": "10:00 - 12:00",
+      "note": "",
+      "status": "confirmed",
+      "assignedTechnicianId": null,
+      "priority": "medium",
+      "estimatedPrice": 0,
+      "finalPrice": 0,
+      "paymentStatus": "unpaid",
+      "statusHistory": [
+        {
+          "status": "pending",
+          "note": "Khách hàng vừa gửi yêu cầu dịch vụ",
+          "updatedBy": "customer",
+          "createdAt": "2026-06-29T05:16:26.485Z"
+        },
+        {
+          "status": "confirmed",
+          "note": "Cập nhật trạng thái thành confirmed",
+          "updatedBy": "admin",
+          "createdAt": "2026-06-29T05:16:26.488Z"
+        }
+      ],
+      "createdAt": "2026-06-29T05:16:26.485Z",
+      "updatedAt": "2026-06-29T05:16:26.488Z"
+    },
+    {
+      "id": "SR-240601",
+      "customerName": "Nguyễn Văn Nam",
+      "customerPhone": "0987654321",
+      "customerAddress": "Số 12 Ngõ 34 Trần Thái Tông",
+      "district": "Quận Cầu Giấy",
+      "priority": "medium",
+      "serviceCategoryId": "ve-sinh-dieu-hoa",
+      "applianceType": "Điều hòa treo tường",
+      "issueDescription": "Điều hòa chạy yếu, không mát, có mùi hôi khi bật máy. Cần vệ sinh tổng thể dàn lạnh và dàn nóng.",
+      "images": [],
+      "preferredDate": "2026-07-05",
+      "preferredTimeSlot": "08:00 - 10:00",
+      "note": "Gọi trước khi đến 30 phút",
+      "status": "assigned",
+      "assignedTechnicianId": "TECH-001",
+      "estimatedPrice": 250000,
+      "finalPrice": 0,
+      "paymentStatus": "unpaid",
+      "statusHistory": [
+        {
+          "status": "pending",
+          "note": "Khách hàng vừa gửi yêu cầu dịch vụ",
+          "updatedBy": "customer",
+          "createdAt": "2026-06-20T08:00:00.000Z"
+        },
+        {
+          "status": "confirmed",
+          "note": "Đã xác nhận lịch hẹn với khách hàng",
+          "updatedBy": "admin",
+          "createdAt": "2026-06-20T09:30:00.000Z"
+        },
+        {
+          "status": "assigned",
+          "note": "Phân công kỹ thuật viên Nguyễn Văn Hùng",
+          "updatedBy": "admin",
+          "createdAt": "2026-06-29T05:16:26.492Z"
+        }
+      ],
+      "createdAt": "2026-06-20T08:00:00.000Z",
+      "updatedAt": "2026-06-29T05:16:26.492Z"
+    },
+    {
+      "id": "SR-240602",
+      "customerName": "Trần Thị Hoa",
+      "customerPhone": "0912345678",
+      "customerAddress": "45 Láng Hạ",
+      "district": "Quận Đống Đa",
+      "priority": "medium",
+      "serviceCategoryId": "sua-dieu-hoa",
+      "applianceType": "Điều hòa Inverter",
+      "issueDescription": "Điều hòa bật không lên, đèn báo nhấp nháy liên tục. Đã thử reset nhưng không được.",
+      "images": [],
+      "preferredDate": "2026-07-06",
+      "preferredTimeSlot": "14:00 - 16:00",
+      "note": "",
+      "status": "pending",
+      "assignedTechnicianId": null,
+      "estimatedPrice": 0,
+      "finalPrice": 0,
+      "paymentStatus": "unpaid",
+      "statusHistory": [
+        {
+          "status": "pending",
+          "note": "Khách hàng vừa gửi yêu cầu dịch vụ",
+          "updatedBy": "customer",
+          "createdAt": "2026-06-21T10:15:00.000Z"
+        }
+      ],
+      "createdAt": "2026-06-21T10:15:00.000Z",
+      "updatedAt": "2026-06-21T10:15:00.000Z"
+    }
+  ],
+  "technicians": [
+    {
+      "id": "TECH-001",
+      "name": "Nguyễn Văn Hùng",
+      "phone": "0981112222",
+      "email": "hung.nv@dienlanh247.vn",
+      "avatar": "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?q=80&w=200&auto=format&fit=crop",
+      "rating": 4.8,
+      "skills": [
+        "sua-dieu-hoa",
+        "ve-sinh-dieu-hoa"
+      ],
+      "workingAreas": [
+        "Quận Cầu Giấy",
+        "Quận Nam Từ Liêm"
+      ],
+      "status": "busy",
+      "completedCount": 24,
+      "createdAt": "2026-06-29T05:16:26.481Z"
+    },
+    {
+      "id": "TECH-002",
+      "name": "Trần Minh Hải",
+      "phone": "0982223333",
+      "email": "hai.tm@dienlanh247.vn",
+      "avatar": "https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=200&auto=format&fit=crop",
+      "rating": 4.7,
+      "skills": [
+        "sua-tu-lanh",
+        "sua-may-giat",
+        "sua-dieu-hoa"
+      ],
+      "workingAreas": [
+        "Quận Đống Đa",
+        "Quận Thanh Xuân"
+      ],
+      "status": "available",
+      "completedCount": 18,
+      "createdAt": "2026-06-29T05:16:26.481Z"
+    },
+    {
+      "id": "TECH-003",
+      "name": "Lê Hoàng Nam",
+      "phone": "0983334444",
+      "email": "nam.lh@dienlanh247.vn",
+      "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop",
+      "rating": 4.9,
+      "skills": [
+        "sua-dieu-hoa",
+        "lap-dat-dieu-hoa"
+      ],
+      "workingAreas": [
+        "Quận Ba Đình",
+        "Quận Tây Hồ"
+      ],
+      "status": "busy",
+      "completedCount": 35,
+      "createdAt": "2026-06-29T05:16:26.481Z"
+    },
+    {
+      "id": "TECH-004",
+      "name": "Phạm Quốc Huy",
+      "phone": "0984445555",
+      "email": "huy.pq@dienlanh247.vn",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop",
+      "rating": 4.5,
+      "skills": [
+        "bao-tri-dinh-ky",
+        "ve-sinh-dieu-hoa"
+      ],
+      "workingAreas": [
+        "Quận Hai Bà Trưng",
+        "Quận Hoàng Mai"
+      ],
+      "status": "available",
+      "completedCount": 12,
+      "createdAt": "2026-06-29T05:16:26.481Z"
+    }
+  ]
 }

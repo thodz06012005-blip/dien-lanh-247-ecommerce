@@ -9,6 +9,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
         (request: Request) => request.cookies?.['accessToken'],
       ]),
       ignoreExpiration: false,
@@ -20,3 +21,4 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return { userId: payload.sub, email: payload.email, role: payload.role };
   }
 }
+

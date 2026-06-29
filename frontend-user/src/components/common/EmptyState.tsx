@@ -13,7 +13,7 @@ interface EmptyStateProps {
 }
 
 export default function EmptyState({
-  icon = <ShoppingBag className="w-16 h-16 text-slate-305" />,
+  icon = <ShoppingBag className="w-16 h-16 text-slate-300" />,
   title = 'Danh sách trống',
   description = 'Không tìm thấy dữ liệu nào phù hợp hoặc danh sách hiện tại đang trống.',
   actionText,

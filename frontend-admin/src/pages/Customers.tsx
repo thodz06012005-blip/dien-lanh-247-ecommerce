@@ -35,7 +35,7 @@ export default function Customers() {
   const customersList = data?.data || [];
 
   // Filter customers based on search text
-  const filteredCustomers = customersList.filter((c: any) => {
+  const filteredCustomers = customersList.filter((c: Customer) => {
     const searchLower = searchText.toLowerCase();
     return (
       (c.name || '').toLowerCase().includes(searchLower) ||
@@ -88,7 +88,7 @@ export default function Customers() {
       render: (row) => {
         try {
           return <span className="text-slate-500 font-medium text-xs">{new Date(row.createdAt).toLocaleDateString('vi-VN')}</span>;
-        } catch (e) {
+        } catch {
           return row.createdAt;
         }
       }
@@ -134,7 +134,7 @@ export default function Customers() {
       <Card noPadding className="overflow-hidden shadow-sm border-slate-200/60">
         <Table
           columns={columns}
-          dataSource={filteredCustomers.map((c: any, index: number) => ({ ...c, key: c.id || index }))}
+          dataSource={filteredCustomers.map((c: Customer, index: number) => ({ ...c, key: c.id || index }))}
           emptyText="Không tìm thấy khách hàng nào khớp với tìm kiếm."
         />
       </Card>

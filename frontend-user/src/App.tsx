@@ -13,6 +13,11 @@ import Orders from './pages/Orders';
 import Contact from './pages/Contact';
 import About from './pages/About';
 import Policy from './pages/Policy';
+import Services from './pages/Services';
+import ServiceBooking from './pages/ServiceBooking';
+import ServiceBookingSuccess from './pages/ServiceBookingSuccess';
+import MyServices from './pages/MyServices';
+import MyServiceDetail from './pages/MyServiceDetail';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -37,6 +42,11 @@ function App() {
           <Route path="checkout" element={<Checkout />} />
           <Route path="account" element={<Account />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="services" element={<Services />} />
+          <Route path="service-booking" element={<ServiceBooking />} />
+          <Route path="service-booking/success" element={<ServiceBookingSuccess />} />
+          <Route path="my-services" element={<MyServices />} />
+          <Route path="my-services/:id" element={<MyServiceDetail />} />
           <Route path="contact" element={<Contact />} />
           <Route path="about" element={<About />} />
           <Route path="policy/:slug" element={<Policy />} />

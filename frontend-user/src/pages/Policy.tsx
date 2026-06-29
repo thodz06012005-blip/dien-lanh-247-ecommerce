@@ -17,7 +17,7 @@ export default function Policy() {
       title: 'Chính sách bảo hành dài hạn',
       icon: <ShieldCheck className="w-10 h-10 text-primary-600" />,
       content: (
-        <div className="flex flex-col gap-4 text-xs text-slate-650 leading-relaxed">
+        <div className="flex flex-col gap-4 text-xs text-slate-600 leading-relaxed">
           <p>
             Tất cả sản phẩm thiết bị điện máy, điện lạnh do <strong>Điện Lạnh 247</strong> phân phối đều được bảo hành kép nhằm tối ưu lợi ích và an tâm tuyệt đối của khách hàng.
           </p>
@@ -54,7 +54,7 @@ export default function Policy() {
       title: 'Chính sách đổi trả trong 7 ngày',
       icon: <RotateCcw className="w-10 h-10 text-primary-600" />,
       content: (
-        <div className="flex flex-col gap-4 text-xs text-slate-650 leading-relaxed">
+        <div className="flex flex-col gap-4 text-xs text-slate-600 leading-relaxed">
           <p>
             Điện Lạnh 247 áp dụng chính sách đổi trả linh hoạt hỗ trợ người dùng tối đa khi phát sinh lỗi sản xuất nghiêm trọng.
           </p>
@@ -79,7 +79,7 @@ export default function Policy() {
       title: 'Chính sách giao nhận & Lắp ráp 2h',
       icon: <Truck className="w-10 h-10 text-primary-600" />,
       content: (
-        <div className="flex flex-col gap-4 text-xs text-slate-650 leading-relaxed">
+        <div className="flex flex-col gap-4 text-xs text-slate-600 leading-relaxed">
           <p>
             Với mong muốn đáp ứng nhu cầu làm mát khẩn cấp của khách hàng, Điện Lạnh 247 xây dựng dịch vụ giao nhận lắp ráp siêu tốc.
           </p>
@@ -102,7 +102,7 @@ export default function Policy() {
       title: 'Chính sách thanh toán linh hoạt',
       icon: <CreditCard className="w-10 h-10 text-primary-600" />,
       content: (
-        <div className="flex flex-col gap-4 text-xs text-slate-650 leading-relaxed">
+        <div className="flex flex-col gap-4 text-xs text-slate-600 leading-relaxed">
           <p>
             Điện Lạnh 247 hỗ trợ đa dạng phương thức thanh toán an toàn, minh bạch cho khách hàng dễ dàng giao dịch.
           </p>
@@ -127,7 +127,7 @@ export default function Policy() {
       title: 'Chính sách bảo mật thông tin',
       icon: <Lock className="w-10 h-10 text-primary-600" />,
       content: (
-        <div className="flex flex-col gap-4 text-xs text-slate-650 leading-relaxed">
+        <div className="flex flex-col gap-4 text-xs text-slate-600 leading-relaxed">
           <p>
             Điện Lạnh 247 cam kết bảo vệ tuyệt đối thông tin cá nhân của khách hàng khi đặt mua sản phẩm và dịch vụ trên hệ thống.
           </p>
@@ -197,11 +197,11 @@ export default function Policy() {
                 className={`flex justify-between items-center px-4 py-3 rounded-xl transition-all ${
                   slug === link.slug
                     ? 'bg-primary-50 text-primary-600'
-                    : 'text-slate-650 hover:bg-slate-50'
+                    : 'text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <span>{link.name}</span>
-                <ArrowRight className={`w-3.5 h-3.5 ${slug === link.slug ? 'text-primary-600' : 'text-slate-350'}`} />
+                <ArrowRight className={`w-3.5 h-3.5 ${slug === link.slug ? 'text-primary-600' : 'text-slate-300'}`} />
               </Link>
             ))}
           </div>

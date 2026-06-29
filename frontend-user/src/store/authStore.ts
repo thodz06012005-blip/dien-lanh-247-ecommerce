@@ -25,7 +25,7 @@ const getStoredUser = (): User | null => {
   try {
     const userStr = localStorage.getItem('dl247_user');
     return userStr ? JSON.parse(userStr) : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 };

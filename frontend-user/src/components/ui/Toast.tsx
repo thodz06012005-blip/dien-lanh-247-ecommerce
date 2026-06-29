@@ -52,7 +52,7 @@ function ToastCard({ toast, onClose }: ToastCardProps) {
       </div>
       <button
         onClick={onClose}
-        className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-650 transition-colors"
+        className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
       >
         <X className="w-3.5 h-3.5" />
       </button>

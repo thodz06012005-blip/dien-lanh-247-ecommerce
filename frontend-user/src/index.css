@@ -30,6 +30,8 @@
   --color-cta-orange: #f97316;
 
   --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-3xs: 0.5625rem; /* 9px */
+  --font-size-2xs: 0.625rem;  /* 10px */
 }
 
 /* ─── EXISTING UTILITIES (preserved) ──────────────────────────── */

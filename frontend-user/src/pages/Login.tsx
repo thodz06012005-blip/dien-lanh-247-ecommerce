@@ -72,14 +72,14 @@ export default function Login() {
           </h2>
           <p className="text-xs text-slate-500 mt-2">
             Chưa có tài khoản?{' '}
-            <Link to="/register" className="font-bold text-primary-600 hover:text-primary-750 transition-colors">
+            <Link to="/register" className="font-bold text-primary-600 hover:text-primary-700 transition-colors">
               Đăng ký tài khoản mới
             </Link>
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-100 text-red-650 p-4 rounded-2xl text-2xs text-center leading-relaxed">
+          <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl text-2xs text-center leading-relaxed">
             {error}
           </div>
         )}
@@ -106,7 +106,7 @@ export default function Login() {
               <input type="checkbox" className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-slate-300" />
               <span>Ghi nhớ</span>
             </label>
-            <a href="#" className="font-bold text-slate-500 hover:text-primary-605 transition-colors">
+            <a href="#" className="font-bold text-slate-500 hover:text-primary-600 transition-colors">
               Quên mật khẩu?
             </a>
           </div>

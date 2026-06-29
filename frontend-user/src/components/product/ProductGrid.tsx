@@ -17,7 +17,7 @@ export default function ProductGrid({
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {[...Array(skeletonCount)].map((_, i) => (
-          <div key={i} className="bg-white rounded-3xl p-5 border border-slate-105 shadow-sm flex flex-col gap-4">
+          <div key={i} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex flex-col gap-4">
             <Skeleton className="w-full aspect-square rounded-2xl" />
             <Skeleton className="h-4 w-1/3 rounded" />
             <Skeleton className="h-5 w-3/4 rounded" />

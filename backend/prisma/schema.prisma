@@ -334,3 +334,112 @@ model Coupon {
   @@index([code])
   @@index([isActive, startDate, endDate])
 }
+
+// ========================
+// SERVICE REQUESTS & TECHNICIANS (Added in 10A)
+// ========================
+enum ServiceRequestStatus {
+  pending
+  confirmed
+  assigned
+  completed
+  cancelled
+}
+
+enum ServiceRequestPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum TechnicianStatus {
+  available
+  busy
+  offline
+  inactive
+}
+
+model ServiceCategory {
+  id          String           @id // e.g. "sua-dieu-hoa", "ve-sinh-dieu-hoa"
+  name        String
+  slug        String           @unique
+  icon        String?
+  description String?          @db.Text
+  requests    ServiceRequest[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([slug])
+}
+
+model Technician {
+  id             String           @id // e.g. "TECH-001"
+  name           String
+  phone          String           @unique
+  email          String           @unique
+  avatar         String?
+  rating         Decimal          @db.Decimal(3, 2) @default(5.0)
+  skills         Json             // Array of service category IDs, e.g. ["sua-dieu-hoa"]
+  workingAreas   Json             // Array of districts, e.g. ["Quận Cầu Giấy"]
+  status         TechnicianStatus @default(available)
+  completedCount Int              @default(0)
+  requests       ServiceRequest[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([status])
+}
+
+model ServiceRequest {
+  id                   String                 @id // e.g. "SR-240601"
+  customerName         String
+  customerPhone        String
+  customerAddress      String
+  district             String
+  priority             ServiceRequestPriority @default(medium)
+  applianceType        String
+  issueDescription     String                 @db.Text
+  images               Json?                  // Array of image URLs
+  preferredDate        String                 // e.g. "2026-07-05"
+  preferredTimeSlot    String                 // e.g. "08:00 - 10:00"
+  note                 String?                @db.Text
+  status               ServiceRequestStatus   @default(pending)
+  estimatedPrice       Decimal                @db.Decimal(12, 2) @default(0)
+  finalPrice           Decimal                @db.Decimal(12, 2) @default(0)
+  paymentStatus        String                 @default("unpaid") // "unpaid" | "paid"
+  statusHistory        Json?                  // Array of history objects
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  serviceCategoryId    String
+  serviceCategory      ServiceCategory        @relation(fields: [serviceCategoryId], references: [id])
+  assignedTechnicianId String?
+  assignedTechnician   Technician?            @relation(fields: [assignedTechnicianId], references: [id])
+
+  @@index([status])
+  @@index([serviceCategoryId])
+  @@index([assignedTechnicianId])
+}
+
+model SystemSetting {
+  id                    String   @id @default("default")
+  storeName             String
+  hotline               String
+  zalo                  String
+  email                 String
+  address               String
+  shippingFee           Decimal  @db.Decimal(12, 2) @default(30000)
+  freeShippingThreshold Decimal  @db.Decimal(12, 2) @default(10000000)
+  updatedAt             DateTime @updatedAt
+}
+
+model Contact {
+  id          Int      @id @default(autoincrement())
+  name        String
+  phone       String
+  email       String?
+  message     String   @db.Text
+  createdAt   DateTime @default(now())
+}
+

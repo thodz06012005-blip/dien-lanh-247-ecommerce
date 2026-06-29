@@ -34,7 +34,7 @@ echo Ban da co the xem web tren XAMPP tai:
 echo 1. Web Khach hang: http://localhost/electro_user
 echo 2. Web Quan tri:   http://localhost/electro_admin
 echo.
-echo LUU Y QUAN TRONG: Ban van phai chay BACKEND API bang lenh:
-echo npm run start:dev (o thu muc backend) de web co du lieu!
+echo LUU Y QUAN TRONG: Ban van phai chay MOCK API bang lenh:
+echo npm run dev:mock (o thu muc goc) de web co du lieu hoat dong (Port 3001)!
 echo =========================================================
 pause

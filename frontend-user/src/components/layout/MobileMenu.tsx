@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, ShieldCheck, Phone, Wrench, Info } from 'lucide-react';
+import { X, ShoppingBag, ShieldCheck, Phone, Wrench, Info, Cog, Tag, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import Button from '../ui/Button';
@@ -27,10 +27,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   };
 
   const navLinks = [
-    { name: 'Trang chủ', path: '/', icon: <ShoppingBag className="w-5 h-5" /> },
+    { name: 'Trang chủ', path: '/', icon: <Home className="w-5 h-5" /> },
     { name: 'Sản phẩm', path: '/products', icon: <ShoppingBag className="w-5 h-5" /> },
-    { name: 'Dịch vụ lắp đặt & Sửa chữa', path: '/products?categoryId=dich-vu', icon: <Wrench className="w-5 h-5" /> },
-    { name: 'Chính sách bảo hành', path: '/policy/warranty', icon: <ShieldCheck className="w-5 h-5" /> },
+    { name: 'Ưu đãi', path: '/products?sort=bestSeller', icon: <Tag className="w-5 h-5" /> },
+    { name: 'Lắp đặt', path: '/products?categoryId=dich-vu', icon: <Wrench className="w-5 h-5" /> },
+    { name: 'Sửa chữa', path: '/services', icon: <Cog className="w-5 h-5" /> },
+    { name: 'Bảo hành', path: '/policy/warranty', icon: <ShieldCheck className="w-5 h-5" /> },
     { name: 'Giới thiệu', path: '/about', icon: <Info className="w-5 h-5" /> },
     { name: 'Liên hệ', path: '/contact', icon: <Phone className="w-5 h-5" /> },
   ];
@@ -84,27 +86,43 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                       <h4 className="text-sm font-bold text-slate-900 leading-none">
                         {user?.firstName} {user?.lastName}
                       </h4>
-                      <p className="text-2xs text-slate-450 mt-1">{user?.email}</p>
+                      <p className="text-2xs text-slate-400 mt-1">{user?.email}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="grid grid-cols-3 gap-1.5 mt-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleNavClick('/account')}
-                      className="py-1.5"
+                      onClick={() => handleNavClick('/account?tab=profile')}
+                      className="py-1.5 px-1 text-[10px] font-bold"
                     >
                       Tài khoản
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={handleLogoutClick}
-                      className="py-1.5 text-xs text-red-500 hover:bg-red-50"
+                      onClick={() => handleNavClick('/account?tab=orders')}
+                      className="py-1.5 px-1 text-[10px] font-bold"
                     >
-                      Đăng xuất
+                      Đơn hàng
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleNavClick('/my-services')}
+                      className="py-1.5 px-1 text-[10px] font-bold"
+                    >
+                      Sửa chữa
                     </Button>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogoutClick}
+                    className="w-full py-1.5 mt-2 text-[10px] text-red-500 hover:bg-red-50 font-bold"
+                  >
+                    Đăng xuất
+                  </Button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
@@ -127,7 +145,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
             <div className="flex-grow overflow-y-auto px-4 py-4 flex flex-col gap-1">
               {navLinks.map((link) => (
                 <button
-                  key={link.name}
+                  key={link.path}
                   onClick={() => handleNavClick(link.path)}
                   className="flex items-center gap-3.5 px-4 py-3 text-slate-700 hover:bg-primary-50 hover:text-primary-600 rounded-xl text-sm font-semibold transition-all text-left w-full cursor-pointer"
                 >
@@ -151,7 +169,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 <Phone className="w-4 h-4 fill-primary-600/10" />
                 {settings.hotline}
               </a>
-              <span className="text-3xs text-slate-405 leading-normal">
+              <span className="text-3xs text-slate-400 leading-normal">
                 Miễn phí cuộc gọi. Hỗ trợ sự cố khẩn cấp lắp ráp bảo dưỡng trong 2 giờ.
               </span>
             </div>

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { categories, brands } from '../../mock/data';
 import { Filter, RotateCcw, ChevronRight } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -16,13 +15,27 @@ interface FilterState {
   hasPromo?: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface FilterSidebarProps {
   filters: FilterState;
   onFilterChange: (newFilters: FilterState) => void;
   onReset: () => void;
+  categories: Category[];
+  brands: Brand[];
 }
 
-export default function FilterSidebar({ filters, onFilterChange, onReset }: FilterSidebarProps) {
+export default function FilterSidebar({ filters, onFilterChange, onReset, categories, brands }: FilterSidebarProps) {
   const [minPriceInput, setMinPriceInput] = useState(filters.priceMin || '');
   const [maxPriceInput, setMaxPriceInput] = useState(filters.priceMax || '');
 
@@ -90,7 +103,7 @@ export default function FilterSidebar({ filters, onFilterChange, onReset }: Filt
       {/* Title */}
       <div className="flex justify-between items-center pb-4 border-b border-slate-100">
         <span className="flex items-center gap-2 font-black text-slate-900 text-sm">
-          <Filter className="w-4 h-4 text-primary-650" />
+          <Filter className="w-4 h-4 text-primary-600" />
           Bộ lọc sản phẩm
         </span>
         <button
@@ -117,7 +130,7 @@ export default function FilterSidebar({ filters, onFilterChange, onReset }: Filt
               }`}
             >
               <span>{cat.name}</span>
-              <ChevronRight className={`w-3.5 h-3.5 ${filters.categoryId === cat.id ? 'text-primary-600' : 'text-slate-350'}`} />
+              <ChevronRight className={`w-3.5 h-3.5 ${filters.categoryId === cat.id ? 'text-primary-600' : 'text-slate-300'}`} />
             </button>
           ))}
         </div>

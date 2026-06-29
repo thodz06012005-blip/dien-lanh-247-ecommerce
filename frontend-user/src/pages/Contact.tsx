@@ -36,7 +36,7 @@ export default function Contact() {
         showSuccess('Gửi yêu cầu tư vấn thành công! Chúng tôi sẽ liên hệ trong vòng 15 phút.');
         reset();
       }
-    } catch (err) {
+    } catch {
       showError('Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại sau.');
     } finally {
       setIsSubmitting(false);
@@ -175,7 +175,7 @@ export default function Contact() {
               Hệ thống chi nhánh
             </h3>
             
-            <div className="text-xs text-slate-650 flex flex-col gap-4">
+            <div className="text-xs text-slate-600 flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <strong className="text-slate-800 font-bold">Trụ sở chính Cầu Giấy (Hà Nội):</strong>
                 <p>{settings.address}</p>
@@ -213,7 +213,7 @@ export default function Contact() {
                 rel="noopener noreferrer"
                 className="text-4xs font-bold text-primary-600 hover:underline inline-flex items-center gap-0.5"
               >
-                Nhấp xem trên Google Maps
+                Mở Google Maps
               </a>
             </div>
           </div>

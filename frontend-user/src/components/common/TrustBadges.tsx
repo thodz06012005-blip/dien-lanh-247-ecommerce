@@ -3,9 +3,9 @@ import { ShieldCheck, Truck, CreditCard, Wrench } from 'lucide-react';
 export default function TrustBadges() {
   const badges = [
     { title: 'Giao lắp 2h', desc: 'Nội thành siêu tốc', icon: <Truck className="w-5 h-5 text-primary-600" /> },
-    { title: 'Bảo hành chính hãng', desc: 'Bảo hành kép uy tín', icon: <ShieldCheck className="w-5 h-5 text-primary-650" /> },
+    { title: 'Bảo hành chính hãng', desc: 'Bảo hành kép uy tín', icon: <ShieldCheck className="w-5 h-5 text-primary-600" /> },
     { title: 'Thanh toán COD', desc: 'Nhận hàng kiểm tra', icon: <CreditCard className="w-5 h-5 text-primary-600" /> },
-    { title: 'Hỗ trợ kỹ thuật 24/7', desc: 'Trọn đời máy', icon: <Wrench className="w-5 h-5 text-primary-650" /> },
+    { title: 'Hỗ trợ kỹ thuật 24/7', desc: 'Trọn đời máy', icon: <Wrench className="w-5 h-5 text-primary-600" /> },
   ];
 
   return (
@@ -19,7 +19,7 @@ export default function TrustBadges() {
             {b.icon}
           </div>
           <div className="flex flex-col">
-            <span className="text-3xs font-extrabold text-slate-805 uppercase tracking-wider">{b.title}</span>
+            <span className="text-3xs font-extrabold text-slate-800 uppercase tracking-wider">{b.title}</span>
             <span className="text-4xs text-slate-400 font-semibold mt-0.5">{b.desc}</span>
           </div>
         </div>

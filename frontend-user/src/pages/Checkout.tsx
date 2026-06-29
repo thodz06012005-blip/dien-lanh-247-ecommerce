@@ -30,7 +30,7 @@ interface ShippingFormInput {
 export default function Checkout() {
   const { settings } = useSettings();
   const navigate = useNavigate();
-  const { items, clearCart, getTotals } = useCartStore();
+  const { items, voucher, clearCart, getTotals } = useCartStore();
   const { user } = useAuthStore();
   const { showSuccess, showError } = useToastStore();
 
@@ -40,13 +40,13 @@ export default function Checkout() {
 
   // Safe Settings Fallbacks
   const safeSettings = {
-    shippingFee: settings?.shippingFee ?? 0,
+    shippingFee: settings?.shippingFee ?? 30000,
     freeShippingThreshold: settings?.freeShippingThreshold ?? 5000000,
     hotline: settings?.hotline || '1900 247',
     zalo: settings?.zalo || '0900 000 247',
   };
 
-  const { discount, shipping, total } = getTotals(safeSettings.shippingFee, safeSettings.freeShippingThreshold);
+  const { shipping } = getTotals(safeSettings.shippingFee, safeSettings.freeShippingThreshold);
 
   // Redirect to products page if cart is empty, we are not in success screen, and order is not created yet
   useEffect(() => {
@@ -96,22 +96,16 @@ export default function Checkout() {
     setIsSubmitting(true);
     
     try {
-      // Map cart items into payload
+      // Map cart items into payload (only send productId and quantity)
       const orderItems = items.map((item) => ({
         productId: item.product.id,
-        name: item.product.name,
-        sku: item.product.sku,
-        price: item.product.salePrice || item.product.basePrice,
         quantity: item.quantity,
-        imageUrl: item.product.images?.[0]?.url || '',
       }));
 
       const payload = {
         ...shippingInfo,
         paymentMethod: 'cod',
-        shippingFee: shipping,
-        discountAmount: discount,
-        totalAmount: total,
+        voucherCode: voucher ? voucher.code : undefined,
         items: orderItems,
       };
 
@@ -122,7 +116,7 @@ export default function Checkout() {
         clearCart(); // Clear local zustand store and storage AFTER setting state to prevent race redirects
         showSuccess('Đặt hàng thành công! Mã đơn hàng của bạn đã được khởi tạo.');
       }
-    } catch (err) {
+    } catch {
       showError('Có lỗi xảy ra trong quá trình đặt hàng. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
@@ -138,7 +132,7 @@ export default function Checkout() {
         {/* Progress Text Indicator */}
         {step < 3 && (
           <div className="flex items-center gap-1.5 text-3xs font-extrabold uppercase text-slate-400 tracking-wider mb-6 ml-1">
-            <Link to="/cart" className="hover:text-primary-605 transition-colors">Giỏ hàng</Link>
+            <Link to="/cart" className="hover:text-primary-600 transition-colors">Giỏ hàng</Link>
             <ChevronRight className="w-3.5 h-3.5" />
             <span className={step === 1 ? 'text-primary-600' : 'text-slate-400'}>Thông tin</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -182,8 +176,9 @@ export default function Checkout() {
                     className="py-3 px-4 text-xs rounded-xl"
                     {...register('phone', {
                       required: 'Vui lòng nhập số điện thoại',
+                      setValueAs: (v) => typeof v === 'string' ? v.replace(/\s+/g, '').trim() : v,
                       pattern: {
-                        value: /^(0[3|5|7|8|9])([0-9]{8})$/,
+                        value: /^0(3|5|7|8|9)\d{8}$/,
                         message: 'Số điện thoại Việt Nam không hợp lệ (10 số)',
                       },
                     })}
@@ -235,7 +230,7 @@ export default function Checkout() {
                   <textarea
                     placeholder="Ví dụ: Giao hàng vào giờ hành chính, lắp đặt cẩn thận..."
                     rows={3}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600 placeholder:text-slate-400 hover:border-slate-350"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600 placeholder:text-slate-400 hover:border-slate-300"
                     {...register('note')}
                   />
                 </div>
@@ -300,7 +295,7 @@ export default function Checkout() {
                     Thay đổi
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 text-xs text-slate-650">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 text-xs text-slate-600">
                   <p className="flex items-center gap-2">
                     <User className="w-4 h-4 text-slate-400" />
                     Họ tên: <strong className="text-slate-800 ml-1">{getValues('customerName')}</strong>

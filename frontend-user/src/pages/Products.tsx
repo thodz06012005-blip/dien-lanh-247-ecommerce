@@ -16,12 +16,30 @@ import ImageWithFallback from '../components/common/ImageWithFallback';
 import { visualAssets } from '../constants/visualAssets';
 
 import useDocumentTitle from '../hooks/useDocumentTitle';
-import { products, categories, brands } from '../mock/data';
 
 export default function Products() {
   useDocumentTitle('Sản phẩm Điện Lạnh chính hãng | Điện Lạnh 247');
   const [searchParams, setSearchParams] = useSearchParams();
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // React Query to load categories and brands from API
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await api.get('/categories');
+      return res.data;
+    },
+  });
+  const categoriesList = categoriesData?.data || [];
+
+  const { data: brandsData } = useQuery({
+    queryKey: ['brands'],
+    queryFn: async () => {
+      const res = await api.get('/brands');
+      return res.data;
+    },
+  });
+  const brandsList = brandsData?.data || [];
 
   // Read initial filter values from URL
   const page = Number(searchParams.get('page') || '1');
@@ -76,14 +94,7 @@ export default function Products() {
     const params: Record<string, string> = { page: '1', sort }; // Reset to page 1 on filter change
     
     const targetCategoryId = 'categoryId' in newFilters ? newFilters.categoryId : categoryId;
-    let targetBrandId = 'brandId' in newFilters ? newFilters.brandId : brandId;
-
-    if (targetCategoryId && targetBrandId) {
-      const brandHasProducts = products.some(p => p.categoryId === targetCategoryId && p.brandId === targetBrandId);
-      if (!brandHasProducts) {
-        targetBrandId = undefined;
-      }
-    }
+    const targetBrandId = 'brandId' in newFilters ? newFilters.brandId : brandId;
 
     if (targetCategoryId) params.categoryId = targetCategoryId;
     if (targetBrandId) params.brandId = targetBrandId;
@@ -154,7 +165,7 @@ export default function Products() {
   const activeChips: { id: string; label: string; onClear: () => void }[] = [];
 
   if (categoryId) {
-    const cat = categories.find((c) => c.id === categoryId);
+    const cat = categoriesList.find((c: any) => c.id === categoryId);
     if (cat) {
       activeChips.push({
         id: 'category',
@@ -165,7 +176,7 @@ export default function Products() {
   }
 
   if (brandId) {
-    const br = brands.find((b) => b.id === brandId);
+    const br = brandsList.find((b: any) => b.id === brandId);
     if (br) {
       activeChips.push({
         id: 'brand',
@@ -259,7 +270,7 @@ export default function Products() {
             <h1 className="text-lg sm:text-xl md:text-2xl font-black text-white leading-tight">
               Sản phẩm điện lạnh chính hãng
             </h1>
-            <p className="text-3xs md:text-xs text-slate-350 leading-relaxed max-w-xl">
+            <p className="text-3xs md:text-xs text-slate-300 leading-relaxed max-w-xl">
               Điều hòa, tủ lạnh, máy giặt, bình nóng lạnh và dịch vụ lắp đặt được chọn lọc cho gia đình Việt.
             </p>
           </div>
@@ -291,7 +302,7 @@ export default function Products() {
             {activeCategoryName || 'Tất cả sản phẩm'}
           </h2>
           {q && (
-            <p className="text-3xs text-slate-450 mt-1">
+            <p className="text-3xs text-slate-400 mt-1">
               Kết quả tìm kiếm cho từ khóa: <strong className="text-primary-600">"{q}"</strong>
             </p>
           )}
@@ -320,6 +331,8 @@ export default function Products() {
             filters={currentFilters}
             onFilterChange={handleFilterChange}
             onReset={handleResetFilters}
+            categories={categoriesList}
+            brands={brandsList}
           />
         </div>
 
@@ -411,6 +424,8 @@ export default function Products() {
                 filters={currentFilters}
                 onFilterChange={handleFilterChange}
                 onReset={handleResetFilters}
+                categories={categoriesList}
+                brands={brandsList}
               />
             </motion.div>
           </div>

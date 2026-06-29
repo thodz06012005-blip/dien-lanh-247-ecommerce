@@ -3,13 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev:user": "cd frontend-user && npm.cmd run dev",
-    "dev:admin": "cd frontend-admin && npm.cmd run dev",
-    "dev:mock": "cd mock-api && npm.cmd run dev",
-    "dev:all": "concurrently \"npm.cmd run dev:mock\" \"npm.cmd run dev:user\" \"npm.cmd run dev:admin\"",
-    "build:user": "cd frontend-user && npm.cmd run build",
-    "build:admin": "cd frontend-admin && npm.cmd run build",
-    "build:all": "npm.cmd run build:user && npm.cmd run build:admin"
+    "dev:user": "npm --prefix frontend-user run dev",
+    "dev:admin": "npm --prefix frontend-admin run dev",
+    "dev:mock": "npm --prefix mock-api run dev",
+    "dev:all": "concurrently \"npm run dev:mock\" \"npm run dev:user\" \"npm run dev:admin\"",
+    "build:user": "npm --prefix frontend-user run build",
+    "build:admin": "npm --prefix frontend-admin run build",
+    "build:all": "npm run build:user && npm run build:admin",
+    "check:mock": "node --check mock-api/server.js",
+    "typecheck:user": "npm --prefix frontend-user run typecheck",
+    "typecheck:admin": "npm --prefix frontend-admin run typecheck",
+    "lint:user": "npm --prefix frontend-user run lint",
+    "lint:admin": "npm --prefix frontend-admin run lint",
+    "check:all": "npm run check:mock && npm run typecheck:user && npm run typecheck:admin && npm run lint:user && npm run lint:admin",
+    "db:reset": "npm --prefix mock-api run reset-db"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

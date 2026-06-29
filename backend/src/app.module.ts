@@ -15,6 +15,13 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { CloudinaryModule } from './integrations/cloudinary/cloudinary.module';
 import { VnpayModule } from './integrations/payment/vnpay/vnpay.module';
 import { MailModule } from './integrations/mail/mail.module';
+import { ServiceCategoriesModule } from './modules/service-categories/service-categories.module';
+import { TechniciansModule } from './modules/technicians/technicians.module';
+import { ServiceRequestsModule } from './modules/service-requests/service-requests.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { ContactModule } from './modules/contact/contact.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { CustomersModule } from './modules/customers/customers.module';
 
 @Module({
   imports: [
@@ -34,6 +41,13 @@ import { MailModule } from './integrations/mail/mail.module';
     CloudinaryModule,
     VnpayModule,
     MailModule,
+    ServiceCategoriesModule,
+    TechniciansModule,
+    ServiceRequestsModule,
+    SettingsModule,
+    ContactModule,
+    DashboardModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [
@@ -45,3 +59,4 @@ import { MailModule } from './integrations/mail/mail.module';
   ],
 })
 export class AppModule {}
+

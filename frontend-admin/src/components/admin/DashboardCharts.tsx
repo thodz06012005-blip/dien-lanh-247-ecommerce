@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import clsx from 'clsx';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
@@ -7,6 +8,7 @@ import { CheckCircle, TrendingUp, ShoppingCart } from 'lucide-react';
 // 1. Mini Sparklines (For KPI Cards)
 // ----------------------------------------------------
 export function MiniSparkline({ data, color = 'blue' }: { data: number[]; color?: 'blue' | 'green' | 'purple' | 'orange' }) {
+  const uniqueId = useId().replace(/:/g, '');
   if (!data || data.length === 0) return null;
   const max = Math.max(...data, 1);
   const min = Math.min(...data, 0);
@@ -25,7 +27,7 @@ export function MiniSparkline({ data, color = 'blue' }: { data: number[]; color?
   const fillPathD = `M 0,${height} L ${points} L ${width},${height} Z`;
 
   // Standardize unique linearGradient IDs to avoid SVG conflicts in lists
-  const gradId = `spark-grad-${color}-${Math.random().toString(36).substr(2, 9)}`;
+  const gradId = `spark-grad-${color}-${uniqueId}`;
 
   const colorConfig = {
     blue: { stroke: '#3b82f6', stopColor: '#3b82f6' },
@@ -56,6 +58,7 @@ export function MiniSparkline({ data, color = 'blue' }: { data: number[]; color?
 // 2. Revenue Trend Chart (7 Days)
 // ----------------------------------------------------
 export function SimpleLineChart({ data, labels, orderCounts = [] }: { data: number[]; labels: string[]; orderCounts?: number[] }) {
+  const uniqueId = useId().replace(/:/g, '');
   const hasData = data && data.length > 0 && data.reduce((sum, val) => sum + val, 0) > 0;
   
   if (!hasData) {
@@ -105,7 +108,7 @@ export function SimpleLineChart({ data, labels, orderCounts = [] }: { data: numb
   const totalRevenue = data.reduce((sum, val) => sum + val, 0);
   const totalOrders = orderCounts.reduce((sum, val) => sum + val, 0);
 
-  const gradId = `line-grad-${Math.random().toString(36).substr(2, 9)}`;
+  const gradId = `line-grad-${uniqueId}`;
 
   return (
     <Card 
@@ -193,14 +196,17 @@ export function DonutChart({ data, total }: { data: { label: string; count: numb
     );
   }
 
-  // Convert to conic-gradient string
+  // Convert to conic-gradient string using a pure local loop
+  const stops: string[] = [];
   let currentPercentage = 0;
-  const gradientStops = data.map(item => {
+  for (let i = 0; i < data.length; i++) {
+    const item = data[i];
     const start = currentPercentage;
     const end = currentPercentage + (item.count / total) * 100;
     currentPercentage = end;
-    return `${item.color} ${start}% ${end}%`;
-  }).join(', ');
+    stops.push(`${item.color} ${start}% ${end}%`);
+  }
+  const gradientStops = stops.join(', ');
 
   return (
     <Card title="Tình trạng đơn hàng">
@@ -208,7 +214,7 @@ export function DonutChart({ data, total }: { data: { label: string; count: numb
         {/* Ring */}
         <div className="relative w-44 h-44 rounded-full flex-shrink-0" style={{ background: `conic-gradient(${gradientStops})` }}>
           <div className="absolute inset-4.5 bg-white rounded-full flex flex-col items-center justify-center shadow-sm">
-            <span className="text-xs font-medium text-slate-455">Tổng đơn</span>
+            <span className="text-xs font-medium text-slate-500">Tổng đơn</span>
             <strong className="text-3xl font-bold text-slate-950 mt-0.5">{total}</strong>
           </div>
         </div>
@@ -275,7 +281,7 @@ export function SimpleBarChart({ data, labels }: { data: number[]; labels: strin
             );
           })}
         </div>
-        <p className="text-xs text-slate-450 italic text-center mt-1">
+        <p className="text-xs text-slate-500 italic text-center mt-1">
           Di chuột qua các cột để xem chi tiết doanh thu.
         </p>
       </div>

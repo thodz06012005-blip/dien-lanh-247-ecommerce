@@ -46,7 +46,7 @@ export default function About() {
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
         <div className="lg:col-span-6 flex flex-col gap-5 text-xs text-slate-600 leading-relaxed">
           <span className="text-3xs font-extrabold text-primary-600 uppercase tracking-widest flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 fill-primary-650/10" />
+            <Sparkles className="w-3.5 h-3.5 fill-primary-600/10" />
             Lịch sử hình thành & Phát triển
           </span>
           <h2 className="text-lg md:text-xl font-bold text-slate-900">
@@ -63,7 +63,7 @@ export default function About() {
           </p>
         </div>
 
-        <div className="lg:col-span-6 aspect-video rounded-[2.5rem] overflow-hidden border border-slate-150 shadow-lg relative bg-slate-100 flex items-center justify-center">
+        <div className="lg:col-span-6 aspect-video rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-lg relative bg-slate-100 flex items-center justify-center">
           <img
             src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1200&auto=format&fit=crop"
             alt="Dien Lanh Technical work team"
@@ -80,7 +80,7 @@ export default function About() {
             <span className="text-3xl md:text-4xl font-black text-primary-300 font-mono">
               {st.num}
             </span>
-            <span className="text-2xs text-slate-350">{st.label}</span>
+            <span className="text-2xs text-slate-300">{st.label}</span>
           </div>
         ))}
       </section>
@@ -115,7 +115,7 @@ export default function About() {
       </section>
 
       {/* Branch networks */}
-      <section className="bg-slate-50 border border-slate-205 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6">
+      <section className="bg-slate-50 border border-slate-200 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex gap-4 items-center">
           <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-primary-600 flex-shrink-0 shadow-sm">
             <Building className="w-6 h-6" />
