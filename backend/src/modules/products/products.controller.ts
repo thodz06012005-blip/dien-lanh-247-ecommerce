@@ -12,31 +12,40 @@ import { UserRole } from '@prisma/client';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  // 1. Search route (must be before :identifier)
   @Get('products/search')
   search(@Query('q') q: string) {
     return this.productsService.findAll({ q, limit: 10 });
   }
 
-  // 2. Featured route (must be before :identifier)
   @Get('products/featured')
   featured() {
     return this.productsService.findAll({ limit: 6 });
   }
 
-  // 3. Find one product by ID or Slug (must be after search and featured)
+  @Get('admin/products')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  findAllAdmin(@Query() query: ProductQueryDto) {
+    return this.productsService.findAll(query, { includeInactive: true });
+  }
+
+  @Get('admin/products/:identifier')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  findOneAdmin(@Param('identifier') identifier: string) {
+    return this.productsService.findOne(identifier, { includeInactive: true });
+  }
+
+  @Get('products')
+  findAll(@Query() query: ProductQueryDto) {
+    return this.productsService.findAll(query, { includeInactive: false });
+  }
+
   @Get('products/:identifier')
   findOne(@Param('identifier') identifier: string) {
-    return this.productsService.findOne(identifier);
+    return this.productsService.findOne(identifier, { includeInactive: false });
   }
 
-  // 4. Find all products (supports dual paths)
-  @Get(['products', 'admin/products'])
-  findAll(@Query() query: ProductQueryDto) {
-    return this.productsService.findAll(query);
-  }
-
-  // 5. Create product
   @Post(['products', 'admin/products'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
@@ -44,7 +53,6 @@ export class ProductsController {
     return this.productsService.create(createProductDto);
   }
 
-  // 6. Update product
   @Patch(['products/:id', 'admin/products/:id'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
@@ -52,7 +60,6 @@ export class ProductsController {
     return this.productsService.update(id, updateProductDto);
   }
 
-  // 7. Delete product
   @Delete(['products/:id', 'admin/products/:id'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
