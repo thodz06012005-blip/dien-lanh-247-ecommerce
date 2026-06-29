@@ -213,15 +213,18 @@ export class ProductsService {
       this.prisma.product.count({ where }),
     ]);
 
+    const pagination = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
     return {
       success: true,
       data: items.map((p) => this.mapProduct(p)),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      meta: pagination,
+      pagination,
     };
   }
 
