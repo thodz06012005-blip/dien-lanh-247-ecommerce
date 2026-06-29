@@ -5,6 +5,17 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { Prisma } from '@prisma/client';
 
+type ProductFindAllOptions = {
+  includeInactive?: boolean;
+};
+
+type PaginationInfo = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
 @Injectable()
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -89,6 +100,168 @@ export class ProductsService {
     };
   }
 
+  private buildListResponse(items: any[], total: number, page: number, limit: number) {
+    const pagination: PaginationInfo = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    return {
+      success: true,
+      data: items.map((p) => this.mapProduct(p)),
+      meta: pagination,
+      pagination,
+    };
+  }
+
+  private normalizeBoolean(value?: string): boolean | undefined {
+    if (value === undefined || value === null || value === '') return undefined;
+
+    const normalized = String(value).trim().toLowerCase();
+    if (['true', '1', 'yes', 'y'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'n'].includes(normalized)) return false;
+
+    return undefined;
+  }
+
+  private normalizeSort(sort?: string) {
+    const normalized = (sort || 'newest').trim();
+
+    const aliases: Record<string, string> = {
+      newest: 'newest',
+      oldest: 'oldest',
+      price_asc: 'priceAsc',
+      priceAsc: 'priceAsc',
+      price_ascending: 'priceAsc',
+      price_desc: 'priceDesc',
+      priceDesc: 'priceDesc',
+      price_descending: 'priceDesc',
+      name_asc: 'nameAsc',
+      nameAsc: 'nameAsc',
+      name_desc: 'nameDesc',
+      nameDesc: 'nameDesc',
+      bestSeller: 'bestSeller',
+      best_seller: 'bestSeller',
+      promoHot: 'promoHot',
+      promo_hot: 'promoHot',
+    };
+
+    return aliases[normalized] || 'newest';
+  }
+
+  private resolveOrderBy(sort: string): Prisma.ProductOrderByWithRelationInput {
+    switch (sort) {
+      case 'oldest':
+        return { createdAt: 'asc' };
+      case 'priceAsc':
+        return { basePrice: 'asc' };
+      case 'priceDesc':
+        return { basePrice: 'desc' };
+      case 'nameAsc':
+        return { name: 'asc' };
+      case 'nameDesc':
+        return { name: 'desc' };
+      default:
+        return { createdAt: 'desc' };
+    }
+  }
+
+  private isNumericId(value?: string) {
+    return !!value && /^\d+$/.test(String(value));
+  }
+
+  private async resolveCategoryId(categoryId?: string) {
+    if (!categoryId) return { value: undefined, isInvalid: false };
+    if (this.isNumericId(categoryId)) return { value: Number(categoryId), isInvalid: false };
+
+    const category = await this.prisma.category.findUnique({ where: { slug: String(categoryId) } });
+    return category ? { value: category.id, isInvalid: false } : { value: undefined, isInvalid: true };
+  }
+
+  private async resolveBrandId(brandId?: string) {
+    if (!brandId) return { value: undefined, isInvalid: false };
+    if (this.isNumericId(brandId)) return { value: Number(brandId), isInvalid: false };
+
+    const brand = await this.prisma.brand.findUnique({ where: { slug: String(brandId) } });
+    return brand ? { value: brand.id, isInvalid: false } : { value: undefined, isInvalid: true };
+  }
+
+  private getProductText(product: any) {
+    return [
+      product.name,
+      product.slug,
+      product.description,
+      product.category?.name,
+      product.category?.slug,
+      product.brand?.name,
+      product.brand?.slug,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+  }
+
+  private hasPromotionalVariant(product: any) {
+    const basePrice = Number(product.basePrice || 0);
+    if (!basePrice) return false;
+
+    return product.variants?.some((variant: any) => Number(variant.price) < basePrice) ?? false;
+  }
+
+  private getBestDiscountRatio(product: any) {
+    const basePrice = Number(product.basePrice || 0);
+    if (!basePrice) return 0;
+
+    const variantPrices = product.variants?.map((variant: any) => Number(variant.price)).filter((price: number) => price > 0) || [];
+    if (!variantPrices.length) return 0;
+
+    const bestPrice = Math.min(...variantPrices);
+    return Math.max(0, (basePrice - bestPrice) / basePrice);
+  }
+
+  private requiresInMemoryProcessing(query: ProductQueryDto, sort: string) {
+    return Boolean(
+      query.hasPromo !== undefined ||
+      query.inverter !== undefined ||
+      query.capacity ||
+      sort === 'promoHot'
+    );
+  }
+
+  private applyInMemoryFilters(products: any[], query: ProductQueryDto) {
+    const hasPromo = this.normalizeBoolean(query.hasPromo);
+    const inverter = this.normalizeBoolean(query.inverter);
+    const normalizedCapacity = query.capacity?.trim().toLowerCase();
+
+    return products.filter((product) => {
+      if (hasPromo !== undefined && this.hasPromotionalVariant(product) !== hasPromo) {
+        return false;
+      }
+
+      if (inverter !== undefined) {
+        const hasInverter = this.getProductText(product).includes('inverter');
+        if (hasInverter !== inverter) return false;
+      }
+
+      if (normalizedCapacity) {
+        const text = this.getProductText(product);
+        const compactText = text.replace(/\s+/g, ' ');
+        const compactCapacity = normalizedCapacity.replace(/\s+/g, ' ');
+        if (!compactText.includes(compactCapacity)) return false;
+      }
+
+      return true;
+    });
+  }
+
+  private applyInMemorySort(products: any[], sort: string) {
+    if (sort !== 'promoHot') return products;
+
+    return [...products].sort((a, b) => this.getBestDiscountRatio(b) - this.getBestDiscountRatio(a));
+  }
+
   async create(dto: CreateProductDto) {
     // 1. Resolve categoryId and brandId from slug
     let categoryId = 1;
@@ -146,56 +319,91 @@ export class ProductsService {
     };
   }
 
-  async findAll(query: ProductQueryDto) {
-    const { page = 1, limit = 10, q, categoryId, brandId, minPrice, maxPrice, sortBy } = query;
+  async findAll(query: ProductQueryDto, options: ProductFindAllOptions = {}) {
+    const page = Math.max(1, Number(query.page || 1));
+    const limit = Math.max(1, Number(query.limit || 10));
     const skip = (page - 1) * limit;
+    const sort = this.normalizeSort(query.sortBy || query.sort);
+    const activeMinPrice = query.minPrice ?? query.priceMin;
+    const activeMaxPrice = query.maxPrice ?? query.priceMax;
+    const inStock = this.normalizeBoolean(query.inStock);
 
-    let resolvedCategoryId: number | undefined;
-    let resolvedBrandId: number | undefined;
+    const [categoryResult, brandResult] = await Promise.all([
+      this.resolveCategoryId(query.categoryId),
+      this.resolveBrandId(query.brandId),
+    ]);
 
-    if (categoryId) {
-      const isId = /^\d+$/.test(String(categoryId));
-      if (isId) {
-        resolvedCategoryId = Number(categoryId);
-      } else {
-        const cat = await this.prisma.category.findUnique({ where: { slug: String(categoryId) } });
-        if (cat) resolvedCategoryId = cat.id;
-      }
-    }
-
-    if (brandId) {
-      const isId = /^\d+$/.test(String(brandId));
-      if (isId) {
-        resolvedBrandId = Number(brandId);
-      } else {
-        const br = await this.prisma.brand.findUnique({ where: { slug: String(brandId) } });
-        if (br) resolvedBrandId = br.id;
-      }
+    if (categoryResult.isInvalid || brandResult.isInvalid) {
+      return this.buildListResponse([], 0, page, limit);
     }
 
     const where: Prisma.ProductWhereInput = {
-      isActive: true,
-      ...(q && {
+      ...(!options.includeInactive && { isActive: true }),
+      ...(query.q && {
         OR: [
-          { name: { contains: q } },
-          { description: { contains: q } },
+          { name: { contains: query.q } },
+          { description: { contains: query.q } },
         ],
       }),
-      ...(resolvedCategoryId && { categoryId: resolvedCategoryId }),
-      ...(resolvedBrandId && { brandId: resolvedBrandId }),
-      ...(minPrice || maxPrice
+      ...(categoryResult.value && { categoryId: categoryResult.value }),
+      ...(brandResult.value && { brandId: brandResult.value }),
+      ...(activeMinPrice !== undefined || activeMaxPrice !== undefined
         ? {
             basePrice: {
-              ...(minPrice && { gte: minPrice }),
-              ...(maxPrice && { lte: maxPrice }),
+              ...(activeMinPrice !== undefined && { gte: activeMinPrice }),
+              ...(activeMaxPrice !== undefined && { lte: activeMaxPrice }),
             },
           }
         : {}),
+      ...(inStock === true && {
+        variants: {
+          some: {
+            stock: {
+              gt: 0,
+            },
+          },
+        },
+      }),
+      ...(inStock === false && {
+        variants: {
+          every: {
+            stock: {
+              lte: 0,
+            },
+          },
+        },
+      }),
     };
 
-    let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
-    if (sortBy === 'price_asc') orderBy = { basePrice: 'asc' };
-    else if (sortBy === 'price_desc') orderBy = { basePrice: 'desc' };
+    const include = {
+      category: { select: { id: true, name: true, slug: true } },
+      brand: { select: { id: true, name: true, slug: true } },
+      images: true,
+      variants: true,
+    };
+
+    const orderBy = this.resolveOrderBy(sort);
+    const useInMemoryProcessing = this.requiresInMemoryProcessing(query, sort);
+
+    if (useInMemoryProcessing) {
+      const products = await this.prisma.product.findMany({
+        where,
+        orderBy,
+        include,
+      });
+
+      const filteredProducts = this.applyInMemorySort(
+        this.applyInMemoryFilters(products, query),
+        sort,
+      );
+
+      return this.buildListResponse(
+        filteredProducts.slice(skip, skip + limit),
+        filteredProducts.length,
+        page,
+        limit,
+      );
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.product.findMany({
@@ -203,37 +411,22 @@ export class ProductsService {
         skip,
         take: limit,
         orderBy,
-        include: {
-          category: { select: { id: true, name: true, slug: true } },
-          brand: { select: { id: true, name: true, slug: true } },
-          images: true,
-          variants: true,
-        },
+        include,
       }),
       this.prisma.product.count({ where }),
     ]);
 
-    const pagination = {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
-
-    return {
-      success: true,
-      data: items.map((p) => this.mapProduct(p)),
-      meta: pagination,
-      pagination,
-    };
+    return this.buildListResponse(items, total, page, limit);
   }
 
-  async findOne(identifier: string) {
+  async findOne(identifier: string, options: ProductFindAllOptions = {}) {
     const isId = /^\d+$/.test(identifier);
-    const where = isId ? { id: Number(identifier) } : { slug: identifier };
 
-    const product = await this.prisma.product.findUnique({
-      where,
+    const product = await this.prisma.product.findFirst({
+      where: {
+        ...(isId ? { id: Number(identifier) } : { slug: identifier }),
+        ...(!options.includeInactive && { isActive: true }),
+      },
       include: {
         category: true,
         brand: true,
@@ -255,7 +448,7 @@ export class ProductsService {
   }
 
   async update(id: number, dto: UpdateProductDto) {
-    await this.findOne(String(id)); // Ensure exists
+    await this.findOne(String(id), { includeInactive: true }); // Ensure exists
     
     const updateData: any = {};
     if (dto.name) updateData.name = dto.name;
@@ -265,13 +458,23 @@ export class ProductsService {
     if (dto.status) updateData.isActive = dto.status === 'active';
 
     if (dto.categoryId) {
-      const cat = await this.prisma.category.findUnique({ where: { slug: dto.categoryId } });
-      if (cat) updateData.categoryId = cat.id;
+      const isId = /^\d+$/.test(String(dto.categoryId));
+      if (isId) {
+        updateData.categoryId = Number(dto.categoryId);
+      } else {
+        const cat = await this.prisma.category.findUnique({ where: { slug: dto.categoryId } });
+        if (cat) updateData.categoryId = cat.id;
+      }
     }
 
     if (dto.brandId) {
-      const br = await this.prisma.brand.findUnique({ where: { slug: dto.brandId } });
-      if (br) updateData.brandId = br.id;
+      const isId = /^\d+$/.test(String(dto.brandId));
+      if (isId) {
+        updateData.brandId = Number(dto.brandId);
+      } else {
+        const br = await this.prisma.brand.findUnique({ where: { slug: dto.brandId } });
+        if (br) updateData.brandId = br.id;
+      }
     }
 
     const product = await this.prisma.product.update({
@@ -329,13 +532,14 @@ export class ProductsService {
   }
 
   async remove(id: number) {
-    await this.findOne(String(id)); // Ensure exists
-    await this.prisma.product.delete({
+    await this.findOne(String(id), { includeInactive: true }); // Ensure exists
+    await this.prisma.product.update({
       where: { id },
+      data: { isActive: false },
     });
     return {
       success: true,
-      message: 'Xóa sản phẩm thành công',
+      message: 'Đã ngừng kinh doanh sản phẩm',
     };
   }
 }
