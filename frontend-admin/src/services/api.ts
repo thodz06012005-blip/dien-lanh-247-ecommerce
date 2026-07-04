@@ -9,19 +9,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor: attach Bearer token from store
-api.interceptors.request.use(
-  (config) => {
-    const token = useAdminAuthStore.getState().token;
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Request interceptor: None required as HttpOnly cookies are automatically sent with withCredentials: true
 
 // Response interceptor: auto-logout on 401 Unauthorized (Security-1B)
 api.interceptors.response.use(

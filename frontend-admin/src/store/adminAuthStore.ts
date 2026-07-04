@@ -31,17 +31,12 @@ const getStoredAdmin = (): AdminUser | null => {
   }
 };
 
-const getStoredToken = (): string | null => {
-  return localStorage.getItem('dl247_admin_token');
-};
-
 const getStoredExpiresAt = (): number | null => {
   const expiresStr = localStorage.getItem('dl247_admin_expires_at');
   return expiresStr ? Number(expiresStr) : null;
 };
 
 const initialAdmin = getStoredAdmin();
-const initialToken = getStoredToken();
 const initialExpiresAt = getStoredExpiresAt();
 
 const isSessionValid = (expiresAt: number | null): boolean => {
@@ -51,8 +46,8 @@ const isSessionValid = (expiresAt: number | null): boolean => {
 
 export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
   admin: isSessionValid(initialExpiresAt) ? initialAdmin : null,
-  token: isSessionValid(initialExpiresAt) ? initialToken : null,
-  isAuthenticated: !!(isSessionValid(initialExpiresAt) && initialAdmin && initialToken),
+  token: isSessionValid(initialExpiresAt) ? 'session_active' : null,
+  isAuthenticated: !!(isSessionValid(initialExpiresAt) && initialAdmin),
   expiresAt: isSessionValid(initialExpiresAt) ? initialExpiresAt : null,
   isLoading: false,
 
@@ -60,15 +55,14 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
   login: async (email, password) => {
     try {
       const response = await api.post('/admin/auth/login', { email, password });
-      const { admin, token, expiresAt } = response.data.data;
+      const { admin, expiresAt } = response.data.data;
 
       localStorage.setItem('dl247_admin_user', JSON.stringify(admin));
-      localStorage.setItem('dl247_admin_token', token);
       localStorage.setItem('dl247_admin_expires_at', String(expiresAt));
 
       set({
         admin,
-        token,
+        token: 'session_active',
         isAuthenticated: true,
         expiresAt
       });
@@ -84,8 +78,8 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
   // Logout via API (Security-1B: server invalidates the session)
   logout: async () => {
     try {
-      const token = get().token;
-      if (token) {
+      const { isAuthenticated } = get();
+      if (isAuthenticated) {
         await api.post('/admin/auth/logout');
       }
     } catch {
@@ -96,8 +90,8 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
 
   // Fetch current user from server to verify session validity (for F5/page reload)
   fetchCurrentUser: async () => {
-    const token = get().token;
-    if (!token) return false;
+    const { isAuthenticated } = get();
+    if (!isAuthenticated) return false;
 
     set({ isLoading: true });
     try {
@@ -108,6 +102,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
 
       set({
         admin,
+        token: 'session_active',
         isAuthenticated: true,
         isLoading: false
       });
@@ -139,7 +134,6 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
   // Clear all auth data from localStorage and store
   clearAuth: () => {
     localStorage.removeItem('dl247_admin_user');
-    localStorage.removeItem('dl247_admin_token');
     localStorage.removeItem('dl247_admin_expires_at');
 
     set({

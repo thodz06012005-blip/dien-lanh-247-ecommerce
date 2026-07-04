@@ -163,6 +163,13 @@ app.post('/api/v1/admin/auth/login', (req, res) => {
   });
 
   // Return admin info without password
+  res.cookie('accessToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 30 * 60 * 1000 // 30 minutes
+  });
+
   const { password: _, ...adminSafe } = admin;
   return respondSuccess(res, {
     admin: adminSafe,
@@ -179,14 +186,29 @@ app.get('/api/v1/admin/auth/me', requireAdminAuth, (req, res) => {
 
 // POST /admin/auth/logout
 app.post('/api/v1/admin/auth/logout', (req, res) => {
+  let token = null;
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split(' ')[1];
+    token = authHeader.split(' ')[1];
+  } else if (req.headers.cookie) {
+    const { parseCookies } = require('./utils/auth');
+    const cookies = parseCookies(req.headers.cookie);
+    token = cookies['accessToken'];
+  }
+
+  if (token) {
     const index = adminSessions.findIndex(s => s.token === token);
     if (index !== -1) {
       adminSessions.splice(index, 1);
     }
   }
+
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+
   return respondSuccess(res, null, 'Đăng xuất thành công');
 });
 

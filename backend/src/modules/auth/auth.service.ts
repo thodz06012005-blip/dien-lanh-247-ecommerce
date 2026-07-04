@@ -119,6 +119,7 @@ export class AuthService {
         status: user.isActive ? 'active' : 'inactive',
       },
       token: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       expiresAt,
     };
   }

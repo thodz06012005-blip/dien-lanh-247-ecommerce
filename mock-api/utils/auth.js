@@ -14,9 +14,27 @@ const adminUsers = [
 
 const adminSessions = [];
 
+const parseCookies = (cookieHeader) => {
+  const list = {};
+  if (!cookieHeader) return list;
+  cookieHeader.split(';').forEach(cookie => {
+    let parts = cookie.split('=');
+    list[parts.shift().trim()] = decodeURI(parts.join('='));
+  });
+  return list;
+};
+
 const requireAdminAuth = (req, res, next) => {
+  let token = null;
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.headers.cookie) {
+    const cookies = parseCookies(req.headers.cookie);
+    token = cookies['accessToken'];
+  }
+
+  if (!token) {
     return res.status(401).json({
       success: false,
       message: 'Yêu cầu xác thực admin',
@@ -24,7 +42,6 @@ const requireAdminAuth = (req, res, next) => {
     });
   }
 
-  const token = authHeader.split(' ')[1];
   const session = adminSessions.find(s => s.token === token);
 
   if (!session) {
@@ -55,5 +72,6 @@ const requireAdminAuth = (req, res, next) => {
 module.exports = {
   adminUsers,
   adminSessions,
-  requireAdminAuth
+  requireAdminAuth,
+  parseCookies
 };

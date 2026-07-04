@@ -9,7 +9,7 @@ interface AdminProtectedRouteProps {
 
 export default function AdminProtectedRoute({ requiredRole = 'owner', children }: AdminProtectedRouteProps) {
   const admin = useAdminAuthStore((state) => state.admin);
-  const token = useAdminAuthStore((state) => state.token);
+  const isAuthenticated = useAdminAuthStore((state) => state.isAuthenticated);
   const checkAuth = useAdminAuthStore((state) => state.checkAuth);
   const fetchCurrentUser = useAdminAuthStore((state) => state.fetchCurrentUser);
   const isLoading = useAdminAuthStore((state) => state.isLoading);
@@ -20,9 +20,9 @@ export default function AdminProtectedRoute({ requiredRole = 'owner', children }
   // Quick client-side check
   const isAuthValid = checkAuth();
 
-  // On mount or when we have a token but need to verify with server (e.g. F5 reload)
+  // On mount or when we have an active session but need to verify with server (e.g. F5 reload)
   useEffect(() => {
-    if (token && isAuthValid && !isVerified) {
+    if (isAuthenticated && isAuthValid && !isVerified) {
       const timer = setTimeout(() => {
         setIsVerifying(true);
       }, 0);
@@ -34,10 +34,10 @@ export default function AdminProtectedRoute({ requiredRole = 'owner', children }
       
       return () => clearTimeout(timer);
     }
-  }, [token, isAuthValid, isVerified, fetchCurrentUser]);
+  }, [isAuthenticated, isAuthValid, isVerified, fetchCurrentUser]);
 
-  // No token at all → redirect to login immediately
-  if (!token || !isAuthValid) {
+  // No active session at all → redirect to login immediately
+  if (!isAuthenticated || !isAuthValid) {
     return <Navigate to="/login" replace />;
   }
 
