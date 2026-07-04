@@ -37,8 +37,7 @@ const requireAdminAuth = (req, res, next) => {
   if (!token) {
     return res.status(401).json({
       success: false,
-      message: 'Yêu cầu xác thực admin',
-      error: 'UNAUTHORIZED'
+      message: 'Unauthorized'
     });
   }
 
@@ -47,8 +46,7 @@ const requireAdminAuth = (req, res, next) => {
   if (!session) {
     return res.status(401).json({
       success: false,
-      message: 'Phiên làm việc không tồn tại hoặc đã đăng xuất',
-      error: 'INVALID_TOKEN'
+      message: 'Unauthorized'
     });
   }
 
@@ -59,13 +57,14 @@ const requireAdminAuth = (req, res, next) => {
     }
     return res.status(401).json({
       success: false,
-      message: 'Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.',
-      error: 'TOKEN_EXPIRED'
+      message: 'Unauthorized'
     });
   }
 
-  const admin = adminUsers.find(u => u.id === session.adminId);
-  req.admin = admin;
+  const adminRaw = adminUsers.find(u => u.id === session.adminId);
+  // Strip password from req.admin — never expose credentials to route handlers
+  const { password: _, ...adminSafe } = adminRaw;
+  req.admin = adminSafe;
   next();
 };
 
