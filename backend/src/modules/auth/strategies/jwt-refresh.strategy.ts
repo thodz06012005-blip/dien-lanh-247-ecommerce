@@ -7,12 +7,16 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(private configService: ConfigService) {
+    const secret = configService.get<string>('JWT_REFRESH_SECRET');
+    if (!secret) {
+      throw new Error('Missing required environment variable: JWT_REFRESH_SECRET');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => request.cookies?.['refreshToken'],
       ]),
       ignoreExpiration: false,
-      secretOrKey: configService.get('JWT_REFRESH_SECRET') || 'refresh_secret',
+      secretOrKey: secret,
       passReqToCallback: true,
     });
   }

@@ -7,16 +7,27 @@ async function main() {
   console.log('Seeding database...');
 
   // 1. Create Admins & Users
-  const adminPassword = await bcrypt.hash('admin123', 10);
+  const seedEmail = process.env.ADMIN_SEED_EMAIL || 'admin@dienlanh247.vn';
+  const seedPassword = process.env.ADMIN_SEED_PASSWORD;
+
+  if (!seedPassword) {
+    throw new Error('Missing required environment variable: ADMIN_SEED_PASSWORD');
+  }
+
+  if (seedPassword.length < 12) {
+    throw new Error('ADMIN_SEED_PASSWORD must be at least 12 characters long');
+  }
+
+  const adminPasswordHash = await bcrypt.hash(seedPassword, 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@dienlanh247.vn' },
+    where: { email: seedEmail },
     update: {
-      password: adminPassword,
+      password: adminPasswordHash,
       role: UserRole.ADMIN,
     },
     create: {
-      email: 'admin@dienlanh247.vn',
-      password: adminPassword,
+      email: seedEmail,
+      password: adminPasswordHash,
       firstName: 'Trưởng Kênh',
       lastName: 'Kỹ Thuật',
       role: UserRole.ADMIN,

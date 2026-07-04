@@ -155,13 +155,23 @@ export class AuthService {
   private async generateTokens(userId: number, email: string, role: string) {
     const payload = { sub: userId, email, role };
 
+    const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET');
+    const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET');
+
+    if (!accessSecret) {
+      throw new Error('Missing required environment variable: JWT_ACCESS_SECRET');
+    }
+    if (!refreshSecret) {
+      throw new Error('Missing required environment variable: JWT_REFRESH_SECRET');
+    }
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get('JWT_ACCESS_SECRET') || 'access_secret',
+        secret: accessSecret,
         expiresIn: '15m',
       }),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get('JWT_REFRESH_SECRET') || 'refresh_secret',
+        secret: refreshSecret,
         expiresIn: '7d',
       }),
     ]);
