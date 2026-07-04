@@ -12,6 +12,14 @@ export default function Login() {
   
   const navigate = useNavigate();
   const adminLogin = useAdminAuthStore((state) => state.login);
+  const isAuthenticated = useAdminAuthStore((state) => state.isAuthenticated);
+  const checkAuth = useAdminAuthStore((state) => state.checkAuth);
+
+  React.useEffect(() => {
+    if (isAuthenticated && checkAuth()) {
+      navigate('/');
+    }
+  }, [isAuthenticated, checkAuth, navigate]);
 
   const validateEmail = (val: string) => {
     return /\S+@\S+\.\S+/.test(val);

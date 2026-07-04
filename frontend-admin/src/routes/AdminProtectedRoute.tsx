@@ -14,27 +14,22 @@ export default function AdminProtectedRoute({ requiredRole = 'owner', children }
   const fetchCurrentUser = useAdminAuthStore((state) => state.fetchCurrentUser);
   const isLoading = useAdminAuthStore((state) => state.isLoading);
 
-  const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
 
   // Quick client-side check
   const isAuthValid = checkAuth();
 
+  // If session is active but not yet verified with server, we are in verifying state
+  const isVerifying = isAuthenticated && isAuthValid && !isVerified;
+
   // On mount or when we have an active session but need to verify with server (e.g. F5 reload)
   useEffect(() => {
-    if (isAuthenticated && isAuthValid && !isVerified) {
-      const timer = setTimeout(() => {
-        setIsVerifying(true);
-      }, 0);
-      
+    if (isVerifying) {
       fetchCurrentUser().then(() => {
         setIsVerified(true);
-        setIsVerifying(false);
       });
-      
-      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, isAuthValid, isVerified, fetchCurrentUser]);
+  }, [isVerifying, fetchCurrentUser]);
 
   // No active session at all → redirect to login immediately
   if (!isAuthenticated || !isAuthValid) {
