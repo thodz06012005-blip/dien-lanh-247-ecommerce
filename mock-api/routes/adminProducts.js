@@ -3,16 +3,16 @@ const router = express.Router();
 const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { slugify } = require('../utils/validators');
-const { requireAdminAuth } = require('../utils/auth');
+const { requirePermission } = require('../utils/auth');
 
-// GET /admin/products
-router.get('/admin/products', requireAdminAuth, (req, res) => {
+// GET /admin/products — requires: products:read (superadmin, admin, staff)
+router.get('/admin/products', requirePermission('products:read'), (req, res) => {
   const db = readDB();
   return respondSuccess(res, db.products);
 });
 
-// POST /admin/products
-router.post('/admin/products', requireAdminAuth, (req, res) => {
+// POST /admin/products — requires: products:create (superadmin, admin)
+router.post('/admin/products', requirePermission('products:create'), (req, res) => {
   const db = readDB();
   const body = req.body;
 
@@ -111,8 +111,8 @@ router.post('/admin/products', requireAdminAuth, (req, res) => {
   return respondCreated(res, newProduct, 'Thêm sản phẩm mới thành công');
 });
 
-// PATCH /admin/products/:id
-router.patch('/admin/products/:id', requireAdminAuth, (req, res) => {
+// PATCH /admin/products/:id — requires: products:update (superadmin, admin)
+router.patch('/admin/products/:id', requirePermission('products:update'), (req, res) => {
   const db = readDB();
   const id = req.params.id;
   const pIndex = db.products.findIndex(p => p.id === id);
@@ -226,8 +226,8 @@ router.patch('/admin/products/:id', requireAdminAuth, (req, res) => {
   return respondSuccess(res, updatedProduct, 'Cập nhật sản phẩm thành công');
 });
 
-// DELETE /admin/products/:id
-router.delete('/admin/products/:id', requireAdminAuth, (req, res) => {
+// DELETE /admin/products/:id — requires: products:delete (superadmin ONLY)
+router.delete('/admin/products/:id', requirePermission('products:delete'), (req, res) => {
   const db = readDB();
   const id = req.params.id;
   const pIndex = db.products.findIndex(p => p.id === id);

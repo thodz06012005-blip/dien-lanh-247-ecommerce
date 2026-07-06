@@ -10,11 +10,12 @@ import { UserRole } from '@prisma/client';
 
 @Controller('admin/technicians')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+@Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
 export class TechniciansController {
   constructor(private readonly techniciansService: TechniciansService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   create(@Body() createTechnicianDto: CreateTechnicianDto) {
     return this.techniciansService.create(createTechnicianDto);
   }
@@ -30,17 +31,21 @@ export class TechniciansController {
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   update(@Param('id') id: string, @Body() updateTechnicianDto: UpdateTechnicianDto) {
     return this.techniciansService.update(id, updateTechnicianDto);
   }
 
   @Patch(':id/status')
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   updateStatus(@Param('id') id: string, @Body() updateStatusDto: UpdateTechnicianStatusDto) {
     return this.techniciansService.updateStatus(id, updateStatusDto);
   }
 
   @Delete(':id')
+  @Roles(UserRole.SUPERADMIN)
   remove(@Param('id') id: string) {
     return this.techniciansService.remove(id);
   }
 }
+

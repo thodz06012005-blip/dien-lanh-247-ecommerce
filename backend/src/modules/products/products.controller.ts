@@ -24,14 +24,14 @@ export class ProductsController {
 
   @Get('admin/products')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   findAllAdmin(@Query() query: ProductQueryDto) {
     return this.productsService.findAll(query, { includeInactive: true });
   }
 
   @Get('admin/products/:identifier')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   findOneAdmin(@Param('identifier') identifier: string) {
     return this.productsService.findOne(identifier, { includeInactive: true });
   }
@@ -62,7 +62,7 @@ export class ProductsController {
 
   @Delete(['products/:id', 'admin/products/:id'])
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.SUPERADMIN)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.remove(id);
   }

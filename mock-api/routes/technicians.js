@@ -3,11 +3,11 @@ const router = express.Router();
 const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { isValidPhone, isValidEmail } = require('../utils/validators');
-const { requireAdminAuth } = require('../utils/auth');
+const { requirePermission } = require('../utils/auth');
 const { VALID_TECHNICIAN_STATUSES, ACTIVE_SERVICE_REQUEST_STATUSES } = require('../constants');
 
-// GET /admin/technicians
-router.get('/admin/technicians', requireAdminAuth, (req, res) => {
+// GET /admin/technicians — requires: technicians:read (superadmin, admin, staff)
+router.get('/admin/technicians', requirePermission('technicians:read'), (req, res) => {
   const db = readDB();
   let list = db.technicians || [];
   
@@ -69,8 +69,8 @@ router.get('/admin/technicians', requireAdminAuth, (req, res) => {
   return respondSuccess(res, enrichedList);
 });
 
-// GET /admin/technicians/:id
-router.get('/admin/technicians/:id', requireAdminAuth, (req, res) => {
+// GET /admin/technicians/:id — requires: technicians:read (superadmin, admin, staff)
+router.get('/admin/technicians/:id', requirePermission('technicians:read'), (req, res) => {
   const db = readDB();
   const tech = (db.technicians || []).find(t => t.id === req.params.id);
   if (!tech) {
@@ -79,8 +79,8 @@ router.get('/admin/technicians/:id', requireAdminAuth, (req, res) => {
   return respondSuccess(res, tech);
 });
 
-// POST /admin/technicians
-router.post('/admin/technicians', requireAdminAuth, (req, res) => {
+// POST /admin/technicians — requires: technicians:create (superadmin, admin)
+router.post('/admin/technicians', requirePermission('technicians:create'), (req, res) => {
   const db = readDB();
   const body = req.body;
   
@@ -160,8 +160,8 @@ router.post('/admin/technicians', requireAdminAuth, (req, res) => {
   return respondCreated(res, newTech, 'Thêm kỹ thuật viên mới thành công');
 });
 
-// PATCH /admin/technicians/:id
-router.patch('/admin/technicians/:id', requireAdminAuth, (req, res) => {
+// PATCH /admin/technicians/:id — requires: technicians:update (superadmin, admin)
+router.patch('/admin/technicians/:id', requirePermission('technicians:update'), (req, res) => {
   const db = readDB();
   const id = req.params.id;
   const techIndex = (db.technicians || []).findIndex(t => t.id === id);
@@ -269,8 +269,8 @@ router.patch('/admin/technicians/:id', requireAdminAuth, (req, res) => {
   return respondSuccess(res, updatedTech, 'Cập nhật thông tin kỹ thuật viên thành công');
 });
 
-// PATCH /admin/technicians/:id/status (Quick update status)
-router.patch('/admin/technicians/:id/status', requireAdminAuth, (req, res) => {
+// PATCH /admin/technicians/:id/status — requires: technicians:update (superadmin, admin)
+router.patch('/admin/technicians/:id/status', requirePermission('technicians:update'), (req, res) => {
   const db = readDB();
   const id = req.params.id;
   const techIndex = (db.technicians || []).findIndex(t => t.id === id);
@@ -301,8 +301,8 @@ router.patch('/admin/technicians/:id/status', requireAdminAuth, (req, res) => {
   return respondSuccess(res, db.technicians[techIndex], 'Cập nhật trạng thái kỹ thuật viên thành công');
 });
 
-// DELETE /admin/technicians/:id
-router.delete('/admin/technicians/:id', requireAdminAuth, (req, res) => {
+// DELETE /admin/technicians/:id — requires: technicians:delete (superadmin ONLY)
+router.delete('/admin/technicians/:id', requirePermission('technicians:delete'), (req, res) => {
   const db = readDB();
   const id = req.params.id;
   const techIndex = (db.technicians || []).findIndex(t => t.id === id);

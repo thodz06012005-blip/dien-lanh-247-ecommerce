@@ -32,7 +32,7 @@ export class ServiceRequestsController {
 
   // Admin: View all service requests with filters
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Get('admin/service-requests')
   findAllAdmin(
     @Query('status') status?: string,
@@ -45,7 +45,7 @@ export class ServiceRequestsController {
 
   // Admin: View a specific service request
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Get('admin/service-requests/:id')
   findOneAdmin(@Param('id') id: string) {
     return this.serviceRequestsService.findOneAdmin(id);
@@ -53,7 +53,7 @@ export class ServiceRequestsController {
 
   // Admin: Update service request status
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Patch('admin/service-requests/:id/status')
   updateStatusAdmin(@Param('id') id: string, @Body() updateStatusDto: UpdateServiceRequestStatusDto) {
     return this.serviceRequestsService.updateStatusAdmin(id, updateStatusDto);

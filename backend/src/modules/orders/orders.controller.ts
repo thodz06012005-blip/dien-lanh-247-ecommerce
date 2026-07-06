@@ -61,7 +61,7 @@ export class OrdersController {
 
   // Admin: View all orders
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Get('admin/orders')
   async findAllAdmin() {
     const orders = await this.ordersService.findAllAdmin();
@@ -73,7 +73,7 @@ export class OrdersController {
 
   // Admin: View a specific order
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Get('admin/orders/:id')
   async findOneAdmin(@Param('id') id: string) {
     const order = await this.ordersService.findOneAdmin(id);
@@ -85,7 +85,7 @@ export class OrdersController {
 
   // Admin: Update order status
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Patch('admin/orders/:id/status')
   async updateStatusAdmin(@Param('id') id: string, @Body() updateStatusDto: UpdateOrderStatusDto) {
     const order = await this.ordersService.updateStatusAdmin(id, updateStatusDto);

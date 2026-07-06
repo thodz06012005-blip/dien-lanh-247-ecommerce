@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { readDB } = require('../utils/db');
 const { respondSuccess } = require('../utils/response');
-const { requireAdminAuth } = require('../utils/auth');
+const { requirePermission } = require('../utils/auth');
 
-// GET /admin/dashboard
-router.get('/admin/dashboard', requireAdminAuth, (req, res) => {
+// GET /admin/dashboard — requires: dashboard:read (superadmin, admin, staff)
+router.get('/admin/dashboard', requirePermission('dashboard:read'), (req, res) => {
   const db = readDB();
   const todayStr = new Date().toISOString().split('T')[0];
 

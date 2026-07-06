@@ -3,7 +3,7 @@ const router = express.Router();
 const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { isValidPhone } = require('../utils/validators');
-const { requireAdminAuth } = require('../utils/auth');
+const { requirePermission } = require('../utils/auth');
 const { VALID_SERVICE_PRIORITIES, VALID_SERVICE_STATUSES, ACTIVE_SERVICE_REQUEST_STATUSES } = require('../constants');
 
 // Helper to dynamically update technician status based on active assigned jobs
@@ -198,8 +198,8 @@ router.get('/my-service-requests', (req, res) => {
   return respondSuccess(res, populated);
 });
 
-// GET /admin/service-requests (Admin views all service requests with filters)
-router.get('/admin/service-requests', requireAdminAuth, (req, res) => {
+// GET /admin/service-requests (Admin views all service requests with filters) — requires: serviceRequests:read
+router.get('/admin/service-requests', requirePermission('serviceRequests:read'), (req, res) => {
   const db = readDB();
   let list = db.serviceRequests || [];
   
@@ -223,8 +223,8 @@ router.get('/admin/service-requests', requireAdminAuth, (req, res) => {
   return respondSuccess(res, populatedList);
 });
 
-// GET /admin/service-requests/:id
-router.get('/admin/service-requests/:id', requireAdminAuth, (req, res) => {
+// GET /admin/service-requests/:id — requires: serviceRequests:read
+router.get('/admin/service-requests/:id', requirePermission('serviceRequests:read'), (req, res) => {
   const db = readDB();
   const request = (db.serviceRequests || []).find(r => r.id === req.params.id);
   if (!request) {
@@ -234,8 +234,8 @@ router.get('/admin/service-requests/:id', requireAdminAuth, (req, res) => {
   return respondSuccess(res, populated);
 });
 
-// PATCH /admin/service-requests/:id/status
-router.patch('/admin/service-requests/:id/status', requireAdminAuth, (req, res) => {
+// PATCH /admin/service-requests/:id/status — requires: serviceRequests:update (superadmin, admin, staff)
+router.patch('/admin/service-requests/:id/status', requirePermission('serviceRequests:update'), (req, res) => {
   const db = readDB();
   const { id } = req.params;
   const { status, finalPrice, note } = req.body;
@@ -327,8 +327,8 @@ router.patch('/admin/service-requests/:id/status', requireAdminAuth, (req, res) 
   return respondSuccess(res, populated, 'Cập nhật trạng thái thành công');
 });
 
-// PATCH /admin/service-requests/:id/assign-technician
-router.patch('/admin/service-requests/:id/assign-technician', requireAdminAuth, (req, res) => {
+// PATCH /admin/service-requests/:id/assign-technician — requires: technicians:assign (superadmin, admin)
+router.patch('/admin/service-requests/:id/assign-technician', requirePermission('technicians:assign'), (req, res) => {
   const db = readDB();
   const { id } = req.params;
   const { technicianId } = req.body;

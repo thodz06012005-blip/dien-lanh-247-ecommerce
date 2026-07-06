@@ -47,7 +47,7 @@ export class AdminAuthController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logoutAdmin(
@@ -76,7 +76,7 @@ export class AdminAuthController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Get('me')
   async getAdminProfile(@CurrentUser() user: any) {
     const result = await this.authService.getAdminProfile(user.userId);

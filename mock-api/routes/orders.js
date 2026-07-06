@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
-const { requireAdminAuth } = require('../utils/auth');
+const { requirePermission } = require('../utils/auth');
 const { VALID_PAYMENT_METHODS } = require('../constants');
 
 // Adapter to map mock-db standardized order model to customer frontend (frontend-user) formats
@@ -298,14 +298,14 @@ router.patch('/orders/:id/cancel', (req, res) => {
   return respondSuccess(res, mapOrderToUser(order), 'Đã hủy đơn hàng thành công');
 });
 
-// GET /admin/orders
-router.get('/admin/orders', requireAdminAuth, (req, res) => {
+// GET /admin/orders — requires: orders:read (superadmin, admin, staff)
+router.get('/admin/orders', requirePermission('orders:read'), (req, res) => {
   const db = readDB();
   return respondSuccess(res, db.orders);
 });
 
-// GET /admin/orders/:id
-router.get('/admin/orders/:id', requireAdminAuth, (req, res) => {
+// GET /admin/orders/:id — requires: orders:read (superadmin, admin, staff)
+router.get('/admin/orders/:id', requirePermission('orders:read'), (req, res) => {
   const db = readDB();
   const order = db.orders.find(o => o.id === req.params.id);
   if (order) {
@@ -314,8 +314,8 @@ router.get('/admin/orders/:id', requireAdminAuth, (req, res) => {
   return respondError(res, 404, 'Không tìm thấy đơn hàng', 'ORDER_NOT_FOUND');
 });
 
-// PATCH /admin/orders/:id/status
-router.patch('/admin/orders/:id/status', requireAdminAuth, (req, res) => {
+// PATCH /admin/orders/:id/status — requires: orders:update (superadmin, admin, staff)
+router.patch('/admin/orders/:id/status', requirePermission('orders:update'), (req, res) => {
   const db = readDB();
   const id = req.params.id;
   const order = db.orders.find(o => o.id === id);
