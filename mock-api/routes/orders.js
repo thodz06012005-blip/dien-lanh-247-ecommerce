@@ -4,6 +4,13 @@ const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { requirePermission } = require('../utils/auth');
 const { VALID_PAYMENT_METHODS } = require('../constants');
+const {
+  validateRequiredString,
+  validateEnum,
+  validatePagination,
+  validateSort,
+  sendValidationError
+} = require('../utils/validation');
 
 // Adapter to map mock-db standardized order model to customer frontend (frontend-user) formats
 const mapOrderToUser = (o) => {
@@ -300,12 +307,27 @@ router.patch('/orders/:id/cancel', (req, res) => {
 
 // GET /admin/orders — requires: orders:read (superadmin, admin, staff)
 router.get('/admin/orders', requirePermission('orders:read'), (req, res) => {
+  const errors = [];
+  validatePagination(req.query, errors);
+  validateSort(req.query, ['code', 'customerName', 'phone', 'total', 'status', 'createdAt', 'updatedAt'], errors);
+  
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   return respondSuccess(res, db.orders);
 });
 
 // GET /admin/orders/:id — requires: orders:read (superadmin, admin, staff)
 router.get('/admin/orders/:id', requirePermission('orders:read'), (req, res) => {
+  const errors = [];
+  validateRequiredString(req.params.id, 'id', errors, 1, 50);
+  
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   const order = db.orders.find(o => o.id === req.params.id);
   if (order) {
@@ -316,6 +338,21 @@ router.get('/admin/orders/:id', requirePermission('orders:read'), (req, res) => 
 
 // PATCH /admin/orders/:id/status — requires: orders:update (superadmin, admin, staff)
 router.patch('/admin/orders/:id/status', requirePermission('orders:update'), (req, res) => {
+  const errors = [];
+  validateRequiredString(req.params.id, 'id', errors, 1, 50);
+
+  const { status, paymentStatus } = req.body;
+  if (status !== undefined) {
+    validateEnum(status, ['pending', 'confirmed', 'processing', 'shipping', 'delivered', 'cancelled'], 'status', errors);
+  }
+  if (paymentStatus !== undefined) {
+    validateEnum(paymentStatus, ['paid', 'unpaid'], 'paymentStatus', errors);
+  }
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   const id = req.params.id;
   const order = db.orders.find(o => o.id === id);
@@ -324,7 +361,6 @@ router.patch('/admin/orders/:id/status', requirePermission('orders:update'), (re
     return respondError(res, 404, 'Không tìm thấy đơn hàng', 'ORDER_NOT_FOUND');
   }
 
-  const { status, paymentStatus } = req.body;
   const oldStatus = order.status;
 
   if (status && status !== oldStatus) {

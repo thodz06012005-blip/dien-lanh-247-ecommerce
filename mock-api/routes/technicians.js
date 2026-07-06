@@ -5,9 +5,30 @@ const { respondSuccess, respondCreated, respondError } = require('../utils/respo
 const { isValidPhone, isValidEmail } = require('../utils/validators');
 const { requirePermission } = require('../utils/auth');
 const { VALID_TECHNICIAN_STATUSES, ACTIVE_SERVICE_REQUEST_STATUSES } = require('../constants');
+const {
+  validateRequiredString,
+  validateOptionalString,
+  validateEnum,
+  validateNumber,
+  validateInteger,
+  validateArrayOfStrings,
+  validatePagination,
+  validateSort,
+  sendValidationError
+} = require('../utils/validation');
 
 // GET /admin/technicians — requires: technicians:read (superadmin, admin, staff)
 router.get('/admin/technicians', requirePermission('technicians:read'), (req, res) => {
+  const errors = [];
+  validatePagination(req.query, errors);
+  validateSort(req.query, ['name', 'phone', 'status', 'rating', 'createdAt', 'updatedAt'], errors);
+  if (req.query.status) {
+    validateEnum(req.query.status, VALID_TECHNICIAN_STATUSES, 'status', errors, false);
+  }
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   let list = db.technicians || [];
   
@@ -81,43 +102,67 @@ router.get('/admin/technicians/:id', requirePermission('technicians:read'), (req
 
 // POST /admin/technicians — requires: technicians:create (superadmin, admin)
 router.post('/admin/technicians', requirePermission('technicians:create'), (req, res) => {
-  const db = readDB();
   const body = req.body;
+  const errors = [];
   
-  if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
-    return respondError(res, 400, 'Họ tên kỹ thuật viên không được để trống', 'INVALID_NAME');
+  validateRequiredString(body.name, 'name', errors, 2, 100);
+  validateRequiredString(body.phone, 'phone', errors, 9, 20);
+  
+  if (body.email !== undefined && body.email !== '') {
+    validateOptionalString(body.email, 'email', errors, 100);
   }
-  
-  if (!body.phone || typeof body.phone !== 'string') {
-    return respondError(res, 400, 'Số điện thoại kỹ thuật viên không được để trống', 'INVALID_PHONE');
+  if (body.status !== undefined) {
+    validateEnum(body.status, VALID_TECHNICIAN_STATUSES, 'status', errors);
   }
-  
-  const phoneNormalized = body.phone.replace(/\s+/g, '').trim();
-  if (!isValidPhone(phoneNormalized)) {
-    return respondError(res, 400, 'Số điện thoại không đúng định dạng Việt Nam', 'INVALID_PHONE_FORMAT');
+  if (body.skills !== undefined) {
+    validateArrayOfStrings(body.skills, 'skills', errors, 1, 50);
+  } else {
+    errors.push({ field: 'skills', message: 'Kỹ năng chuyên môn không được để trống' });
+  }
+  if (body.workingAreas !== undefined) {
+    validateArrayOfStrings(body.workingAreas, 'workingAreas', errors, 1, 50);
+  } else {
+    errors.push({ field: 'workingAreas', message: 'Địa bàn hoạt động không được để trống' });
+  }
+  if (body.rating !== undefined) {
+    validateNumber(body.rating, 'rating', errors, 0, 5);
   }
 
-  if (body.email && typeof body.email === 'string' && body.email.trim() !== '') {
-    const emailNormalized = body.email.trim().toLowerCase();
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
+  const phoneNormalized = body.phone.replace(/\s+/g, '').trim();
+  if (!isValidPhone(phoneNormalized)) {
+    errors.push({ field: 'phone', message: 'Số điện thoại không đúng định dạng Việt Nam' });
+  }
+
+  let emailNormalized = '';
+  if (body.email && body.email.trim() !== '') {
+    emailNormalized = body.email.trim().toLowerCase();
     if (!isValidEmail(emailNormalized)) {
-      return respondError(res, 400, 'Email không đúng định dạng', 'INVALID_EMAIL_FORMAT');
+      errors.push({ field: 'email', message: 'Email không đúng định dạng' });
     }
+  }
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
+  const db = readDB();
+
+  if (emailNormalized) {
     const emailDup = (db.technicians || []).some(t => t.email && t.email.trim().toLowerCase() === emailNormalized);
     if (emailDup) {
-      return respondError(res, 400, 'Email này đã được sử dụng bởi kỹ thuật viên khác', 'EMAIL_DUPLICATE');
+      errors.push({ field: 'email', message: 'Email này đã được sử dụng bởi kỹ thuật viên khác' });
+      return sendValidationError(res, errors);
     }
-    body.email = emailNormalized;
-  } else {
-    body.email = '';
   }
 
   const phoneDup = (db.technicians || []).some(t => t.phone.replace(/\s+/g, '').trim() === phoneNormalized);
   if (phoneDup) {
-    return respondError(res, 400, 'Số điện thoại này đã được sử dụng bởi kỹ thuật viên khác', 'PHONE_DUPLICATE');
-  }
-
-  if (!body.skills || !Array.isArray(body.skills) || body.skills.length === 0) {
-    return respondError(res, 400, 'Kỹ thuật viên phải có ít nhất một kỹ năng chuyên môn', 'INVALID_SKILLS');
+    errors.push({ field: 'phone', message: 'Số điện thoại này đã được sử dụng bởi kỹ thuật viên khác' });
+    return sendValidationError(res, errors);
   }
 
   if (!body.workingAreas || !Array.isArray(body.workingAreas) || body.workingAreas.length === 0) {
@@ -162,6 +207,57 @@ router.post('/admin/technicians', requirePermission('technicians:create'), (req,
 
 // PATCH /admin/technicians/:id — requires: technicians:update (superadmin, admin)
 router.patch('/admin/technicians/:id', requirePermission('technicians:update'), (req, res) => {
+  const paramErrors = [];
+  validateRequiredString(req.params.id, 'id', paramErrors, 1, 50);
+  if (paramErrors.length > 0) {
+    return sendValidationError(res, paramErrors);
+  }
+
+  const body = req.body;
+  const errors = [];
+
+  if (body.name !== undefined) validateRequiredString(body.name, 'name', errors, 2, 100);
+  if (body.phone !== undefined) validateRequiredString(body.phone, 'phone', errors, 9, 20);
+  if (body.email !== undefined && body.email !== '') {
+    validateOptionalString(body.email, 'email', errors, 100);
+  }
+  if (body.status !== undefined) {
+    validateEnum(body.status, VALID_TECHNICIAN_STATUSES, 'status', errors);
+  }
+  if (body.skills !== undefined) {
+    validateArrayOfStrings(body.skills, 'skills', errors, 1, 50);
+  }
+  if (body.workingAreas !== undefined) {
+    validateArrayOfStrings(body.workingAreas, 'workingAreas', errors, 1, 50);
+  }
+  if (body.rating !== undefined) {
+    validateNumber(body.rating, 'rating', errors, 0, 5);
+  }
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
+  let phoneNormalized = '';
+  if (body.phone !== undefined) {
+    phoneNormalized = body.phone.replace(/\s+/g, '').trim();
+    if (!isValidPhone(phoneNormalized)) {
+      errors.push({ field: 'phone', message: 'Số điện thoại không đúng định dạng Việt Nam' });
+    }
+  }
+
+  let emailNormalized = '';
+  if (body.email !== undefined && body.email !== '') {
+    emailNormalized = body.email.trim().toLowerCase();
+    if (!isValidEmail(emailNormalized)) {
+      errors.push({ field: 'email', message: 'Email không đúng định dạng' });
+    }
+  }
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   const id = req.params.id;
   const techIndex = (db.technicians || []).findIndex(t => t.id === id);
@@ -171,81 +267,35 @@ router.patch('/admin/technicians/:id', requirePermission('technicians:update'), 
   }
   
   const existing = db.technicians[techIndex];
-  const body = req.body;
-  
-  // Whitelist fields
-  const updates = {};
-  
-  if (body.name !== undefined) {
-    if (typeof body.name !== 'string' || body.name.trim() === '') {
-      return respondError(res, 400, 'Họ tên kỹ thuật viên không được để trống', 'INVALID_NAME');
+
+  if (emailNormalized) {
+    const emailDup = (db.technicians || []).some(t => t.id !== id && t.email && t.email.trim().toLowerCase() === emailNormalized);
+    if (emailDup) {
+      errors.push({ field: 'email', message: 'Email này đã được sử dụng bởi kỹ thuật viên khác' });
+      return sendValidationError(res, errors);
     }
-    updates.name = body.name.trim();
   }
 
-  if (body.phone !== undefined) {
-    if (typeof body.phone !== 'string') {
-      return respondError(res, 400, 'Số điện thoại không hợp lệ', 'INVALID_PHONE');
-    }
-    const phoneNormalized = body.phone.replace(/\s+/g, '').trim();
-    if (!isValidPhone(phoneNormalized)) {
-      return respondError(res, 400, 'Số điện thoại không đúng định dạng Việt Nam', 'INVALID_PHONE_FORMAT');
-    }
+  if (phoneNormalized) {
     const phoneDup = (db.technicians || []).some(t => t.id !== id && t.phone.replace(/\s+/g, '').trim() === phoneNormalized);
     if (phoneDup) {
-      return respondError(res, 400, 'Số điện thoại này đã được sử dụng bởi kỹ thuật viên khác', 'PHONE_DUPLICATE');
-    }
-    updates.phone = phoneNormalized;
-  }
-
-  if (body.email !== undefined) {
-    if (body.email && typeof body.email === 'string' && body.email.trim() !== '') {
-      const emailNormalized = body.email.trim().toLowerCase();
-      if (!isValidEmail(emailNormalized)) {
-        return respondError(res, 400, 'Email không đúng định dạng', 'INVALID_EMAIL_FORMAT');
-      }
-      const emailDup = (db.technicians || []).some(t => t.id !== id && t.email && t.email.trim().toLowerCase() === emailNormalized);
-      if (emailDup) {
-        return respondError(res, 400, 'Email này đã được sử dụng bởi kỹ thuật viên khác', 'EMAIL_DUPLICATE');
-      }
-      updates.email = emailNormalized;
-    } else {
-      updates.email = '';
+      errors.push({ field: 'phone', message: 'Số điện thoại này đã được sử dụng bởi kỹ thuật viên khác' });
+      return sendValidationError(res, errors);
     }
   }
 
-  if (body.avatar !== undefined) {
-    updates.avatar = body.avatar;
-  }
-
-  if (body.rating !== undefined) {
-    const ratingNum = Number(body.rating);
-    if (isNaN(ratingNum) || ratingNum < 0 || ratingNum > 5) {
-      return respondError(res, 400, 'Điểm đánh giá phải từ 0 đến 5', 'INVALID_RATING');
-    }
-    updates.rating = ratingNum;
-  }
-
-  if (body.skills !== undefined) {
-    if (!Array.isArray(body.skills) || body.skills.length === 0) {
-      return respondError(res, 400, 'Kỹ năng chuyên môn không được để trống', 'INVALID_SKILLS');
-    }
-    updates.skills = body.skills;
-  }
-
+  const updates = {};
+  if (body.name !== undefined) updates.name = body.name.trim();
+  if (phoneNormalized) updates.phone = phoneNormalized;
+  if (body.email !== undefined) updates.email = emailNormalized;
+  if (body.avatar !== undefined) updates.avatar = body.avatar;
+  if (body.rating !== undefined) updates.rating = Number(body.rating);
+  if (body.skills !== undefined) updates.skills = body.skills;
   if (body.workingAreas !== undefined) {
-    if (!Array.isArray(body.workingAreas) || body.workingAreas.length === 0) {
-      return respondError(res, 400, 'Địa bàn hoạt động không được để trống', 'INVALID_WORKING_AREAS');
-    }
     updates.workingAreas = body.workingAreas.map(area => area.startsWith('Quận ') ? area : `Quận ${area}`);
   }
 
   if (body.status !== undefined) {
-    const allowedStatuses = VALID_TECHNICIAN_STATUSES;
-    if (!allowedStatuses.includes(body.status)) {
-      return respondError(res, 400, 'Trạng thái hoạt động không hợp lệ', 'INVALID_STATUS');
-    }
-    
     // Check if technician has active job
     const hasActiveJob = (db.serviceRequests || []).some(r => 
       r.assignedTechnicianId === id && 
@@ -256,16 +306,16 @@ router.patch('/admin/technicians/:id', requirePermission('technicians:update'), 
     }
     updates.status = body.status;
   }
-  
+
   const updatedTech = {
     ...existing,
     ...updates,
     updatedAt: new Date().toISOString()
   };
-  
+
   db.technicians[techIndex] = updatedTech;
   writeDB(db);
-  
+
   return respondSuccess(res, updatedTech, 'Cập nhật thông tin kỹ thuật viên thành công');
 });
 

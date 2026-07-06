@@ -107,6 +107,39 @@ router.get('/products/:identifier', (req, res) => {
 
 // GET /products
 router.get('/products', (req, res) => {
+  const {
+    validateOptionalString,
+    validateEnum,
+    validateNumber,
+    validateInteger,
+    validatePagination,
+    sendValidationError
+  } = require('../utils/validation');
+
+  const errors = [];
+  validatePagination(req.query, errors);
+  if (req.query.priceMin !== undefined) validateNumber(req.query.priceMin, 'priceMin', errors, 0, 1000000000, false);
+  if (req.query.priceMax !== undefined) validateNumber(req.query.priceMax, 'priceMax', errors, 0, 1000000000, false);
+  if (req.query.sort !== undefined) {
+    validateEnum(req.query.sort, ['priceAsc', 'priceDesc', 'bestSeller', 'promoHot'], 'sort', errors, false);
+  }
+  if (req.query.inStock !== undefined) {
+    validateEnum(req.query.inStock, ['true', 'false'], 'inStock', errors, false);
+  }
+  if (req.query.hasPromo !== undefined) {
+    validateEnum(req.query.hasPromo, ['true', 'false'], 'hasPromo', errors, false);
+  }
+  if (req.query.inverter !== undefined) {
+    validateEnum(req.query.inverter, ['true', 'false'], 'inverter', errors, false);
+  }
+  if (req.query.q !== undefined) {
+    validateOptionalString(req.query.q, 'q', errors, 100);
+  }
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   let filtered = db.products.filter(p => p.status === 'active' || p.status === 'out_of_stock');
 

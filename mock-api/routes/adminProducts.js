@@ -4,88 +4,111 @@ const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { slugify } = require('../utils/validators');
 const { requirePermission } = require('../utils/auth');
+const {
+  validateRequiredString,
+  validateOptionalString,
+  validateEnum,
+  validateNumber,
+  validateInteger,
+  validateArrayOfStrings,
+  validatePagination,
+  validateSort,
+  sendValidationError
+} = require('../utils/validation');
 
 // GET /admin/products — requires: products:read (superadmin, admin, staff)
 router.get('/admin/products', requirePermission('products:read'), (req, res) => {
+  const errors = [];
+  validatePagination(req.query, errors);
+  validateSort(req.query, ['name', 'sku', 'basePrice', 'stock', 'createdAt', 'updatedAt'], errors);
+  
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   return respondSuccess(res, db.products);
 });
 
 // POST /admin/products — requires: products:create (superadmin, admin)
 router.post('/admin/products', requirePermission('products:create'), (req, res) => {
-  const db = readDB();
   const body = req.body;
+  const errors = [];
 
-  // 1. Validate name
-  if (!body.name || typeof body.name !== 'string' || body.name.trim() === '') {
-    return respondError(res, 400, 'Tên sản phẩm không được rỗng', 'INVALID_PRODUCT_DATA');
+  validateRequiredString(body.name, 'name', errors, 2, 255);
+  validateRequiredString(body.sku, 'sku', errors, 2, 50);
+  validateNumber(body.basePrice, 'basePrice', errors, 0, 1000000000);
+  
+  if (body.salePrice !== undefined && body.salePrice !== null) {
+    validateNumber(body.salePrice, 'salePrice', errors, 0, 1000000000);
+  }
+  if (body.stock !== undefined && body.stock !== null) {
+    validateInteger(body.stock, 'stock', errors, 0, 1000000);
+  }
+  if (body.status !== undefined && body.status !== null) {
+    validateEnum(body.status, ['active', 'inactive', 'out_of_stock'], 'status', errors);
+  }
+  if (body.images !== undefined && body.images !== null) {
+    validateArrayOfStrings(body.images, 'images', errors, 0, 10);
   }
 
-  // 2. Validate SKU
-  if (!body.sku || typeof body.sku !== 'string' || body.sku.trim() === '') {
-    return respondError(res, 400, 'Mã SKU không được rỗng', 'INVALID_PRODUCT_DATA');
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
+  const db = readDB();
+
+  // Validate salePrice <= basePrice
+  if (body.salePrice !== undefined && body.salePrice !== null) {
+    if (Number(body.salePrice) > Number(body.basePrice)) {
+      errors.push({ field: 'salePrice', message: 'Giá khuyến mãi không được lớn hơn giá gốc' });
+      return sendValidationError(res, errors);
+    }
   }
 
   const skuNormalized = body.sku.trim().toUpperCase();
   const isSkuDuplicate = db.products.some(p => p.sku === skuNormalized);
   if (isSkuDuplicate) {
-    return respondError(res, 400, 'Mã SKU đã tồn tại', 'DUPLICATE_SKU');
+    errors.push({ field: 'sku', message: 'Mã SKU đã tồn tại' });
+    return sendValidationError(res, errors);
   }
 
-  // 3. Validate basePrice
-  if (body.basePrice === undefined || body.basePrice === null || isNaN(Number(body.basePrice)) || Number(body.basePrice) <= 0) {
-    return respondError(res, 400, 'Giá bán gốc phải là số dương', 'INVALID_PRODUCT_DATA');
-  }
-
-  // 4. Validate salePrice
-  if (body.salePrice !== undefined && body.salePrice !== null) {
-    if (isNaN(Number(body.salePrice)) || Number(body.salePrice) < 0) {
-      return respondError(res, 400, 'Giá khuyến mãi không hợp lệ', 'INVALID_PRODUCT_DATA');
-    }
-    if (Number(body.salePrice) > Number(body.basePrice)) {
-      return respondError(res, 400, 'Giá khuyến mãi không được lớn hơn giá gốc', 'INVALID_PRODUCT_DATA');
-    }
-  }
-
-  // 5. Validate stock
-  if (body.stock !== undefined && body.stock !== null) {
-    if (isNaN(Number(body.stock)) || Number(body.stock) < 0 || !Number.isInteger(Number(body.stock))) {
-      return respondError(res, 400, 'Số lượng tồn kho phải là số nguyên không âm', 'INVALID_PRODUCT_DATA');
-    }
-  }
-
-  // 6. Validate categoryId & brandId
+  // Validate categoryId & brandId
   if (body.categoryId) {
     const catExists = (db.categories || []).some(c => c.id === body.categoryId);
     if (!catExists) {
-      return respondError(res, 400, 'Danh mục sản phẩm không tồn tại', 'INVALID_CATEGORY');
+      errors.push({ field: 'categoryId', message: 'Danh mục sản phẩm không tồn tại' });
+      return sendValidationError(res, errors);
     }
   }
   if (body.brandId) {
     const brandExists = (db.brands || []).some(b => b.id === body.brandId);
     if (!brandExists) {
-      return respondError(res, 400, 'Thương hiệu sản phẩm không tồn tại', 'INVALID_BRAND');
+      errors.push({ field: 'brandId', message: 'Thương hiệu sản phẩm không tồn tại' });
+      return sendValidationError(res, errors);
     }
   }
 
-  // 7. Validate & generate slug
+  // Validate & generate slug
   const generatedSlug = slugify(body.slug || body.name);
   if (!generatedSlug) {
-    return respondError(res, 400, 'Không thể tạo slug từ tên sản phẩm', 'INVALID_SLUG');
+    errors.push({ field: 'slug', message: 'Không thể tạo slug từ tên sản phẩm' });
+    return sendValidationError(res, errors);
   }
 
   const isSlugDuplicate = db.products.some(p => p.slug === generatedSlug);
   if (isSlugDuplicate) {
-    return respondError(res, 400, 'Slug sản phẩm đã tồn tại', 'DUPLICATE_SLUG');
+    errors.push({ field: 'slug', message: 'Slug sản phẩm đã tồn tại' });
+    return sendValidationError(res, errors);
   }
 
   const generatedId = body.id || `prod-${Date.now()}`;
 
   const newProduct = {
     id: generatedId,
-    name: body.name,
+    name: body.name.trim(),
     slug: generatedSlug,
-    sku: body.sku,
+    sku: skuNormalized,
     categoryId: body.categoryId || 'linh-kien',
     brandId: body.brandId || 'funiki',
     thumbnail: body.thumbnail || 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=400',
@@ -113,6 +136,12 @@ router.post('/admin/products', requirePermission('products:create'), (req, res) 
 
 // PATCH /admin/products/:id — requires: products:update (superadmin, admin)
 router.patch('/admin/products/:id', requirePermission('products:update'), (req, res) => {
+  const paramErrors = [];
+  validateRequiredString(req.params.id, 'id', paramErrors, 1, 50);
+  if (paramErrors.length > 0) {
+    return sendValidationError(res, paramErrors);
+  }
+
   const db = readDB();
   const id = req.params.id;
   const pIndex = db.products.findIndex(p => p.id === id);
@@ -123,85 +152,79 @@ router.patch('/admin/products/:id', requirePermission('products:update'), (req, 
 
   const existing = db.products[pIndex];
   const body = req.body;
+  const errors = [];
 
-  // 1. Validate name if provided
-  if (body.name !== undefined) {
-    if (typeof body.name !== 'string' || body.name.trim() === '') {
-      return respondError(res, 400, 'Tên sản phẩm không được rỗng', 'INVALID_PRODUCT_DATA');
+  if (body.name !== undefined) validateRequiredString(body.name, 'name', errors, 2, 255);
+  if (body.sku !== undefined) validateRequiredString(body.sku, 'sku', errors, 2, 50);
+  if (body.basePrice !== undefined) validateNumber(body.basePrice, 'basePrice', errors, 0, 1000000000);
+  if (body.salePrice !== undefined && body.salePrice !== null) {
+    validateNumber(body.salePrice, 'salePrice', errors, 0, 1000000000);
+  }
+  if (body.stock !== undefined) validateInteger(body.stock, 'stock', errors, 0, 1000000);
+  if (body.status !== undefined) validateEnum(body.status, ['active', 'inactive', 'out_of_stock'], 'status', errors);
+  if (body.images !== undefined) validateArrayOfStrings(body.images, 'images', errors, 0, 10);
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
+  // Validate salePrice <= basePrice
+  if (body.salePrice !== undefined && body.salePrice !== null) {
+    const compareBasePrice = body.basePrice !== undefined ? Number(body.basePrice) : Number(existing.basePrice);
+    if (Number(body.salePrice) > compareBasePrice) {
+      errors.push({ field: 'salePrice', message: 'Giá khuyến mãi không được lớn hơn giá gốc' });
+      return sendValidationError(res, errors);
     }
   }
 
-  // 2. Validate SKU if provided
+  // Validate SKU duplicates
   if (body.sku !== undefined) {
-    if (typeof body.sku !== 'string' || body.sku.trim() === '') {
-      return respondError(res, 400, 'Mã SKU không được rỗng', 'INVALID_PRODUCT_DATA');
-    }
     const skuNormalized = body.sku.trim().toUpperCase();
     const isSkuDuplicate = db.products.some(p => p.id !== id && p.sku === skuNormalized);
     if (isSkuDuplicate) {
-      return respondError(res, 400, 'Mã SKU đã tồn tại', 'DUPLICATE_SKU');
+      errors.push({ field: 'sku', message: 'Mã SKU đã tồn tại' });
+      return sendValidationError(res, errors);
     }
   }
 
-  // 3. Validate basePrice if provided
-  if (body.basePrice !== undefined) {
-    if (isNaN(Number(body.basePrice)) || Number(body.basePrice) <= 0) {
-      return respondError(res, 400, 'Giá bán gốc phải là số dương', 'INVALID_PRODUCT_DATA');
-    }
-  }
-
-  // 4. Validate salePrice if provided
-  if (body.salePrice !== undefined && body.salePrice !== null) {
-    if (isNaN(Number(body.salePrice)) || Number(body.salePrice) < 0) {
-      return respondError(res, 400, 'Giá khuyến mãi không hợp lệ', 'INVALID_PRODUCT_DATA');
-    }
-    const compareBasePrice = body.basePrice !== undefined ? Number(body.basePrice) : Number(existing.basePrice);
-    if (Number(body.salePrice) > compareBasePrice) {
-      return respondError(res, 400, 'Giá khuyến mãi không được lớn hơn giá gốc', 'INVALID_PRODUCT_DATA');
-    }
-  }
-
-  // 5. Validate stock if provided
-  if (body.stock !== undefined) {
-    if (isNaN(Number(body.stock)) || Number(body.stock) < 0 || !Number.isInteger(Number(body.stock))) {
-      return respondError(res, 400, 'Số lượng tồn kho phải là số nguyên không âm', 'INVALID_PRODUCT_DATA');
-    }
-  }
-
-  // 6. Validate categoryId & brandId if provided
+  // Validate categoryId & brandId
   if (body.categoryId !== undefined) {
     const catExists = (db.categories || []).some(c => c.id === body.categoryId);
     if (!catExists) {
-      return respondError(res, 400, 'Danh mục sản phẩm không tồn tại', 'INVALID_CATEGORY');
+      errors.push({ field: 'categoryId', message: 'Danh mục sản phẩm không tồn tại' });
+      return sendValidationError(res, errors);
     }
   }
   if (body.brandId !== undefined) {
     const brandExists = (db.brands || []).some(b => b.id === body.brandId);
     if (!brandExists) {
-      return respondError(res, 400, 'Thương hiệu sản phẩm không tồn tại', 'INVALID_BRAND');
+      errors.push({ field: 'brandId', message: 'Thương hiệu sản phẩm không tồn tại' });
+      return sendValidationError(res, errors);
     }
   }
 
-  // 7. Validate & generate slug if name or slug changes
+  // Validate & generate slug
   let updatedSlug = existing.slug;
   if (body.slug !== undefined || body.name !== undefined) {
     const slugInput = body.slug !== undefined ? body.slug : body.name;
     const generatedSlug = slugify(slugInput);
     if (!generatedSlug) {
-      return respondError(res, 400, 'Không thể tạo slug từ tên sản phẩm', 'INVALID_SLUG');
+      errors.push({ field: 'slug', message: 'Không thể tạo slug từ tên sản phẩm' });
+      return sendValidationError(res, errors);
     }
     const isSlugDuplicate = db.products.some(p => p.id !== id && p.slug === generatedSlug);
     if (isSlugDuplicate) {
-      return respondError(res, 400, 'Slug sản phẩm đã tồn tại', 'DUPLICATE_SLUG');
+      errors.push({ field: 'slug', message: 'Slug sản phẩm đã tồn tại' });
+      return sendValidationError(res, errors);
     }
     updatedSlug = generatedSlug;
   }
 
   const updatedProduct = {
     ...existing,
-    name: body.name !== undefined ? body.name : existing.name,
+    name: body.name !== undefined ? body.name.trim() : existing.name,
     slug: updatedSlug,
-    sku: body.sku !== undefined ? body.sku : existing.sku,
+    sku: body.sku !== undefined ? body.sku.trim().toUpperCase() : existing.sku,
     categoryId: body.categoryId !== undefined ? body.categoryId : existing.categoryId,
     brandId: body.brandId !== undefined ? body.brandId : existing.brandId,
     thumbnail: body.thumbnail !== undefined ? body.thumbnail : existing.thumbnail,
@@ -228,6 +251,12 @@ router.patch('/admin/products/:id', requirePermission('products:update'), (req, 
 
 // DELETE /admin/products/:id — requires: products:delete (superadmin ONLY)
 router.delete('/admin/products/:id', requirePermission('products:delete'), (req, res) => {
+  const errors = [];
+  validateRequiredString(req.params.id, 'id', errors, 1, 50);
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   const id = req.params.id;
   const pIndex = db.products.findIndex(p => p.id === id);

@@ -1,11 +1,15 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsOptional, IsEnum } from 'class-validator';
 
 export class UpdateOrderStatusDto {
-  @IsString()
+  @IsEnum(['pending', 'confirmed', 'processing', 'shipping', 'delivered', 'cancelled'], {
+    message: 'Trạng thái đơn hàng không hợp lệ'
+  })
   @IsOptional()
   status?: string;
 
-  @IsString()
+  @IsEnum(['paid', 'unpaid'], {
+    message: 'Trạng thái thanh toán không hợp lệ'
+  })
   @IsOptional()
   paymentStatus?: string;
 }

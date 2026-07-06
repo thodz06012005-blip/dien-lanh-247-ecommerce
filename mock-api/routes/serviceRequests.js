@@ -5,6 +5,16 @@ const { respondSuccess, respondCreated, respondError } = require('../utils/respo
 const { isValidPhone } = require('../utils/validators');
 const { requirePermission } = require('../utils/auth');
 const { VALID_SERVICE_PRIORITIES, VALID_SERVICE_STATUSES, ACTIVE_SERVICE_REQUEST_STATUSES } = require('../constants');
+const {
+  validateRequiredString,
+  validateOptionalString,
+  validateEnum,
+  validateNumber,
+  validateInteger,
+  validatePagination,
+  validateSort,
+  sendValidationError
+} = require('../utils/validation');
 
 // Helper to dynamically update technician status based on active assigned jobs
 const updateTechnicianStatusAfterJobChange = (techId, db, excludeRequestId = null) => {
@@ -200,6 +210,16 @@ router.get('/my-service-requests', (req, res) => {
 
 // GET /admin/service-requests (Admin views all service requests with filters) — requires: serviceRequests:read
 router.get('/admin/service-requests', requirePermission('serviceRequests:read'), (req, res) => {
+  const errors = [];
+  validatePagination(req.query, errors);
+  validateSort(req.query, ['customerName', 'customerPhone', 'status', 'priority', 'createdAt', 'updatedAt'], errors);
+  if (req.query.status) {
+    validateEnum(req.query.status, VALID_SERVICE_STATUSES, 'status', errors, false);
+  }
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   let list = db.serviceRequests || [];
   
@@ -225,6 +245,12 @@ router.get('/admin/service-requests', requirePermission('serviceRequests:read'),
 
 // GET /admin/service-requests/:id — requires: serviceRequests:read
 router.get('/admin/service-requests/:id', requirePermission('serviceRequests:read'), (req, res) => {
+  const errors = [];
+  validateRequiredString(req.params.id, 'id', errors, 1, 50);
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   const request = (db.serviceRequests || []).find(r => r.id === req.params.id);
   if (!request) {
@@ -236,9 +262,26 @@ router.get('/admin/service-requests/:id', requirePermission('serviceRequests:rea
 
 // PATCH /admin/service-requests/:id/status — requires: serviceRequests:update (superadmin, admin, staff)
 router.patch('/admin/service-requests/:id/status', requirePermission('serviceRequests:update'), (req, res) => {
+  const errors = [];
+  validateRequiredString(req.params.id, 'id', errors, 1, 50);
+  
+  const { status, finalPrice, note } = req.body;
+  if (status !== undefined) {
+    validateEnum(status, VALID_SERVICE_STATUSES, 'status', errors);
+  }
+  if (finalPrice !== undefined && finalPrice !== null) {
+    validateNumber(finalPrice, 'finalPrice', errors, 0, 1000000000);
+  }
+  if (note !== undefined && note !== null) {
+    validateOptionalString(note, 'note', errors, 1000);
+  }
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   const { id } = req.params;
-  const { status, finalPrice, note } = req.body;
 
   const request = (db.serviceRequests || []).find(r => r.id === id);
   if (!request) {
@@ -247,11 +290,6 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
 
   if (status) {
     const oldStatus = request.status;
-    
-    const whitelist = VALID_SERVICE_STATUSES;
-    if (!whitelist.includes(status)) {
-      return respondError(res, 400, 'Trạng thái yêu cầu dịch vụ không hợp lệ', 'INVALID_STATUS');
-    }
     
     if (status !== oldStatus) {
       if (oldStatus === 'completed' || oldStatus === 'cancelled') {
@@ -329,9 +367,18 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
 
 // PATCH /admin/service-requests/:id/assign-technician — requires: technicians:assign (superadmin, admin)
 router.patch('/admin/service-requests/:id/assign-technician', requirePermission('technicians:assign'), (req, res) => {
+  const errors = [];
+  validateRequiredString(req.params.id, 'id', errors, 1, 50);
+  
+  const { technicianId } = req.body;
+  validateRequiredString(technicianId, 'technicianId', errors, 1, 50);
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   const { id } = req.params;
-  const { technicianId } = req.body;
 
   const request = (db.serviceRequests || []).find(r => r.id === id);
   if (!request) {

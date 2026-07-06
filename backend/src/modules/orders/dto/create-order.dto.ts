@@ -1,10 +1,13 @@
-import { IsNotEmpty, IsOptional, IsString, IsArray, ValidateNested } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsArray, ValidateNested, IsInt, Min, Matches, IsEmail, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class OrderItemDto {
+  @IsString()
   @IsNotEmpty({ message: 'Mã sản phẩm không được để trống' })
-  productId: string | number;
+  productId: string;
 
+  @IsInt({ message: 'Số lượng sản phẩm phải là số nguyên' })
+  @Min(1, { message: 'Số lượng sản phẩm tối thiểu là 1' })
   @IsNotEmpty({ message: 'Số lượng sản phẩm không được để trống' })
   quantity: number;
 }
@@ -21,9 +24,10 @@ export class CreateOrderDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Số điện thoại không được để trống' })
+  @Matches(/(84|0[3|5|7|8|9])+([0-9]{8})\b/, { message: 'Số điện thoại không đúng định dạng Việt Nam' })
   phone: string;
 
-  @IsString()
+  @IsEmail({}, { message: 'Email không đúng định dạng' })
   @IsOptional()
   email?: string;
 
@@ -45,6 +49,7 @@ export class CreateOrderDto {
 
   @IsString()
   @IsNotEmpty({ message: 'Phương thức thanh toán không được để trống' })
+  @IsEnum(['COD', 'BANK_TRANSFER', 'cod', 'bank_transfer'], { message: 'Phương thức thanh toán không hợp lệ' })
   paymentMethod: string;
 
   @IsString()
