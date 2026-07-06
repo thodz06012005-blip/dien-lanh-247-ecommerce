@@ -22,6 +22,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CustomersModule } from './modules/customers/customers.module';
+import { AuditLogModule } from './modules/audit/audit-log.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { CustomersModule } from './modules/customers/customers.module';
     ContactModule,
     DashboardModule,
     CustomersModule,
+    AuditLogModule,
   ],
   controllers: [AppController],
   providers: [

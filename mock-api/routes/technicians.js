@@ -4,6 +4,7 @@ const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { isValidPhone, isValidEmail } = require('../utils/validators');
 const { requirePermission } = require('../utils/auth');
+const { auditSuccess } = require('../utils/auditLog');
 const { VALID_TECHNICIAN_STATUSES, ACTIVE_SERVICE_REQUEST_STATUSES } = require('../constants');
 const {
   validateRequiredString,
@@ -218,6 +219,7 @@ router.post('/admin/technicians', requirePermission('technicians:create'), (req,
   if (!db.technicians) db.technicians = [];
   db.technicians.unshift(newTech);
   writeDB(db);
+  auditSuccess(req, 'TECHNICIAN_CREATED', 'technician', newTech.id, { name: newTech.name }, 'Technician created successfully');
   
   return respondCreated(res, newTech, 'Thêm kỹ thuật viên mới thành công');
 });
@@ -332,6 +334,7 @@ router.patch('/admin/technicians/:id', requirePermission('technicians:update'), 
 
   db.technicians[techIndex] = updatedTech;
   writeDB(db);
+  auditSuccess(req, 'TECHNICIAN_UPDATED', 'technician', updatedTech.id, { name: updatedTech.name }, 'Technician updated successfully');
 
   return respondSuccess(res, updatedTech, 'Cập nhật thông tin kỹ thuật viên thành công');
 });
@@ -365,6 +368,7 @@ router.patch('/admin/technicians/:id/status', requirePermission('technicians:upd
   db.technicians[techIndex].updatedAt = new Date().toISOString();
   
   writeDB(db);
+  auditSuccess(req, 'TECHNICIAN_STATUS_UPDATED', 'technician', id, { status }, 'Technician status updated successfully');
   return respondSuccess(res, db.technicians[techIndex], 'Cập nhật trạng thái kỹ thuật viên thành công');
 });
 
@@ -389,6 +393,7 @@ router.delete('/admin/technicians/:id', requirePermission('technicians:delete'),
   
   db.technicians.splice(techIndex, 1);
   writeDB(db);
+  auditSuccess(req, 'TECHNICIAN_DELETED', 'technician', id, { id }, 'Technician deleted successfully');
   
   return respondSuccess(res, {}, 'Xóa thông tin kỹ thuật viên thành công');
 });

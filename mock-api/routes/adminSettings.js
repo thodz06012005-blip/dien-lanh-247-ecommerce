@@ -4,6 +4,7 @@ const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess } = require('../utils/response');
 const { requirePermission } = require('../utils/auth');
 const { isValidEmail } = require('../utils/validators');
+const { auditSuccess } = require('../utils/auditLog');
 const {
   validateOptionalString,
   validateNumber,
@@ -75,6 +76,7 @@ router.patch('/admin/settings', requirePermission('settings:update'), (req, res)
     ...body
   };
   writeDB(db);
+  auditSuccess(req, 'SETTINGS_UPDATED', 'settings', 'default', body, 'System settings updated successfully');
   return respondSuccess(res, db.settings, 'Cập nhật cài đặt hệ thống thành công');
 });
 

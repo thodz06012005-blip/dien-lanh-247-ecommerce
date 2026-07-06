@@ -4,6 +4,7 @@ const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { isValidPhone } = require('../utils/validators');
 const { requirePermission } = require('../utils/auth');
+const { auditSuccess } = require('../utils/auditLog');
 const { VALID_SERVICE_PRIORITIES, VALID_SERVICE_STATUSES, ACTIVE_SERVICE_REQUEST_STATUSES } = require('../constants');
 const {
   validateRequiredString,
@@ -319,9 +320,9 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
     return respondError(res, 404, 'Không tìm thấy yêu cầu dịch vụ', 'SERVICE_REQUEST_NOT_FOUND');
   }
 
+  const oldStatus = request.status;
+
   if (status) {
-    const oldStatus = request.status;
-    
     if (status !== oldStatus) {
       if (oldStatus === 'completed' || oldStatus === 'cancelled') {
         return respondError(res, 400, 'Không thể thay đổi trạng thái của yêu cầu dịch vụ đã hoàn thành hoặc đã hủy', 'INVALID_TRANSITION');
@@ -391,6 +392,7 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
 
   request.updatedAt = new Date().toISOString();
   writeDB(db);
+  auditSuccess(req, 'SERVICE_REQUEST_STATUS_UPDATED', 'serviceRequest', id, { from: oldStatus, to: request.status, finalPrice: request.finalPrice }, 'Service request status updated successfully');
 
   const populated = populateTechnician(request, db);
   return respondSuccess(res, populated, 'Cập nhật trạng thái thành công');
@@ -461,6 +463,7 @@ router.patch('/admin/service-requests/:id/assign-technician', requirePermission(
   }
   
   writeDB(db);
+  auditSuccess(req, 'SERVICE_REQUEST_ASSIGNED', 'serviceRequest', id, { oldTechnicianId, newTechnicianId: technicianId }, 'Technician assigned to service request');
   const populated = populateTechnician(request, db);
   return respondSuccess(res, populated, 'Phân công kỹ thuật viên thành công');
 });

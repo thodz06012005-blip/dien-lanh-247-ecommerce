@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginRateLimitService } from './login-rate-limit.service';
+import { AuditLogService } from '../audit/audit-log.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private loginRateLimitService: LoginRateLimitService,
+    private auditLogService: AuditLogService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -92,7 +94,12 @@ export class AuthService {
 
   async loginAdmin(dto: LoginDto, req: any) {
     const ip = this.loginRateLimitService.getClientIp(req);
-    this.loginRateLimitService.checkLockout(ip, dto.email);
+    try {
+      this.loginRateLimitService.checkLockout(ip, dto.email);
+    } catch (e) {
+      this.auditLogService.auditRateLimited(req, 'AUTH_LOGIN_RATE_LIMITED', 'auth', 'none', { email: dto.email }, 'Admin login blocked due to rate limit');
+      throw e;
+    }
 
     try {
       const user = await this.prisma.user.findUnique({
@@ -112,6 +119,7 @@ export class AuthService {
       }
 
       this.loginRateLimitService.recordSuccess(ip, dto.email);
+      this.auditLogService.auditSuccess(req, 'AUTH_LOGIN_SUCCESS', 'auth', String(user.id), { email: dto.email }, 'Admin login successful');
 
       const tokens = await this.generateTokens(user.id, user.email, user.role);
       await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
@@ -133,6 +141,7 @@ export class AuthService {
     } catch (error) {
       if (error instanceof UnauthorizedException || error instanceof ForbiddenException) {
         this.loginRateLimitService.recordFailure(ip, dto.email);
+        this.auditLogService.auditFailure(req, 'AUTH_LOGIN_FAILED', 'auth', 'none', { email: dto.email }, 'Admin login failed');
       }
       throw error;
     }

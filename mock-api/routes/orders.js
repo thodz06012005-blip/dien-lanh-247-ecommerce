@@ -3,6 +3,7 @@ const router = express.Router();
 const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { requirePermission } = require('../utils/auth');
+const { auditSuccess } = require('../utils/auditLog');
 const { VALID_PAYMENT_METHODS } = require('../constants');
 const {
   validateRequiredString,
@@ -463,6 +464,7 @@ router.patch('/admin/orders/:id/status', requirePermission('orders:update'), (re
 
   order.updatedAt = new Date().toISOString();
   writeDB(db);
+  auditSuccess(req, 'ORDER_STATUS_UPDATED', 'order', id, { from: oldStatus, to: order.status, paymentStatus: order.paymentStatus }, 'Order status updated successfully');
 
   return respondSuccess(res, order, 'Cập nhật trạng thái đơn hàng thành công');
 });

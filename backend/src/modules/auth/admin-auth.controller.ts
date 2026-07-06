@@ -7,10 +7,14 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { Request, Response } from 'express';
+import { AuditLogService } from '../audit/audit-log.service';
 
 @Controller('admin/auth')
 export class AdminAuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly auditLogService: AuditLogService,
+  ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -53,9 +57,11 @@ export class AdminAuthController {
   @HttpCode(HttpStatus.OK)
   async logoutAdmin(
     @CurrentUser() user: any,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
   ) {
     await this.authService.logoutAdmin(user.userId);
+    this.auditLogService.auditSuccess(req, 'AUTH_LOGOUT', 'auth', String(user.userId), null, 'Admin logout successful');
 
     res.clearCookie('accessToken', {
       httpOnly: true,

@@ -4,6 +4,7 @@ const { readDB, writeDB } = require('../utils/db');
 const { respondSuccess, respondCreated, respondError } = require('../utils/response');
 const { slugify } = require('../utils/validators');
 const { requirePermission } = require('../utils/auth');
+const { auditSuccess } = require('../utils/auditLog');
 const {
   validateRequiredString,
   validateOptionalString,
@@ -143,6 +144,7 @@ router.post('/admin/products', requirePermission('products:create'), (req, res) 
 
   db.products.unshift(newProduct);
   writeDB(db);
+  auditSuccess(req, 'PRODUCT_CREATED', 'product', newProduct.id, { name: newProduct.name, sku: newProduct.sku }, 'Product created successfully');
 
   return respondCreated(res, newProduct, 'Thêm sản phẩm mới thành công');
 });
@@ -258,6 +260,7 @@ router.patch('/admin/products/:id', requirePermission('products:update'), (req, 
 
   db.products[pIndex] = updatedProduct;
   writeDB(db);
+  auditSuccess(req, 'PRODUCT_UPDATED', 'product', updatedProduct.id, { name: updatedProduct.name, sku: updatedProduct.sku }, 'Product updated successfully');
 
   return respondSuccess(res, updatedProduct, 'Cập nhật sản phẩm thành công');
 });
@@ -280,6 +283,7 @@ router.delete('/admin/products/:id', requirePermission('products:delete'), (req,
 
   db.products.splice(pIndex, 1);
   writeDB(db);
+  auditSuccess(req, 'PRODUCT_DELETED', 'product', id, { id }, 'Product deleted successfully');
 
   return respondSuccess(res, {}, 'Xóa sản phẩm thành công');
 });

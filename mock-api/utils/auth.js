@@ -171,6 +171,8 @@ const requirePermission = (permission) => {
     requireAdminAuth,
     (req, res, next) => {
       if (!hasPermission(req.admin.role, permission)) {
+        const { auditDenied } = require('./auditLog');
+        auditDenied(req, 'RBAC_FORBIDDEN', req.baseUrl + req.path, null, { requiredPermission: permission }, 'Access denied by RBAC');
         return res.status(403).json({ success: false, message: 'Forbidden' });
       }
       next();

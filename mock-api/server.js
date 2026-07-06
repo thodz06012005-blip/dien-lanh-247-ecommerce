@@ -20,6 +20,7 @@ const { isValidPhone, isValidEmail, slugify } = require('./utils/validators');
 
 const { getInitialData } = require('./seed/initialData');
 const { checkLoginRateLimit, recordLoginFailure, recordLoginSuccess } = require('./utils/rateLimit');
+const { auditSuccess, auditFailure, auditRateLimited } = require('./utils/auditLog');
 
 const publicRoutes = require('./routes/public');
 const { router: serviceRequestRouter, updateTechnicianStatusAfterJobChange } = require('./routes/serviceRequests');
@@ -33,6 +34,7 @@ const adminSettingsRouter = require('./routes/adminSettings');
 const customerAuthRouter = require('./routes/customerAuth');
 const contactRouter = require('./routes/contact');
 const devRouter = require('./routes/dev');
+const auditLogsRouter = require('./routes/auditLogs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -100,6 +102,7 @@ app.use('/api/v1', adminSettingsRouter);
 app.use('/api/v1', customerAuthRouter);
 app.use('/api/v1', contactRouter);
 app.use('/api/v1', devRouter);
+app.use('/api/v1', auditLogsRouter);
 
 setInitialDataGenerator(getInitialData);
 
@@ -179,6 +182,7 @@ app.post('/api/v1/admin/auth/login', (req, res) => {
   // Check rate limit trước khi so password
   const rateLimitResult = checkLoginRateLimit(req, normalizedEmail);
   if (rateLimitResult.locked) {
+    auditRateLimited(req, 'AUTH_LOGIN_RATE_LIMITED', 'auth', null, { email: normalizedEmail }, 'Admin login blocked due to rate limit');
     return res.status(429).json({
       success: false,
       message: 'Too many login attempts. Please try again later.',
@@ -190,6 +194,7 @@ app.post('/api/v1/admin/auth/login', (req, res) => {
   const isDefaultOwner = normalizedEmail === 'owner@dienlanh247.vn' && password === 'Admin@123';
   if ((demoEmails.includes(normalizedEmail) || isDefaultOwner) && !isDemoAccountsEnabled()) {
     recordLoginFailure(req, normalizedEmail);
+    auditFailure(req, 'AUTH_LOGIN_FAILED', 'auth', null, { email: normalizedEmail }, 'Admin login failed (demo accounts disabled)');
     return respondError(res, 401, 'Email hoặc mật khẩu không chính xác', 'INVALID_CREDENTIALS');
   }
 
@@ -197,11 +202,13 @@ app.post('/api/v1/admin/auth/login', (req, res) => {
 
   if (!admin) {
     recordLoginFailure(req, normalizedEmail);
+    auditFailure(req, 'AUTH_LOGIN_FAILED', 'auth', null, { email: normalizedEmail }, 'Admin login failed (invalid credentials)');
     return respondError(res, 401, 'Email hoặc mật khẩu không chính xác', 'INVALID_CREDENTIALS');
   }
 
   // Login đúng và chưa bị lock -> record success
   recordLoginSuccess(req, normalizedEmail);
+  auditSuccess(req, 'AUTH_LOGIN_SUCCESS', 'auth', admin.id, { email: normalizedEmail }, 'Admin login successful');
 
   // Generate dynamic token using crypto
   const token = 'admin_tok_' + crypto.randomBytes(16).toString('hex');
@@ -248,12 +255,24 @@ app.post('/api/v1/admin/auth/logout', (req, res) => {
     token = cookies['accessToken'];
   }
 
+  let adminId = null;
   if (token) {
-    const index = adminSessions.findIndex(s => s.token === token);
-    if (index !== -1) {
-      adminSessions.splice(index, 1);
+    const session = adminSessions.find(s => s.token === token);
+    if (session) {
+      adminId = session.adminId;
+      const adminRaw = adminUsers.find(u => u.id === adminId);
+      if (adminRaw) {
+        const { password: _, ...adminSafe } = adminRaw;
+        req.admin = adminSafe;
+      }
+      const index = adminSessions.findIndex(s => s.token === token);
+      if (index !== -1) {
+        adminSessions.splice(index, 1);
+      }
     }
   }
+
+  auditSuccess(req, 'AUTH_LOGOUT', 'auth', adminId || 'none', null, 'Admin logout successful');
 
   res.clearCookie('accessToken', {
     httpOnly: true,

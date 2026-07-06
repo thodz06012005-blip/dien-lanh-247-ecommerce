@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards, Req } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -7,10 +7,15 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { Request } from 'express';
+import { AuditLogService } from '../audit/audit-log.service';
 
 @Controller()
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly auditLogService: AuditLogService,
+  ) {}
 
   // Customer: Place a new order (anonymous / guest)
   @Post('orders')
@@ -88,8 +93,14 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Patch('admin/orders/:id/status')
-  async updateStatusAdmin(@Param('id') id: string, @Body() updateStatusDto: UpdateOrderStatusDto) {
+  async updateStatusAdmin(
+    @Param('id') id: string,
+    @Body() updateStatusDto: UpdateOrderStatusDto,
+    @Req() req: Request,
+  ) {
+    const oldOrder = await this.ordersService.findOneAdmin(id);
     const order = await this.ordersService.updateStatusAdmin(id, updateStatusDto);
+    this.auditLogService.auditSuccess(req, 'ORDER_STATUS_UPDATED', 'order', id, { from: oldOrder.status, to: order.status, paymentStatus: order.paymentStatus }, 'Order status updated successfully');
     return {
       success: true,
       message: 'Cập nhật trạng thái đơn hàng thành công',
