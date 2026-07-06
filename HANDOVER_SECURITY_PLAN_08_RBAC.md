@@ -155,11 +155,11 @@ Sử dụng bộ đôi `JwtAuthGuard` và `RolesGuard` cùng decorator `@Roles(.
 ## 8. Trạng thái Prisma Generate & DB Migration
 
 - **Trạng thái `prisma generate`**: **Thành công**. Prisma Client đã được tạo lại tại thư mục `node_modules` và ghi nhận đầy đủ vai trò `STAFF` trong enum `UserRole`.
-- **Đồng bộ hóa Database thật**: Plan 8 tập trung phát triển và kiểm tra bảo mật trên mock-api và build thử backend, do đó chưa có kết nối database thật. Khi triển khai production, cần chạy:
+- **Đồng bộ hóa Database thật**: Plan 8 tập trung phát triển và kiểm tra bảo mật trên mock-api và build thử backend, do đó chưa có kết nối database thật. Trong môi trường production, tuyệt đối không dùng `npx prisma migrate dev`. Thay vào đó, ta cần tạo và kiểm thử migration trên dev/staging trước, rồi chạy lệnh deploy sau ở production:
   ```bash
-  npx prisma migrate dev --name add_staff_role
+  npx prisma migrate deploy
   ```
-  để cập nhật kiểu dữ liệu cột `role` trong bảng `User` của MySQL thật.
+  để cập nhật an toàn kiểu dữ liệu cột `role` trong bảng `User` của MySQL thật.
 
 ---
 
