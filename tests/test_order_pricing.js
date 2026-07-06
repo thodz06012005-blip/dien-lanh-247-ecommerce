@@ -45,7 +45,7 @@ async function runTests() {
   await request('POST', '/api/v1/dev/reset-db');
 
   // Fetch product for reference
-  const productsRes = await request('GET', '/api/v1/products');
+  const productsRes = await request('GET', '/api/v1/products?limit=100');
   const prod1 = productsRes.data.data.find(p => p.id === 'dh-daikin-ftkf25xvmv'); // price = 10490000
   const prod2 = productsRes.data.data.find(p => p.id === 'lk-remote-daikin');    // price = 180000
 

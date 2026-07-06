@@ -14,3 +14,9 @@ build/
 *.zip
 scratch/
 coverage/
+
+# Database backups and dumps
+mock-api/backups/
+backups/
+*.sql
+*.bak
