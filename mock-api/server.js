@@ -36,19 +36,33 @@ const devRouter = require('./routes/dev');
 const app = express();
 const PORT = 3001;
 
+const corsOriginsEnv = process.env.CORS_ORIGINS || process.env.ALLOWED_ORIGINS;
+const allowedOrigins = corsOriginsEnv
+  ? corsOriginsEnv.split(',').map(o => o.trim()).filter(o => o.length > 0)
+  : [
+      'http://localhost:5174',
+      'http://localhost:5173',
+      'http://127.0.0.1:5174',
+      'http://127.0.0.1:5173'
+    ];
+
 app.use(cors({
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      "http://localhost:5173",
-      "http://localhost:5174"
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
+    // If request has no origin (like curl or server-to-server), allow it
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      // Do not throw an Error object to avoid express 500 error logs / stack traces.
+      // Deny by passing false.
+      callback(null, false);
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With', 'Cookie']
 }));
 app.use(express.json());
 app.use('/api/v1', publicRoutes);

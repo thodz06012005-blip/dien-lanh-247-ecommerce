@@ -11,13 +11,21 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const corsOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',')
-    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
+  const corsOriginsEnv = process.env.CORS_ORIGINS || process.env.ALLOWED_ORIGINS;
+  const corsOrigins = corsOriginsEnv
+    ? corsOriginsEnv.split(',').map(o => o.trim()).filter(o => o.length > 0)
+    : [
+        'http://localhost:5174',
+        'http://localhost:5173',
+        'http://127.0.0.1:5174',
+        'http://127.0.0.1:5173'
+      ];
 
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With', 'Cookie'],
   });
 
   app.useGlobalPipes(new ValidationPipe({
