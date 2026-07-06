@@ -5,6 +5,7 @@ const { respondSuccess, respondCreated, respondError } = require('../utils/respo
 const { isValidPhone, isValidEmail } = require('../utils/validators');
 const { requirePermission } = require('../utils/auth');
 const { auditSuccess } = require('../utils/auditLog');
+const { requireDangerousConfirmation, getDangerousReason } = require('../utils/dangerousAction');
 const { VALID_TECHNICIAN_STATUSES, ACTIVE_SERVICE_REQUEST_STATUSES } = require('../constants');
 const {
   validateRequiredString,
@@ -48,7 +49,7 @@ router.get('/admin/technicians', requirePermission('technicians:read'), (req, re
   }
 
   const db = readDB();
-  let list = db.technicians || [];
+  let list = (db.technicians || []).filter(t => !t.deletedAt);
   
   const { status, skill, workingArea, q } = req.query;
   
@@ -381,6 +382,18 @@ router.delete('/admin/technicians/:id', requirePermission('technicians:delete'),
   if (techIndex === -1) {
     return respondError(res, 404, 'Không tìm thấy kỹ thuật viên', 'TECHNICIAN_NOT_FOUND');
   }
+
+  const technician = db.technicians[techIndex];
+  if (technician.deletedAt) {
+    return respondError(res, 400, 'Kỹ thuật viên đã được xóa mềm trước đó', 'TECHNICIAN_ALREADY_DELETED');
+  }
+
+  // Dangerous confirmation check
+  if (!requireDangerousConfirmation(req, res, 'DELETE_TECHNICIAN', 'technician', id)) {
+    return; // Response handled by helper
+  }
+
+  const reason = getDangerousReason(req);
   
   const hasActiveRequest = (db.serviceRequests || []).some(r => 
     r.assignedTechnicianId === id && 
@@ -388,12 +401,27 @@ router.delete('/admin/technicians/:id', requirePermission('technicians:delete'),
   );
   
   if (hasActiveRequest) {
+    // Audit blocking as dangerous action violation
+    const { auditFailure } = require('../utils/auditLog');
+    auditFailure(
+      req,
+      'DANGEROUS_ACTION_BLOCKED',
+      'technician',
+      id,
+      { action: 'DELETE_TECHNICIAN', reason: 'Technician has active request', clientReason: reason },
+      'Dangerous action blocked: cannot delete technician with active service request'
+    );
     return respondError(res, 400, 'Không thể xóa kỹ thuật viên đang có lịch sửa chữa đang hoạt động!', 'TECHNICIAN_HAS_ACTIVE_JOB');
   }
   
-  db.technicians.splice(techIndex, 1);
+  // Perform soft delete
+  technician.deletedAt = new Date().toISOString();
+  technician.deletedBy = req.admin ? req.admin.id : 'unknown';
+  technician.deleteReason = reason;
+  technician.status = 'inactive';
+
   writeDB(db);
-  auditSuccess(req, 'TECHNICIAN_DELETED', 'technician', id, { id }, 'Technician deleted successfully');
+  auditSuccess(req, 'TECHNICIAN_SOFT_DELETED', 'technician', id, { id, reason }, 'Technician soft deleted successfully');
   
   return respondSuccess(res, {}, 'Xóa thông tin kỹ thuật viên thành công');
 });

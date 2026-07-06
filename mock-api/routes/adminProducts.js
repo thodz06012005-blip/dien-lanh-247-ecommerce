@@ -5,6 +5,7 @@ const { respondSuccess, respondCreated, respondError } = require('../utils/respo
 const { slugify } = require('../utils/validators');
 const { requirePermission } = require('../utils/auth');
 const { auditSuccess } = require('../utils/auditLog');
+const { requireDangerousConfirmation, getDangerousReason } = require('../utils/dangerousAction');
 const {
   validateRequiredString,
   validateOptionalString,
@@ -41,7 +42,8 @@ router.get('/admin/products', requirePermission('products:read'), (req, res) => 
   }
 
   const db = readDB();
-  return respondSuccess(res, db.products);
+  const activeProducts = (db.products || []).filter(p => !p.deletedAt);
+  return respondSuccess(res, activeProducts);
 });
 
 // POST /admin/products — requires: products:create (superadmin, admin)
@@ -281,9 +283,26 @@ router.delete('/admin/products/:id', requirePermission('products:delete'), (req,
     return respondError(res, 404, 'Không tìm thấy sản phẩm', 'PRODUCT_NOT_FOUND');
   }
 
-  db.products.splice(pIndex, 1);
+  const product = db.products[pIndex];
+  if (product.deletedAt) {
+    return respondError(res, 400, 'Sản phẩm đã được xóa mềm trước đó', 'PRODUCT_ALREADY_DELETED');
+  }
+
+  // Dangerous confirmation check
+  if (!requireDangerousConfirmation(req, res, 'DELETE_PRODUCT', 'product', id)) {
+    return; // Response handled by helper
+  }
+
+  const reason = getDangerousReason(req);
+
+  // Perform soft delete
+  product.deletedAt = new Date().toISOString();
+  product.deletedBy = req.admin ? req.admin.id : 'unknown';
+  product.deleteReason = reason;
+  product.status = 'inactive';
+
   writeDB(db);
-  auditSuccess(req, 'PRODUCT_DELETED', 'product', id, { id }, 'Product deleted successfully');
+  auditSuccess(req, 'PRODUCT_SOFT_DELETED', 'product', id, { id, reason }, 'Product soft deleted successfully');
 
   return respondSuccess(res, {}, 'Xóa sản phẩm thành công');
 });

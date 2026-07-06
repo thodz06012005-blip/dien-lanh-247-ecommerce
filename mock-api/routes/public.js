@@ -98,6 +98,7 @@ router.get('/products/search', (req, res) => {
   const filtered = db.products
     .filter(p => 
       p.status === 'active' && 
+      !p.deletedAt &&
       (p.name.toLowerCase().includes(q) || 
        p.sku.toLowerCase().includes(q) || 
        p.description.toLowerCase().includes(q))
@@ -113,7 +114,7 @@ router.get('/products/:identifier', (req, res) => {
   const product = db.products.find(p => p.id === idOrSlug || p.slug === idOrSlug);
   
   if (product) {
-    if (product.status === 'hidden') {
+    if (product.status === 'hidden' || product.deletedAt) {
       return respondError(res, 404, 'Sản phẩm đã bị ẩn hoặc không tồn tại', 'PRODUCT_NOT_FOUND');
     }
     return respondSuccess(res, mapProductToUser(product));
@@ -154,7 +155,7 @@ router.get('/products', (req, res) => {
   }
 
   const db = readDB();
-  let filtered = db.products.filter(p => p.status === 'active' || p.status === 'out_of_stock');
+  let filtered = db.products.filter(p => (p.status === 'active' || p.status === 'out_of_stock') && !p.deletedAt);
 
   const { categoryId, brandId, priceMin, priceMax, inverter, capacity, q, sort, inStock, hasPromo } = req.query;
 

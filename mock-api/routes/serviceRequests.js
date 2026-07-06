@@ -423,7 +423,7 @@ router.patch('/admin/service-requests/:id/assign-technician', requirePermission(
   }
 
   const tech = (db.technicians || []).find(t => t.id === technicianId);
-  if (!tech) {
+  if (!tech || tech.deletedAt) {
     return respondError(res, 404, 'Không tìm thấy kỹ thuật viên', 'TECHNICIAN_NOT_FOUND');
   }
 

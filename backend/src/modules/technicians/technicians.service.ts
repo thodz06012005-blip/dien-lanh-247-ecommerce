@@ -67,7 +67,11 @@ export class TechniciansService {
     const limit = Math.min(100, Math.max(1, query?.limit || 10));
     const skip = (page - 1) * limit;
 
-    const where: Prisma.TechnicianWhereInput = {};
+    const where: Prisma.TechnicianWhereInput = {
+      status: {
+        not: TechnicianStatus.inactive
+      }
+    };
 
     if (query?.status) {
       const statusUpper = query.status.toUpperCase();
@@ -245,6 +249,10 @@ export class TechniciansService {
       throw new NotFoundException('Không tìm thấy kỹ thuật viên');
     }
 
+    if (tech.status === TechnicianStatus.inactive) {
+      throw new BadRequestException('Kỹ thuật viên đã được xóa mềm trước đó');
+    }
+
     // Check active job before deletion
     const activeJob = await this.prisma.serviceRequest.findFirst({
       where: {
@@ -258,8 +266,9 @@ export class TechniciansService {
       throw new BadRequestException('Không thể xóa kỹ thuật viên đang có lịch sửa chữa đang hoạt động!');
     }
 
-    await this.prisma.technician.delete({
+    await this.prisma.technician.update({
       where: { id },
+      data: { status: TechnicianStatus.inactive },
     });
 
     return {

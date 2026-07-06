@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe, Req, Headers, BadRequestException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -72,9 +72,54 @@ export class ProductsController {
   @Delete(['products/:id', 'admin/products/:id'])
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPERADMIN)
-  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+    @Query('confirm') queryConfirm: string,
+    @Query('reason') queryReason: string,
+    @Headers('x-confirm-dangerous-action') headerConfirm: string,
+    @Req() req: Request,
+  ) {
+    const bodyConfirm = body?.confirm;
+    const bodyReason = body?.reason;
+
+    const isConfirmed =
+      bodyConfirm === true ||
+      bodyConfirm === 'true' ||
+      queryConfirm === 'true' ||
+      headerConfirm === 'true';
+
+    const rawReason = bodyReason || queryReason || 'No reason provided';
+    let cleanReason = String(rawReason).trim();
+    if (cleanReason.length > 300) {
+      cleanReason = cleanReason.substring(0, 297) + '...';
+    }
+    cleanReason = cleanReason.replace(/[<>]/g, '');
+
+    if (!isConfirmed) {
+      this.auditLogService.auditFailure(
+        req,
+        'DANGEROUS_ACTION_BLOCKED',
+        'product',
+        String(id),
+        { action: 'DELETE_PRODUCT', reason: 'Missing confirmation', clientReason: cleanReason },
+        'Dangerous action blocked: product deletion requires confirmation'
+      );
+      throw new BadRequestException({
+        success: false,
+        message: 'Dangerous action confirmation required'
+      });
+    }
+
     const result = await this.productsService.remove(id);
-    this.auditLogService.auditSuccess(req, 'PRODUCT_DELETED', 'product', String(id), { id }, 'Product deleted successfully');
+    this.auditLogService.auditSuccess(
+      req,
+      'PRODUCT_SOFT_DELETED',
+      'product',
+      String(id),
+      { id, reason: cleanReason },
+      'Product soft deleted successfully'
+    );
     return result;
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req, Headers, BadRequestException } from '@nestjs/common';
 import { TechniciansService } from './technicians.service';
 import { CreateTechnicianDto } from './dto/create-technician.dto';
 import { UpdateTechnicianDto } from './dto/update-technician.dto';
@@ -56,10 +56,67 @@ export class TechniciansController {
 
   @Delete(':id')
   @Roles(UserRole.SUPERADMIN)
-  async remove(@Param('id') id: string, @Req() req: Request) {
-    const result = await this.techniciansService.remove(id);
-    this.auditLogService.auditSuccess(req, 'TECHNICIAN_DELETED', 'technician', id, { id }, 'Technician deleted successfully');
-    return result;
+  async remove(
+    @Param('id') id: string,
+    @Body() body: any,
+    @Query('confirm') queryConfirm: string,
+    @Query('reason') queryReason: string,
+    @Headers('x-confirm-dangerous-action') headerConfirm: string,
+    @Req() req: Request,
+  ) {
+    const bodyConfirm = body?.confirm;
+    const bodyReason = body?.reason;
+
+    const isConfirmed =
+      bodyConfirm === true ||
+      bodyConfirm === 'true' ||
+      queryConfirm === 'true' ||
+      headerConfirm === 'true';
+
+    const rawReason = bodyReason || queryReason || 'No reason provided';
+    let cleanReason = String(rawReason).trim();
+    if (cleanReason.length > 300) {
+      cleanReason = cleanReason.substring(0, 297) + '...';
+    }
+    cleanReason = cleanReason.replace(/[<>]/g, '');
+
+    if (!isConfirmed) {
+      this.auditLogService.auditFailure(
+        req,
+        'DANGEROUS_ACTION_BLOCKED',
+        'technician',
+        id,
+        { action: 'DELETE_TECHNICIAN', reason: 'Missing confirmation', clientReason: cleanReason },
+        'Dangerous action blocked: technician deletion requires confirmation'
+      );
+      throw new BadRequestException({
+        success: false,
+        message: 'Dangerous action confirmation required'
+      });
+    }
+
+    try {
+      const result = await this.techniciansService.remove(id);
+      this.auditLogService.auditSuccess(
+        req,
+        'TECHNICIAN_SOFT_DELETED',
+        'technician',
+        id,
+        { id, reason: cleanReason },
+        'Technician soft deleted successfully'
+      );
+      return result;
+    } catch (error) {
+      this.auditLogService.auditFailure(
+        req,
+        'DANGEROUS_ACTION_BLOCKED',
+        'technician',
+        id,
+        { action: 'DELETE_TECHNICIAN', reason: error.message, clientReason: cleanReason },
+        `Dangerous action blocked: technician deletion failed (${error.message})`
+      );
+      throw error;
+    }
   }
 }
 
