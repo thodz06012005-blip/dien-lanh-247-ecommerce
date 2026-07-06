@@ -65,7 +65,30 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With', 'Cookie']
 }));
-app.use(express.json());
+const JSON_LIMIT = process.env.MOCK_JSON_BODY_LIMIT || '1mb';
+const URLENCODED_LIMIT = process.env.MOCK_URLENCODED_BODY_LIMIT || '100kb';
+
+// 1. Content-Type Guard for POST/PATCH/PUT (checked BEFORE parsing body to avoid parsing unapproved content types)
+app.use((req, res, next) => {
+  const method = req.method;
+  if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    const contentType = req.headers['content-type'];
+    const contentLength = req.headers['content-length'];
+    if (contentLength === '0') {
+      return next();
+    }
+    if (!contentType || !contentType.toLowerCase().startsWith('application/json')) {
+      return res.status(415).json({
+        success: false,
+        message: 'Unsupported content type'
+      });
+    }
+  }
+  next();
+});
+
+app.use(express.json({ limit: JSON_LIMIT }));
+app.use(express.urlencoded({ extended: false, limit: URLENCODED_LIMIT }));
 app.use('/api/v1', publicRoutes);
 app.use('/api/v1', serviceRequestRouter);
 app.use('/api/v1', technicianRouter);
@@ -249,6 +272,27 @@ app.post('/api/v1/admin/auth/logout', (req, res) => {
 
 // Mounted via serviceRequestRouter.
 // Mounted via technicianRouter.
+
+// Global error handler for body parsing errors (payload too large or invalid JSON format)
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON payload'
+    });
+  }
+  if (err && err.status === 413) {
+    return res.status(413).json({
+      success: false,
+      message: 'Payload too large'
+    });
+  }
+  // Generic error fallback
+  return res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error'
+  });
+});
 
 // Start Server
 app.listen(PORT, () => {
