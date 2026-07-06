@@ -1,6 +1,6 @@
 /**
- * Mock API Input Validation Helpers (Plan 11)
- * Standardizes sanitization and validation for query, params, and body inputs.
+ * Mock API Input Validation & Query Hardening Helpers (Plan 12)
+ * Standardizes query parameters, sanitizes search inputs, and protects against object injection.
  */
 
 const { respondError } = require('./response');
@@ -8,6 +8,10 @@ const { respondError } = require('./response');
 const isString = (val) => typeof val === 'string';
 
 const isNonEmptyString = (val) => isString(val) && val.trim().length > 0;
+
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+};
 
 const validateRequiredString = (val, fieldName, errors, minLen = 1, maxLen = 1000) => {
   if (val === undefined || val === null) {
@@ -116,21 +120,117 @@ const validateDate = (val, fieldName, errors, isRequired = true) => {
   }
 };
 
-const validatePagination = (query, errors) => {
+// ================================================================
+// QUERY HARDENING HELPERS (Plan 12)
+// ================================================================
+
+/**
+ * Validate that query only contains allowed keys to prevent Object Injection / Pollution.
+ */
+const validateAllowedQueryKeys = (query, allowedKeys, errors) => {
+  if (!query || typeof query !== 'object') return;
+  const keys = Object.keys(query);
+  for (const key of keys) {
+    if (!allowedKeys.includes(key)) {
+      errors.push({ field: key, message: `Tham số truy vấn '${key}' không hợp lệ` });
+    }
+    // Deep check to prevent Object Injection/Pollution via nested query parameters (e.g. ?sortBy[constructor]=1)
+    if (query[key] !== null && typeof query[key] === 'object') {
+      errors.push({ field: key, message: `Tham số truy vấn '${key}' không được là một đối tượng hoặc mảng` });
+    }
+  }
+};
+
+/**
+ * Strictly validates pagination parameters.
+ */
+const validatePaginationStrict = (query, errors) => {
   if (query.page !== undefined) {
     validateInteger(query.page, 'page', errors, 1, 100000, false);
   }
   if (query.limit !== undefined) {
-    validateInteger(query.limit, 'limit', errors, 1, 100, false); // limit max 100
+    validateInteger(query.limit, 'limit', errors, 1, 100, false); // limit strictly capped at 100
   }
 };
 
-const validateSort = (query, allowedFields, errors) => {
+/**
+ * Strictly validates sorting parameters.
+ */
+const validateSortStrict = (query, allowedFields, errors) => {
   if (query.sortBy !== undefined) {
     validateEnum(query.sortBy, allowedFields, 'sortBy', errors, false);
   }
   if (query.sortOrder !== undefined) {
-    validateEnum(query.sortOrder, ['asc', 'desc', 'ASC', 'DESC'], 'sortOrder', errors, false);
+    // Normalize and strictly enforce asc / desc
+    const order = String(query.sortOrder).toLowerCase();
+    if (order !== 'asc' && order !== 'desc') {
+      errors.push({ field: 'sortOrder', message: 'sortOrder chỉ nhận giá trị: asc hoặc desc' });
+    }
+  }
+};
+
+/**
+ * Validates range numeric queries (e.g. minPrice and maxPrice).
+ */
+const validateRangeQuery = (query, minKey, maxKey, errors) => {
+  let minVal = null;
+  let maxVal = null;
+
+  if (query[minKey] !== undefined) {
+    validateNumber(query[minKey], minKey, errors, 0, 1000000000, false);
+    minVal = Number(query[minKey]);
+  }
+  if (query[maxKey] !== undefined) {
+    validateNumber(query[maxKey], maxKey, errors, 0, 1000000000, false);
+    maxVal = Number(query[maxKey]);
+  }
+
+  if (minVal !== null && maxVal !== null && !isNaN(minVal) && !isNaN(maxVal)) {
+    if (minVal > maxVal) {
+      errors.push({ field: minKey, message: `${minKey} không được lớn hơn ${maxKey}` });
+    }
+  }
+};
+
+/**
+ * Validates range date queries (e.g. dateFrom and dateTo).
+ */
+const validateDateRangeQuery = (query, fromKey, toKey, errors) => {
+  let fromVal = null;
+  let toVal = null;
+
+  if (query[fromKey] !== undefined) {
+    validateDate(query[fromKey], fromKey, errors, false);
+    fromVal = Date.parse(query[fromKey]);
+  }
+  if (query[toKey] !== undefined) {
+    validateDate(query[toKey], toKey, errors, false);
+    toVal = Date.parse(query[toKey]);
+  }
+
+  if (fromVal !== null && toVal !== null && !isNaN(fromVal) && !isNaN(toVal)) {
+    if (fromVal > toVal) {
+      errors.push({ field: fromKey, message: `${fromKey} không được lớn hơn ${toKey}` });
+    }
+  }
+};
+
+/**
+ * Validates search keyword input to avoid regex execution block or resource exhaustion.
+ */
+const validateSearchQuery = (query, key, errors, maxLen = 100) => {
+  if (query[key] === undefined) return;
+  if (!isString(query[key])) {
+    errors.push({ field: key, message: `Từ khóa tìm kiếm phải là chuỗi ký tự` });
+    return;
+  }
+  const trimmed = query[key].trim();
+  if (trimmed.length === 0) {
+    errors.push({ field: key, message: `Từ khóa tìm kiếm không được để trống` });
+    return;
+  }
+  if (trimmed.length > maxLen) {
+    errors.push({ field: key, message: `Từ khóa tìm kiếm không được vượt quá ${maxLen} ký tự` });
   }
 };
 
@@ -147,6 +247,7 @@ const sendValidationError = (res, errors) => {
 
 module.exports = {
   isNonEmptyString,
+  escapeRegExp,
   validateRequiredString,
   validateOptionalString,
   validateEnum,
@@ -154,7 +255,11 @@ module.exports = {
   validateInteger,
   validateArrayOfStrings,
   validateDate,
-  validatePagination,
-  validateSort,
+  validateAllowedQueryKeys,
+  validatePaginationStrict,
+  validateSortStrict,
+  validateRangeQuery,
+  validateDateRangeQuery,
+  validateSearchQuery,
   sendValidationError
 };

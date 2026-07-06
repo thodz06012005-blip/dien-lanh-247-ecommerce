@@ -2,6 +2,14 @@ const express = require('express');
 const router = express.Router();
 const { readDB } = require('../utils/db');
 const { respondSuccess, respondError } = require('../utils/response');
+const {
+  validatePaginationStrict,
+  validateRangeQuery,
+  validateSearchQuery,
+  validateEnum,
+  validateAllowedQueryKeys,
+  sendValidationError
+} = require('../utils/validation');
 
 // Adapters to map mock-db standardized model to customer frontend (frontend-user) formats
 const mapProductToUser = (p) => {
@@ -74,6 +82,14 @@ router.get('/products/featured', (req, res) => {
 
 // GET /products/search
 router.get('/products/search', (req, res) => {
+  const errors = [];
+  validateAllowedQueryKeys(req.query, ['q'], errors);
+  validateSearchQuery(req.query, 'q', errors, 100);
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
   const db = readDB();
   const q = (req.query.q || '').toLowerCase().trim();
   if (!q) {
@@ -107,19 +123,19 @@ router.get('/products/:identifier', (req, res) => {
 
 // GET /products
 router.get('/products', (req, res) => {
-  const {
-    validateOptionalString,
-    validateEnum,
-    validateNumber,
-    validateInteger,
-    validatePagination,
-    sendValidationError
-  } = require('../utils/validation');
-
   const errors = [];
-  validatePagination(req.query, errors);
-  if (req.query.priceMin !== undefined) validateNumber(req.query.priceMin, 'priceMin', errors, 0, 1000000000, false);
-  if (req.query.priceMax !== undefined) validateNumber(req.query.priceMax, 'priceMax', errors, 0, 1000000000, false);
+  
+  validateAllowedQueryKeys(req.query, [
+    'categoryId', 'brandId', 'priceMin', 'priceMax', 'inverter',
+    'capacity', 'q', 'sort', 'inStock', 'hasPromo', 'page', 'limit'
+  ], errors);
+  
+  validatePaginationStrict(req.query, errors);
+  validateRangeQuery(req.query, 'priceMin', 'priceMax', errors);
+  
+  if (req.query.q !== undefined) {
+    validateSearchQuery(req.query, 'q', errors, 100);
+  }
   if (req.query.sort !== undefined) {
     validateEnum(req.query.sort, ['priceAsc', 'priceDesc', 'bestSeller', 'promoHot'], 'sort', errors, false);
   }
@@ -131,9 +147,6 @@ router.get('/products', (req, res) => {
   }
   if (req.query.inverter !== undefined) {
     validateEnum(req.query.inverter, ['true', 'false'], 'inverter', errors, false);
-  }
-  if (req.query.q !== undefined) {
-    validateOptionalString(req.query.q, 'q', errors, 100);
   }
 
   if (errors.length > 0) {

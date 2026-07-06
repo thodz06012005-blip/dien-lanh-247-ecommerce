@@ -13,8 +13,8 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get('products/search')
-  search(@Query('q') q: string) {
-    return this.productsService.findAll({ q, limit: 10 });
+  search(@Query() query: ProductQueryDto) {
+    return this.productsService.findAll({ q: query.q, limit: 10 });
   }
 
   @Get('products/featured')

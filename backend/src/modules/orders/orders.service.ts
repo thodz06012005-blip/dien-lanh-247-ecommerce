@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { OrderQueryDto } from './dto/order-query.dto';
 import { Prisma, OrderStatus, PaymentStatus, PaymentMethod, ShippingStatus } from '@prisma/client';
 
 @Injectable()
@@ -364,8 +365,81 @@ export class OrdersService {
     });
   }
 
-  async findAllAdmin() {
+  async findAllAdmin(query?: OrderQueryDto) {
+    const page = Math.max(1, query?.page || 1);
+    const limit = Math.min(100, Math.max(1, query?.limit || 10));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = {};
+
+    // 1. Filter by Status
+    if (query?.status) {
+      const statusUpper = query.status.toUpperCase();
+      if (Object.keys(OrderStatus).includes(statusUpper)) {
+        where.status = statusUpper as OrderStatus;
+      }
+    }
+
+    // 2. Filter by PaymentStatus
+    if (query?.paymentStatus) {
+      const pStatus = query.paymentStatus.toLowerCase();
+      if (pStatus === 'paid') {
+        where.payment = { status: PaymentStatus.COMPLETED };
+      } else if (pStatus === 'unpaid') {
+        where.payment = { status: PaymentStatus.PENDING };
+      }
+    }
+
+    // 3. Filter by Date Range
+    if (query?.dateFrom || query?.dateTo) {
+      const dateFilter: Prisma.DateTimeFilter = {};
+      if (query.dateFrom) {
+        dateFilter.gte = new Date(query.dateFrom);
+      }
+      if (query.dateTo) {
+        dateFilter.lte = new Date(query.dateTo);
+      }
+      where.createdAt = dateFilter;
+    }
+
+    // 4. Search Filter
+    if (query?.q) {
+      const qNormalized = query.q.trim();
+      if (qNormalized.length > 0) {
+        where.OR = [
+          { orderNumber: { contains: qNormalized } },
+          { address: { fullName: { contains: qNormalized } } },
+          { address: { phone: { contains: qNormalized } } },
+        ];
+      }
+    }
+
+    // 5. Sorting mapping
+    const sortOrder = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const sortBy = query?.sortBy || 'createdAt';
+    let orderBy: Prisma.OrderOrderByWithRelationInput = { createdAt: sortOrder };
+
+    const allowedSortFields = ['code', 'customerName', 'phone', 'total', 'status', 'paymentStatus', 'createdAt', 'updatedAt'];
+    if (allowedSortFields.includes(sortBy)) {
+      if (sortBy === 'code') {
+        orderBy = { orderNumber: sortOrder };
+      } else if (sortBy === 'customerName') {
+        orderBy = { address: { fullName: sortOrder } };
+      } else if (sortBy === 'phone') {
+        orderBy = { address: { phone: sortOrder } };
+      } else if (sortBy === 'total') {
+        orderBy = { totalAmount: sortOrder };
+      } else if (sortBy === 'status') {
+        orderBy = { status: sortOrder };
+      } else if (sortBy === 'updatedAt') {
+        orderBy = { updatedAt: sortOrder };
+      } else if (sortBy === 'createdAt') {
+        orderBy = { createdAt: sortOrder };
+      }
+    }
+
     const list = await this.prisma.order.findMany({
+      where,
       include: {
         items: { include: { variant: { include: { product: { include: { images: true } } } } } },
         payment: true,
@@ -373,11 +447,11 @@ export class OrdersService {
         address: true,
         user: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
+      skip,
+      take: limit,
     });
 
-    // Match raw admin list format (directly map order objects or map to user format depending on frontend-admin need)
-    // frontend-admin expects flat order details, so we can map them
     return list.map((o) => this.mapOrderToUser(o));
   }
 

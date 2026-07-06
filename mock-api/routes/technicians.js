@@ -12,19 +12,36 @@ const {
   validateNumber,
   validateInteger,
   validateArrayOfStrings,
-  validatePagination,
-  validateSort,
+  validatePaginationStrict,
+  validateSortStrict,
+  validateAllowedQueryKeys,
+  validateSearchQuery,
   sendValidationError
 } = require('../utils/validation');
 
 // GET /admin/technicians — requires: technicians:read (superadmin, admin, staff)
 router.get('/admin/technicians', requirePermission('technicians:read'), (req, res) => {
   const errors = [];
-  validatePagination(req.query, errors);
-  validateSort(req.query, ['name', 'phone', 'status', 'rating', 'createdAt', 'updatedAt'], errors);
-  if (req.query.status) {
+  
+  validateAllowedQueryKeys(req.query, [
+    'page', 'limit', 'q', 'search', 'status', 'skill', 'workingArea', 'sortBy', 'sortOrder'
+  ], errors);
+
+  validatePaginationStrict(req.query, errors);
+  validateSortStrict(req.query, ['name', 'phone', 'status', 'rating', 'currentJobs', 'createdAt', 'updatedAt'], errors);
+
+  if (req.query.q !== undefined) validateSearchQuery(req.query, 'q', errors, 100);
+  if (req.query.search !== undefined) validateSearchQuery(req.query, 'search', errors, 100);
+  if (req.query.status !== undefined) {
     validateEnum(req.query.status, VALID_TECHNICIAN_STATUSES, 'status', errors, false);
   }
+  if (req.query.skill !== undefined) {
+    validateOptionalString(req.query.skill, 'skill', errors, 50);
+  }
+  if (req.query.workingArea !== undefined) {
+    validateOptionalString(req.query.workingArea, 'workingArea', errors, 100);
+  }
+
   if (errors.length > 0) {
     return sendValidationError(res, errors);
   }
@@ -44,7 +61,7 @@ router.get('/admin/technicians', requirePermission('technicians:read'), (req, re
     list = list.filter(t => t.workingAreas && t.workingAreas.includes(workingArea));
   }
   if (q) {
-    const searchVal = q.toLowerCase();
+    const searchVal = q.toLowerCase().trim();
     list = list.filter(t => 
       t.name.toLowerCase().includes(searchVal) || 
       t.phone.includes(searchVal) ||

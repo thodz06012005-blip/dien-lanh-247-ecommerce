@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards } from '@ne
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { OrderQueryDto } from './dto/order-query.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -63,8 +64,8 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Get('admin/orders')
-  async findAllAdmin() {
-    const orders = await this.ordersService.findAllAdmin();
+  async findAllAdmin(@Query() query: OrderQueryDto) {
+    const orders = await this.ordersService.findAllAdmin(query);
     return {
       success: true,
       data: orders,

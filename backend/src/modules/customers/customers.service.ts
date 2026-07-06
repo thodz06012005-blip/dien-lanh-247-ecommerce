@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
+import { CustomerQueryDto } from './dto/customer-query.dto';
 
 @Injectable()
 export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(query?: CustomerQueryDto) {
     // 1. Fetch all Orders with address and user
     const orders = await this.prisma.order.findMany({
       include: {
@@ -110,14 +111,56 @@ export class CustomersService {
     }
 
     // Convert map to array
-    const customersList = Array.from(customersMap.values()).map(c => ({
+    let customersList = Array.from(customersMap.values());
+
+    // 4. Apply Search Filter in memory
+    if (query?.q) {
+      const searchVal = query.q.toLowerCase().trim();
+      if (searchVal.length > 0) {
+        customersList = customersList.filter(c =>
+          c.name.toLowerCase().includes(searchVal) ||
+          c.phone.includes(searchVal) ||
+          c.email.toLowerCase().includes(searchVal)
+        );
+      }
+    }
+
+    // 5. Apply Sorting in memory
+    const sortOrder = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 1 : -1;
+    const sortBy = query?.sortBy || 'createdAt';
+    const allowedSortFields = ['name', 'email', 'phone', 'orderCount', 'totalOrders', 'totalSpent', 'createdAt'];
+
+    if (allowedSortFields.includes(sortBy)) {
+      customersList.sort((a: any, b: any) => {
+        const fieldName = sortBy === 'totalOrders' ? 'orderCount' : sortBy;
+        let valA = a[fieldName];
+        let valB = b[fieldName];
+
+        if (valA instanceof Date) valA = valA.getTime();
+        if (valB instanceof Date) valB = valB.getTime();
+
+        if (typeof valA === 'string') {
+          return valA.localeCompare(valB) * sortOrder;
+        }
+        return (valA > valB ? 1 : valA < valB ? -1 : 0) * sortOrder;
+      });
+    }
+
+    // 6. Apply Pagination in memory
+    const page = Math.max(1, query?.page || 1);
+    const limit = Math.min(100, Math.max(1, query?.limit || 10));
+    const startIndex = (page - 1) * limit;
+    const paginatedList = customersList.slice(startIndex, startIndex + limit);
+
+    // Map response model format
+    const result = paginatedList.map(c => ({
       ...c,
       createdAt: c.createdAt.toISOString(),
     }));
 
     return {
       success: true,
-      data: customersList,
+      data: result,
     };
   }
 }

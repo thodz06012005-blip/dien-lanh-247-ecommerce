@@ -11,16 +11,29 @@ const {
   validateNumber,
   validateInteger,
   validateArrayOfStrings,
-  validatePagination,
-  validateSort,
+  validatePaginationStrict,
+  validateSortStrict,
+  validateAllowedQueryKeys,
+  validateSearchQuery,
   sendValidationError
 } = require('../utils/validation');
 
 // GET /admin/products — requires: products:read (superadmin, admin, staff)
 router.get('/admin/products', requirePermission('products:read'), (req, res) => {
   const errors = [];
-  validatePagination(req.query, errors);
-  validateSort(req.query, ['name', 'sku', 'basePrice', 'stock', 'createdAt', 'updatedAt'], errors);
+  
+  validateAllowedQueryKeys(req.query, [
+    'page', 'limit', 'q', 'search', 'status', 'categoryId', 'brandId', 'sortBy', 'sortOrder'
+  ], errors);
+  
+  validatePaginationStrict(req.query, errors);
+  validateSortStrict(req.query, ['name', 'sku', 'basePrice', 'salePrice', 'stock', 'status', 'createdAt', 'updatedAt'], errors);
+  
+  if (req.query.q !== undefined) validateSearchQuery(req.query, 'q', errors, 100);
+  if (req.query.search !== undefined) validateSearchQuery(req.query, 'search', errors, 100);
+  if (req.query.status !== undefined) {
+    validateEnum(req.query.status, ['active', 'inactive', 'out_of_stock'], 'status', errors, false);
+  }
   
   if (errors.length > 0) {
     return sendValidationError(res, errors);

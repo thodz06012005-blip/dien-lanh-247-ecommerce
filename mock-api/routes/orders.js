@@ -7,8 +7,11 @@ const { VALID_PAYMENT_METHODS } = require('../constants');
 const {
   validateRequiredString,
   validateEnum,
-  validatePagination,
-  validateSort,
+  validatePaginationStrict,
+  validateSortStrict,
+  validateAllowedQueryKeys,
+  validateSearchQuery,
+  validateDateRangeQuery,
   sendValidationError
 } = require('../utils/validation');
 
@@ -38,11 +41,40 @@ const mapOrderToUser = (o) => {
       imageUrl: item.thumbnail
     })),
     createdAt: new Intl.DateTimeFormat('vi-VN', {
-      dateStyle: 'short',
-      timeStyle: 'short'
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
     }).format(new Date(o.createdAt))
   };
 };
+
+// GET /admin/orders — requires: orders:read (superadmin, admin, staff)
+router.get('/admin/orders', requirePermission('orders:read'), (req, res) => {
+  const errors = [];
+  
+  validateAllowedQueryKeys(req.query, [
+    'page', 'limit', 'q', 'search', 'status', 'paymentStatus', 'dateFrom', 'dateTo', 'sortBy', 'sortOrder'
+  ], errors);
+  
+  validatePaginationStrict(req.query, errors);
+  validateSortStrict(req.query, ['code', 'customerName', 'phone', 'total', 'status', 'paymentStatus', 'createdAt', 'updatedAt'], errors);
+  
+  if (req.query.q !== undefined) validateSearchQuery(req.query, 'q', errors, 100);
+  if (req.query.search !== undefined) validateSearchQuery(req.query, 'search', errors, 100);
+  if (req.query.status !== undefined) {
+    validateEnum(req.query.status, ['pending', 'confirmed', 'processing', 'shipping', 'delivered', 'cancelled'], 'status', errors, false);
+  }
+  if (req.query.paymentStatus !== undefined) {
+    validateEnum(req.query.paymentStatus, ['paid', 'unpaid'], 'paymentStatus', errors, false);
+  }
+  validateDateRangeQuery(req.query, 'dateFrom', 'dateTo', errors);
+
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
+
+  const db = readDB();
+  return respondSuccess(res, db.orders);
+});
 
 // POST /orders (Place COD/Unpaid orders)
 router.post('/orders', (req, res) => {
@@ -305,19 +337,7 @@ router.patch('/orders/:id/cancel', (req, res) => {
   return respondSuccess(res, mapOrderToUser(order), 'Đã hủy đơn hàng thành công');
 });
 
-// GET /admin/orders — requires: orders:read (superadmin, admin, staff)
-router.get('/admin/orders', requirePermission('orders:read'), (req, res) => {
-  const errors = [];
-  validatePagination(req.query, errors);
-  validateSort(req.query, ['code', 'customerName', 'phone', 'total', 'status', 'createdAt', 'updatedAt'], errors);
-  
-  if (errors.length > 0) {
-    return sendValidationError(res, errors);
-  }
 
-  const db = readDB();
-  return respondSuccess(res, db.orders);
-});
 
 // GET /admin/orders/:id — requires: orders:read (superadmin, admin, staff)
 router.get('/admin/orders/:id', requirePermission('orders:read'), (req, res) => {

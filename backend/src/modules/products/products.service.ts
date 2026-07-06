@@ -321,7 +321,7 @@ export class ProductsService {
 
   async findAll(query: ProductQueryDto, options: ProductFindAllOptions = {}) {
     const page = Math.max(1, Number(query.page || 1));
-    const limit = Math.max(1, Number(query.limit || 10));
+    const limit = Math.min(100, Math.max(1, Number(query.limit || 10)));
     const skip = (page - 1) * limit;
     const sort = this.normalizeSort(query.sortBy || query.sort);
     const activeMinPrice = query.minPrice ?? query.priceMin;

@@ -12,6 +12,12 @@ const {
 
 // GET /admin/settings — requires: settings:read (superadmin, admin)
 router.get('/admin/settings', requirePermission('settings:read'), (req, res) => {
+  const errors = [];
+  const { validateAllowedQueryKeys, sendValidationError } = require('../utils/validation');
+  validateAllowedQueryKeys(req.query, [], errors);
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
+  }
   const db = readDB();
   return respondSuccess(res, db.settings);
 });

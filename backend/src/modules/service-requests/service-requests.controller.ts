@@ -3,6 +3,7 @@ import { ServiceRequestsService } from './service-requests.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { UpdateServiceRequestStatusDto } from './dto/update-service-request-status.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
+import { ServiceRequestQueryDto } from './dto/service-request-query.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -34,13 +35,8 @@ export class ServiceRequestsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Get('admin/service-requests')
-  findAllAdmin(
-    @Query('status') status?: string,
-    @Query('serviceCategoryId') serviceCategoryId?: string,
-    @Query('district') district?: string,
-    @Query('q') q?: string,
-  ) {
-    return this.serviceRequestsService.findAllAdmin({ status, serviceCategoryId, district, q });
+  findAllAdmin(@Query() query: ServiceRequestQueryDto) {
+    return this.serviceRequestsService.findAllAdmin(query);
   }
 
   // Admin: View a specific service request

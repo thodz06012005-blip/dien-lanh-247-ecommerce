@@ -11,8 +11,12 @@ const {
   validateEnum,
   validateNumber,
   validateInteger,
-  validatePagination,
-  validateSort,
+  validateArrayOfStrings,
+  validatePaginationStrict,
+  validateSortStrict,
+  validateAllowedQueryKeys,
+  validateSearchQuery,
+  validateDateRangeQuery,
   sendValidationError
 } = require('../utils/validation');
 
@@ -189,17 +193,16 @@ router.get('/service-requests/:id', (req, res) => {
   const populated = populateTechnician(request, db);
   return respondSuccess(res, populated);
 });
-
-// GET /my-service-requests (Customer views their service request history)
-router.get('/my-service-requests', (req, res) => {
-  const db = readDB();
-  const rawPhone = req.query.phone;
-  if (!rawPhone || typeof rawPhone !== 'string' || rawPhone.trim() === '') {
-    return respondError(res, 400, 'Thiếu thông tin số điện thoại khách hàng', 'MISSING_PHONE');
+// GET /service-requests/track (Customer tracking by phone)
+router.get('/service-requests/track', (req, res) => {
+  const errors = [];
+  validateRequiredString(req.query.phone, 'phone', errors, 8, 20);
+  if (errors.length > 0) {
+    return sendValidationError(res, errors);
   }
 
-  const phone = rawPhone.replace(/\s+/g, '').trim();
-  
+  const phone = req.query.phone.replace(/\s+/g, '').trim();
+  const db = readDB();
   const requests = (db.serviceRequests || []).filter(r => {
     const requestPhone = (r.customerPhone || '').replace(/\s+/g, '').trim();
     return requestPhone === phone;
@@ -211,11 +214,33 @@ router.get('/my-service-requests', (req, res) => {
 // GET /admin/service-requests (Admin views all service requests with filters) — requires: serviceRequests:read
 router.get('/admin/service-requests', requirePermission('serviceRequests:read'), (req, res) => {
   const errors = [];
-  validatePagination(req.query, errors);
-  validateSort(req.query, ['customerName', 'customerPhone', 'status', 'priority', 'createdAt', 'updatedAt'], errors);
-  if (req.query.status) {
+  
+  validateAllowedQueryKeys(req.query, [
+    'page', 'limit', 'q', 'search', 'status', 'priority', 'serviceCategoryId', 'district', 'technicianId', 'dateFrom', 'dateTo', 'sortBy', 'sortOrder'
+  ], errors);
+
+  validatePaginationStrict(req.query, errors);
+  validateSortStrict(req.query, ['createdAt', 'updatedAt', 'status', 'priority', 'scheduledAt', 'district', 'customerName'], errors);
+
+  if (req.query.q !== undefined) validateSearchQuery(req.query, 'q', errors, 100);
+  if (req.query.search !== undefined) validateSearchQuery(req.query, 'search', errors, 100);
+  if (req.query.status !== undefined) {
     validateEnum(req.query.status, VALID_SERVICE_STATUSES, 'status', errors, false);
   }
+  if (req.query.priority !== undefined) {
+    validateEnum(req.query.priority, VALID_SERVICE_PRIORITIES, 'priority', errors, false);
+  }
+  if (req.query.serviceCategoryId !== undefined) {
+    validateOptionalString(req.query.serviceCategoryId, 'serviceCategoryId', errors, 50);
+  }
+  if (req.query.district !== undefined) {
+    validateOptionalString(req.query.district, 'district', errors, 100);
+  }
+  if (req.query.technicianId !== undefined) {
+    validateOptionalString(req.query.technicianId, 'technicianId', errors, 50);
+  }
+  validateDateRangeQuery(req.query, 'dateFrom', 'dateTo', errors);
+
   if (errors.length > 0) {
     return sendValidationError(res, errors);
   }
@@ -226,14 +251,20 @@ router.get('/admin/service-requests', requirePermission('serviceRequests:read'),
   if (req.query.status) {
     list = list.filter(r => r.status === req.query.status);
   }
+  if (req.query.priority) {
+    list = list.filter(r => r.priority === req.query.priority);
+  }
   if (req.query.serviceCategoryId) {
     list = list.filter(r => r.serviceCategoryId === req.query.serviceCategoryId);
   }
   if (req.query.district) {
     list = list.filter(r => r.district === req.query.district);
   }
+  if (req.query.technicianId) {
+    list = list.filter(r => r.assignedTechnicianId === req.query.technicianId);
+  }
   if (req.query.q) {
-    const q = req.query.q.toLowerCase();
+    const q = req.query.q.toLowerCase().trim();
     list = list.filter(r => 
       r.customerName.toLowerCase().includes(q) || 
       r.customerPhone.includes(q)

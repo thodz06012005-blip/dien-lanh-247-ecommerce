@@ -3,7 +3,8 @@ import { PrismaService } from '../../core/database/prisma.service';
 import { CreateTechnicianDto } from './dto/create-technician.dto';
 import { UpdateTechnicianDto } from './dto/update-technician.dto';
 import { UpdateTechnicianStatusDto } from './dto/update-technician-status.dto';
-import { TechnicianStatus } from '@prisma/client';
+import { TechnicianQueryDto } from './dto/technician-query.dto';
+import { TechnicianStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class TechniciansService {
@@ -61,10 +62,61 @@ export class TechniciansService {
     };
   }
 
-  async findAll() {
+  async findAll(query?: TechnicianQueryDto) {
+    const page = Math.max(1, query?.page || 1);
+    const limit = Math.min(100, Math.max(1, query?.limit || 10));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.TechnicianWhereInput = {};
+
+    if (query?.status) {
+      const statusUpper = query.status.toUpperCase();
+      const validStatuses = Object.keys(TechnicianStatus);
+      if (validStatuses.includes(statusUpper)) {
+        where.status = statusUpper as TechnicianStatus;
+      }
+    }
+
+    if (query?.skill) {
+      where.skills = { array_contains: query.skill };
+    }
+
+    if (query?.workingArea) {
+      where.workingAreas = { array_contains: query.workingArea };
+    }
+
+    if (query?.q) {
+      const q = query.q.trim();
+      if (q.length > 0) {
+        where.OR = [
+          { name: { contains: q } },
+          { phone: { contains: q } },
+          { email: { contains: q } },
+        ];
+      }
+    }
+
+    const sortOrder = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const sortBy = query?.sortBy || 'createdAt';
+    let orderBy: Prisma.TechnicianOrderByWithRelationInput = { createdAt: sortOrder };
+
+    const allowedSortFields = ['name', 'phone', 'status', 'rating', 'createdAt', 'updatedAt'];
+    if (allowedSortFields.includes(sortBy)) {
+      if (sortBy === 'name') orderBy = { name: sortOrder };
+      else if (sortBy === 'phone') orderBy = { phone: sortOrder };
+      else if (sortBy === 'status') orderBy = { status: sortOrder };
+      else if (sortBy === 'rating') orderBy = { rating: sortOrder };
+      else if (sortBy === 'createdAt') orderBy = { createdAt: sortOrder };
+      else if (sortBy === 'updatedAt') orderBy = { updatedAt: sortOrder };
+    }
+
     const list = await this.prisma.technician.findMany({
-      orderBy: { createdAt: 'desc' },
+      where,
+      orderBy,
+      skip,
+      take: limit,
     });
+
     return {
       success: true,
       data: list,

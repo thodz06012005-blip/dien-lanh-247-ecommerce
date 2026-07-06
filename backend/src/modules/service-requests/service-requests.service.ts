@@ -3,6 +3,7 @@ import { PrismaService } from '../../core/database/prisma.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { UpdateServiceRequestStatusDto } from './dto/update-service-request-status.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
+import { ServiceRequestQueryDto } from './dto/service-request-query.dto';
 import { ServiceRequestStatus, ServiceRequestPriority, TechnicianStatus } from '@prisma/client';
 
 @Injectable()
@@ -145,24 +146,69 @@ export class ServiceRequestsService {
     };
   }
 
-  async findAllAdmin(query: { status?: string; serviceCategoryId?: string; district?: string; q?: string }) {
+  async findAllAdmin(query?: ServiceRequestQueryDto) {
+    const page = Math.max(1, query?.page || 1);
+    const limit = Math.min(100, Math.max(1, query?.limit || 10));
+    const skip = (page - 1) * limit;
+
     const whereClause: any = {};
 
-    if (query.status) {
-      whereClause.status = query.status as ServiceRequestStatus;
+    if (query?.status) {
+      const statusLower = query.status.toLowerCase();
+      const validStatuses = Object.keys(ServiceRequestStatus);
+      if (validStatuses.includes(statusLower)) {
+        whereClause.status = statusLower as ServiceRequestStatus;
+      }
     }
-    if (query.serviceCategoryId) {
+    if (query?.priority) {
+      const priorityLower = query.priority.toLowerCase();
+      const validPriorities = Object.keys(ServiceRequestPriority);
+      if (validPriorities.includes(priorityLower)) {
+        whereClause.priority = priorityLower as ServiceRequestPriority;
+      }
+    }
+    if (query?.serviceCategoryId) {
       whereClause.serviceCategoryId = query.serviceCategoryId;
     }
-    if (query.district) {
+    if (query?.district) {
       whereClause.district = query.district;
     }
-    if (query.q) {
-      const q = query.q.toLowerCase();
+    if (query?.technicianId) {
+      whereClause.assignedTechnicianId = query.technicianId;
+    }
+    if (query?.dateFrom || query?.dateTo) {
+      const dateFilter: any = {};
+      if (query.dateFrom) dateFilter.gte = new Date(query.dateFrom);
+      if (query.dateTo) dateFilter.lte = new Date(query.dateTo);
+      whereClause.createdAt = dateFilter;
+    }
+    if (query?.q) {
+      const q = query.q.toLowerCase().trim();
       whereClause.OR = [
         { customerName: { contains: q } },
         { customerPhone: { contains: q } },
       ];
+    }
+
+    const sortOrder = (query?.sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+    const sortBy = query?.sortBy || 'createdAt';
+    let orderBy: any = { createdAt: sortOrder };
+
+    const allowedSortFields = ['createdAt', 'updatedAt', 'status', 'priority', 'scheduledAt', 'district', 'customerName'];
+    if (allowedSortFields.includes(sortBy)) {
+      if (sortBy === 'createdAt') {
+        orderBy = { createdAt: sortOrder };
+      } else if (sortBy === 'updatedAt') {
+        orderBy = { updatedAt: sortOrder };
+      } else if (sortBy === 'status') {
+        orderBy = { status: sortOrder };
+      } else if (sortBy === 'priority') {
+        orderBy = { priority: sortOrder };
+      } else if (sortBy === 'district') {
+        orderBy = { district: sortOrder };
+      } else if (sortBy === 'customerName') {
+        orderBy = { customerName: sortOrder };
+      }
     }
 
     const list = await this.prisma.serviceRequest.findMany({
@@ -171,7 +217,9 @@ export class ServiceRequestsService {
         serviceCategory: true,
         assignedTechnician: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
+      skip,
+      take: limit,
     });
 
     return {
