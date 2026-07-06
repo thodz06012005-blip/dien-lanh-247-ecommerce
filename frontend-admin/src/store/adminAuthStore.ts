@@ -69,8 +69,11 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
 
       return { success: true, message: response.data.message || 'Đăng nhập thành công' };
     } catch (error) {
-      const err = error as { response?: { data?: { message?: string } } };
-      const message = err?.response?.data?.message || 'Email hoặc mật khẩu không chính xác';
+      const err = error as { response?: { data?: { message?: string }, status?: number } };
+      let message = err?.response?.data?.message || 'Email hoặc mật khẩu không chính xác';
+      if (err?.response?.status === 429) {
+        message = 'Bạn thử đăng nhập quá nhiều lần. Vui lòng thử lại sau.';
+      }
       return { success: false, message };
     }
   },

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Res } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Res, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -6,7 +6,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 
 @Controller('admin/auth')
 export class AdminAuthController {
@@ -16,9 +16,10 @@ export class AdminAuthController {
   @HttpCode(HttpStatus.OK)
   async loginAdmin(
     @Body() loginDto: LoginDto,
-    @Res({ passthrough: true }) res: Response
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
   ) {
-    const result = await this.authService.loginAdmin(loginDto);
+    const result = await this.authService.loginAdmin(loginDto, req);
 
     // Set HttpOnly Cookies for Admin Access Token and Refresh Token
     res.cookie('accessToken', result.token, {

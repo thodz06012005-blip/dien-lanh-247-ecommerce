@@ -5,6 +5,7 @@ import { PrismaService } from '../../core/database/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { LoginRateLimitService } from './login-rate-limit.service';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +13,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private loginRateLimitService: LoginRateLimitService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -88,40 +90,52 @@ export class AuthService {
     return tokens;
   }
 
-  async loginAdmin(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+  async loginAdmin(dto: LoginDto, req: any) {
+    const ip = this.loginRateLimitService.getClientIp(req);
+    this.loginRateLimitService.checkLockout(ip, dto.email);
 
-    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
-      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+
+      if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+        throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+      }
+
+      if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+        throw new ForbiddenException('Truy cập bị từ chối');
+      }
+
+      if (!user.isActive) {
+        throw new ForbiddenException('Tài khoản đã bị khóa');
+      }
+
+      this.loginRateLimitService.recordSuccess(ip, dto.email);
+
+      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
+
+      const expiresAt = Date.now() + 15 * 60 * 1000; // 15 phút
+
+      return {
+        admin: {
+          id: String(user.id),
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+          email: user.email,
+          role: user.role.toLowerCase(),
+          status: user.isActive ? 'active' : 'inactive',
+        },
+        token: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt,
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException || error instanceof ForbiddenException) {
+        this.loginRateLimitService.recordFailure(ip, dto.email);
+      }
+      throw error;
     }
-
-    if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
-      throw new ForbiddenException('Truy cập bị từ chối');
-    }
-
-    if (!user.isActive) {
-      throw new ForbiddenException('Tài khoản đã bị khóa');
-    }
-
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
-    await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
-
-    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 phút
-
-    return {
-      admin: {
-        id: String(user.id),
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
-        email: user.email,
-        role: user.role.toLowerCase(),
-        status: user.isActive ? 'active' : 'inactive',
-      },
-      token: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresAt,
-    };
   }
 
   async getAdminProfile(userId: number) {

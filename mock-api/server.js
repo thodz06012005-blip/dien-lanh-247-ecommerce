@@ -19,6 +19,7 @@ const { respondSuccess, respondCreated, respondError } = require('./utils/respon
 const { isValidPhone, isValidEmail, slugify } = require('./utils/validators');
 
 const { getInitialData } = require('./seed/initialData');
+const { checkLoginRateLimit, recordLoginFailure, recordLoginSuccess } = require('./utils/rateLimit');
 
 const publicRoutes = require('./routes/public');
 const { router: serviceRequestRouter, updateTechnicianStatusAfterJobChange } = require('./routes/serviceRequests');
@@ -149,17 +150,35 @@ app.post('/api/v1/admin/auth/login', (req, res) => {
     return respondError(res, 400, 'Vui lòng nhập đầy đủ email và mật khẩu', 'MISSING_CREDENTIALS');
   }
 
+  // Normalize email
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Check rate limit trước khi so password
+  const rateLimitResult = checkLoginRateLimit(req, normalizedEmail);
+  if (rateLimitResult.locked) {
+    return res.status(429).json({
+      success: false,
+      message: 'Too many login attempts. Please try again later.',
+      retryAfterSeconds: rateLimitResult.retryAfterSeconds
+    });
+  }
+
   const demoEmails = ['admin@dienlanh247.vn', 'staff@dienlanh247.vn'];
-  const isDefaultOwner = email === 'owner@dienlanh247.vn' && password === 'Admin@123';
-  if ((demoEmails.includes(email) || isDefaultOwner) && !isDemoAccountsEnabled()) {
+  const isDefaultOwner = normalizedEmail === 'owner@dienlanh247.vn' && password === 'Admin@123';
+  if ((demoEmails.includes(normalizedEmail) || isDefaultOwner) && !isDemoAccountsEnabled()) {
+    recordLoginFailure(req, normalizedEmail);
     return respondError(res, 401, 'Email hoặc mật khẩu không chính xác', 'INVALID_CREDENTIALS');
   }
 
-  const admin = adminUsers.find(u => u.email === email && u.password === password && u.status === 'active');
+  const admin = adminUsers.find(u => u.email.toLowerCase() === normalizedEmail && u.password === password && u.status === 'active');
 
   if (!admin) {
+    recordLoginFailure(req, normalizedEmail);
     return respondError(res, 401, 'Email hoặc mật khẩu không chính xác', 'INVALID_CREDENTIALS');
   }
+
+  // Login đúng và chưa bị lock -> record success
+  recordLoginSuccess(req, normalizedEmail);
 
   // Generate dynamic token using crypto
   const token = 'admin_tok_' + crypto.randomBytes(16).toString('hex');
