@@ -2,6 +2,20 @@ const adminEmail = process.env.ADMIN_EMAIL || 'owner@dienlanh247.vn';
 const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
 
 // ================================================================
+// ENV HELPERS FOR SECURITY & PRODUCTION SAFETY
+// ================================================================
+const isProduction = () => process.env.NODE_ENV === 'production';
+
+const isDevFeatureEnabled = () => {
+  return process.env.ENABLE_DEV_ENDPOINTS === 'true' && !isProduction();
+};
+
+const isDemoAccountsEnabled = () => {
+  if (isProduction()) return false;
+  return process.env.ENABLE_DEMO_ACCOUNTS === 'true' || process.env.MOCK_ENABLE_DEMO_ACCOUNTS === 'true';
+};
+
+// ================================================================
 // ADMIN USER REGISTRY (mock — replace with DB in production)
 // Role hierarchy: superadmin > admin > staff
 // ================================================================
@@ -164,6 +178,17 @@ const requirePermission = (permission) => {
   ];
 };
 
+// ================================================================
+// MIDDLEWARE: requireDevOnly
+// Safe guard that yields 404 for dev-only endpoints in production.
+// ================================================================
+const requireDevOnly = (req, res, next) => {
+  if (!isDevFeatureEnabled()) {
+    return res.status(404).json({ success: false, message: 'Not Found' });
+  }
+  next();
+};
+
 module.exports = {
   adminUsers,
   adminSessions,
@@ -171,5 +196,9 @@ module.exports = {
   requirePermission,
   hasPermission,
   ROLE_PERMISSIONS,
-  parseCookies
+  parseCookies,
+  isProduction,
+  isDevFeatureEnabled,
+  isDemoAccountsEnabled,
+  requireDevOnly
 };

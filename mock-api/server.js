@@ -22,7 +22,7 @@ const { getInitialData } = require('./seed/initialData');
 
 const publicRoutes = require('./routes/public');
 const { router: serviceRequestRouter, updateTechnicianStatusAfterJobChange } = require('./routes/serviceRequests');
-const { adminUsers, adminSessions, requireAdminAuth } = require('./utils/auth');
+const { adminUsers, adminSessions, requireAdminAuth, isDemoAccountsEnabled } = require('./utils/auth');
 const technicianRouter = require('./routes/technicians');
 const ordersRouter = require('./routes/orders');
 const adminProductsRouter = require('./routes/adminProducts');
@@ -34,7 +34,7 @@ const contactRouter = require('./routes/contact');
 const devRouter = require('./routes/dev');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 const corsOriginsEnv = process.env.CORS_ORIGINS || process.env.ALLOWED_ORIGINS;
 const allowedOrigins = corsOriginsEnv
@@ -131,17 +131,7 @@ app.get('/', (req, res) => {
       </ul>
     </div>
   `);
-});
-
-// POST /dev/reset-db
-app.post('/api/v1/dev/reset-db', (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return respondError(res, 403, 'Không được phép thực hiện hành động này trong môi trường sản xuất', 'FORBIDDEN');
-  }
-  const data = getInitialData();
-  writeDB(data);
-  return respondSuccess(res, {}, 'Đã khôi phục cơ sở dữ liệu mẫu về mặc định thành công!');
-});
+});// Mounted via devRouter handles dev/reset-db route.
 
 // Mounted via ordersRouter.
 
@@ -157,6 +147,12 @@ app.post('/api/v1/admin/auth/login', (req, res) => {
 
   if (!email || !password) {
     return respondError(res, 400, 'Vui lòng nhập đầy đủ email và mật khẩu', 'MISSING_CREDENTIALS');
+  }
+
+  const demoEmails = ['admin@dienlanh247.vn', 'staff@dienlanh247.vn'];
+  const isDefaultOwner = email === 'owner@dienlanh247.vn' && password === 'Admin@123';
+  if ((demoEmails.includes(email) || isDefaultOwner) && !isDemoAccountsEnabled()) {
+    return respondError(res, 401, 'Email hoặc mật khẩu không chính xác', 'INVALID_CREDENTIALS');
   }
 
   const admin = adminUsers.find(u => u.email === email && u.password === password && u.status === 'active');
