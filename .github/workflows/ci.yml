@@ -1,0 +1,55 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+      - security/*
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify:
+    name: Lint, Typecheck and Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install NestJS CLI globally
+        run: npm install -g @nestjs/cli
+
+      - name: Install backend dependencies
+        run: npm --prefix backend install
+
+      - name: Generate Prisma Client
+        run: npm --prefix backend run prisma:generate
+
+      - name: Install frontend-admin dependencies
+        run: npm --prefix frontend-admin install
+
+      - name: Install frontend-user dependencies
+        run: npm --prefix frontend-user install
+
+      - name: Run code quality checks (check:all)
+        run: npm run check:all
+
+      - name: Build backend application
+        run: npm --prefix backend run build
+
+      - name: Build frontend-admin portal
+        run: npm --prefix frontend-admin run build
+
+      - name: Build frontend-user portal
+        run: npm --prefix frontend-user run build
