@@ -13,6 +13,19 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  // Custom Security Headers Middleware (Plan 18 Hardening)
+  app.use((req: any, res: any, next: any) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:3001 http://localhost:3000 ws://localhost:3001 ws://localhost:3000 http://127.0.0.1:3001 http://127.0.0.1:3000 ws://127.0.0.1:3001 ws://127.0.0.1:3000;");
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+      res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+    }
+    next();
+  });
+
   // 1. Content-Type Guard for POST/PATCH/PUT
   app.use((req: any, res: any, next: any) => {
     const method = req.method;
