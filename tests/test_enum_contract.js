@@ -148,7 +148,7 @@ async function runTests() {
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa',
     issueDescription: 'Bảo trì',
-    preferredDate: '2026-07-20',
+    preferredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     preferredTimeSlot: '10:00 - 12:00',
     priority: 'invalid-priority'
   }, token);
@@ -212,7 +212,7 @@ async function runTests() {
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa',
     issueDescription: 'Bảo trì',
-    preferredDate: '2026-07-20',
+    preferredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     preferredTimeSlot: '10:00 - 12:00'
   });
   console.log('Status:', srRes.status, 'Saved district:', srRes.data?.data?.district);

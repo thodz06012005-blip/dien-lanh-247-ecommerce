@@ -256,7 +256,7 @@ async function runTests() {
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa',
     issueDescription: 'Vệ sinh máy',
-    preferredDate: '2026-07-10',
+    preferredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     preferredTimeSlot: '10:00 - 12:00'
   });
   const sr3Id = newSrRes.data.data.id;
@@ -293,7 +293,7 @@ async function runTests() {
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa',
     issueDescription: 'Vệ sinh máy',
-    preferredDate: '2026-07-10',
+    preferredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     preferredTimeSlot: '10:00 - 12:00'
   });
   const sr4Id = newSrRes2.data.data.id;

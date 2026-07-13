@@ -97,7 +97,7 @@ async function runTests() {
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa treo tường',
     issueDescription: 'Bụi bẩn cần vệ sinh',
-    preferredDate: '2026-07-10',
+    preferredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     preferredTimeSlot: 'morning'
   };
 
