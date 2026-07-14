@@ -10,5 +10,6 @@
 | Architecture tests | Root và ba ứng dụng | Pass, gồm contract Giai đoạn 4 |
 | Build | Customer, admin, backend | Pass |
 | Mock API business tests | Order, service, technician, enum | Pass |
+| Lighthouse desktop | Customer build preview | Performance ≥ 65, Accessibility ≥ 85, Best Practices ≥ 80, SEO ≥ 80 |
 
 Giai đoạn 4 chỉ được bàn giao khi workflow cuối cùng đạt toàn bộ quality gate trên và Pull Request được trả về base `agent/phase-3-design-system` để diff chỉ còn thay đổi website khách hàng tĩnh.
