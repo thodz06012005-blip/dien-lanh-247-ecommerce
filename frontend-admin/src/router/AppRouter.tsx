@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import { ADMIN_PERMISSIONS } from '@/config/adminPermissions';
 import AdminLayout from '@/layouts/AdminLayout';
@@ -19,7 +20,7 @@ import Technicians from '@/pages/Technicians';
 import AdminProtectedRoute from '@/routes/AdminProtectedRoute';
 import type { AdminPermission } from '@/types/admin';
 
-function ProtectedPage({ permission, children }: { permission: AdminPermission; children: React.ReactNode }) {
+function ProtectedPage({ permission, children }: { permission: AdminPermission; children: ReactNode }) {
   return <AdminProtectedRoute permission={permission}>{children}</AdminProtectedRoute>;
 }
 
@@ -30,7 +31,6 @@ export default function AppRouter() {
         <Route path="/login" element={<Login />} />
         <Route path="/403" element={<Forbidden />} />
         <Route path="/500" element={<SystemError />} />
-
         <Route element={<AdminProtectedRoute />}>
           <Route path="/" element={<AdminLayout />}>
             <Route index element={<ProtectedPage permission={ADMIN_PERMISSIONS.DASHBOARD_VIEW}><Dashboard /></ProtectedPage>} />
@@ -46,7 +46,6 @@ export default function AppRouter() {
             <Route path="profile" element={<ProtectedPage permission={ADMIN_PERMISSIONS.PROFILE_VIEW}><AdminProfile /></ProtectedPage>} />
           </Route>
         </Route>
-
         <Route path="*" element={<NotFound />} />
       </Routes>
     </HashRouter>
