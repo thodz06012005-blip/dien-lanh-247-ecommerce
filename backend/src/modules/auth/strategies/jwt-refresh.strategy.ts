@@ -1,16 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import type { Request } from 'express';
+import { ExtractJwt, Strategy } from 'passport-jwt';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
-  constructor(private configService: ConfigService) {
+  constructor(configService: ConfigService) {
     const secret = configService.get<string>('JWT_REFRESH_SECRET');
-    if (!secret) {
-      throw new Error('Missing required environment variable: JWT_REFRESH_SECRET');
-    }
+    if (!secret) throw new Error('Missing required environment variable: JWT_REFRESH_SECRET');
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => request.cookies?.['refreshToken'],
@@ -21,8 +19,18 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     });
   }
 
-  async validate(req: Request, payload: any) {
-    const refreshToken = req.cookies?.['refreshToken'];
-    return { userId: payload.sub, email: payload.email, role: payload.role, refreshToken };
+  async validate(
+    req: Request,
+    payload: { sub: number; email: string; role: string; sid: string; fid: string; tv: number },
+  ) {
+    return {
+      userId: Number(payload.sub),
+      email: payload.email,
+      role: payload.role,
+      sessionId: payload.sid,
+      familyId: payload.fid,
+      tokenVersion: Number(payload.tv),
+      refreshToken: req.cookies?.['refreshToken'] ?? '',
+    };
   }
 }
