@@ -3,8 +3,8 @@ import { z } from 'zod';
 const environmentSchema = z.object({
   VITE_APP_NAME: z.string().trim().min(1).default('Điện Lạnh 247'),
   VITE_APP_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
-  VITE_APP_URL: z.url().default('http://localhost:5173'),
-  VITE_API_BASE_URL: z.url().default('http://localhost:3001/api/v1'),
+  VITE_APP_URL: z.string().url().default('http://localhost:5173'),
+  VITE_API_BASE_URL: z.string().url().default('http://localhost:3001/api/v1'),
   VITE_API_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(15_000),
   VITE_USE_MOCK_API: z.enum(['true', 'false']).optional(),
   VITE_USE_MOCK: z.enum(['true', 'false']).optional(),
