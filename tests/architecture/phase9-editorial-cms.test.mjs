@@ -30,10 +30,10 @@ test('Phase 9 editorial CMS files exist', () => {
 test('Phase 9 migration is additive and provides editorial entities', () => {
   const migration = read(required[0]);
   for (const table of ['AuthorProfile', 'Banner', 'Partner', 'Testimonial', 'SiteSection', 'ContentRevision']) {
-    assert.match(migration, new RegExp(`CREATE TABLE \\`${table}\\``));
+    assert.equal(migration.includes(`CREATE TABLE \`${table}\``), true, `missing table ${table}`);
   }
   for (const column of ['socialImageMediaId', 'updatedById', 'publishedById', 'deletedAt', 'version']) {
-    assert.match(migration, new RegExp(`ADD COLUMN \\`${column}\\``));
+    assert.equal(migration.includes(`ADD COLUMN \`${column}\``), true, `missing column ${column}`);
   }
   assert.doesNotMatch(migration, /DROP TABLE|DROP COLUMN|RENAME TABLE/i);
 });
