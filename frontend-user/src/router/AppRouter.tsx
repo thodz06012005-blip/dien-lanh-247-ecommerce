@@ -44,7 +44,12 @@ function ScrollToTop() {
 
 function RouteLoading() {
   return (
-    <div className="flex min-h-[360px] items-center justify-center bg-slate-50" role="status" aria-live="polite">
+    <div
+      className="flex min-h-[360px] items-center justify-center bg-slate-50"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       <div className="text-center">
         <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-4 border-blue-100 border-t-primary-600 motion-reduce:animate-none" />
         <p className="mt-4 text-sm font-bold text-slate-600">Đang tải nội dung...</p>
