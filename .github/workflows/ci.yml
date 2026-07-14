@@ -112,10 +112,58 @@ jobs:
           exit 1
 
       - name: Run architecture tests
-        run: npm run test:architecture
+        id: architecture
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run test:architecture > architecture.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload architecture diagnostics
+        if: steps.architecture.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-log
+          path: architecture.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when architecture tests fail
+        if: steps.architecture.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat architecture.log
+          exit 1
 
       - name: Build all applications
-        run: npm run build:all
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run build:all > build.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload build diagnostics
+        if: steps.build.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when build fails
+        if: steps.build.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat build.log
+          exit 1
 
       - name: Run Mock API business tests
         run: npm run test:mock
