@@ -55,7 +55,15 @@ test('public API requires code and phone and returns a masked customer view', ()
   assert.match(service, /maskPhone/);
   assert.match(service, /maskEmail/);
   assert.match(service, /maskName/);
-  assert.doesNotMatch(service, /toCustomerView[\s\S]{0,3000}customerAddress:/);
+
+  const customerViewStart = service.indexOf('private toCustomerView(');
+  const customerViewEnd = service.indexOf('\n  async create(', customerViewStart);
+  assert.notEqual(customerViewStart, -1);
+  assert.notEqual(customerViewEnd, -1);
+  const customerView = service.slice(customerViewStart, customerViewEnd);
+  assert.doesNotMatch(customerView, /customerAddress\s*:/);
+  assert.doesNotMatch(customerView, /row\.customerAddress/);
+
   assert.match(controller, /UseGuards\(JwtAuthGuard\)[\s\S]*findMyRequests/);
 });
 
