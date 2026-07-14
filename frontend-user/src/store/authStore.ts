@@ -14,6 +14,11 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
   linkedServiceRequests?: number;
+  // Legacy optional fields keep Phase 1–6 autofill screens type-compatible.
+  // Phase 7's source of truth is the protected Address API.
+  city?: string;
+  district?: string;
+  addressDetail?: string;
 }
 
 interface AuthState {
