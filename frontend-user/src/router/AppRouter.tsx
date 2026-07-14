@@ -6,6 +6,7 @@ import Account from '@/pages/Account';
 import Cart from '@/pages/Cart';
 import Checkout from '@/pages/Checkout';
 import Contact from '@/pages/Contact';
+import DesignSystem from '@/pages/DesignSystem';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import MyServiceDetail from '@/pages/MyServiceDetail';
@@ -62,6 +63,7 @@ export default function AppRouter() {
           <Route path="contact" element={<Contact />} />
           <Route path="about" element={<About />} />
           <Route path="policy/:slug" element={<Policy />} />
+          <Route path="design-system" element={<DesignSystem />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="/login" element={<Login />} />
