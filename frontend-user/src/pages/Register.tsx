@@ -18,7 +18,7 @@ const schema = z.object({
   phone: z.string().regex(/^(?:\+?84|0)(?:3|5|7|8|9)\d{8}$/, 'Số điện thoại Việt Nam không hợp lệ'),
   password: z.string().min(10, 'Mật khẩu tối thiểu 10 ký tự').regex(/[a-z]/, 'Cần chữ thường').regex(/[A-Z]/, 'Cần chữ hoa').regex(/[0-9]/, 'Cần chữ số'),
   confirmPassword: z.string(),
-  acceptTerms: z.literal(true, { errorMap: () => ({ message: 'Bạn cần đồng ý điều khoản' }) }),
+  acceptTerms: z.boolean().refine((accepted) => accepted, 'Bạn cần đồng ý điều khoản'),
 }).refine((value) => value.password === value.confirmPassword, {
   message: 'Mật khẩu xác nhận không khớp', path: ['confirmPassword'],
 });
@@ -31,7 +31,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
     resolver: zodResolver(schema),
-    defaultValues: { acceptTerms: false as true },
+    defaultValues: { acceptTerms: false },
   });
 
   const onSubmit = async (values: RegisterForm) => {
