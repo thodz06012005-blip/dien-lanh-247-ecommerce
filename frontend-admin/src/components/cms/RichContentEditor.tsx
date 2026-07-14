@@ -57,17 +57,7 @@ export default function RichContentEditor({
     if (href) wrapSelection(`<a href="${href}" target="_blank" rel="noopener noreferrer">`, '</a>');
   };
 
-  const tools = [
-    { label: 'Đoạn văn', icon: Type, action: () => wrapSelection('<p>', '</p>') },
-    { label: 'Tiêu đề 2', icon: Heading2, action: () => wrapSelection('<h2>', '</h2>') },
-    { label: 'In đậm', icon: Bold, action: () => wrapSelection('<strong>', '</strong>') },
-    { label: 'In nghiêng', icon: Italic, action: () => wrapSelection('<em>', '</em>') },
-    { label: 'Trích dẫn', icon: Quote, action: () => wrapSelection('<blockquote>', '</blockquote>') },
-    { label: 'Danh sách', icon: List, action: () => insertList(false) },
-    { label: 'Danh sách số', icon: ListOrdered, action: () => insertList(true) },
-    { label: 'Liên kết', icon: Link2, action: addLink },
-    { label: 'Khối mã', icon: Code2, action: () => wrapSelection('<pre><code>', '</code></pre>') },
-  ];
+  const toolClass = 'flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-blue-50 hover:text-primary-700';
 
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
@@ -81,10 +71,15 @@ export default function RichContentEditor({
       {mode === 'edit' ? (
         <>
           <div className="flex flex-wrap gap-1 border-b border-slate-100 p-2">
-            {tools.map((tool) => {
-              const Icon = tool.icon;
-              return <button key={tool.label} type="button" onClick={tool.action} title={tool.label} aria-label={tool.label} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-blue-50 hover:text-primary-700"><Icon className="h-4 w-4" /></button>;
-            })}
+            <button type="button" onClick={() => wrapSelection('<p>', '</p>')} title="Đoạn văn" aria-label="Đoạn văn" className={toolClass}><Type className="h-4 w-4" /></button>
+            <button type="button" onClick={() => wrapSelection('<h2>', '</h2>')} title="Tiêu đề 2" aria-label="Tiêu đề 2" className={toolClass}><Heading2 className="h-4 w-4" /></button>
+            <button type="button" onClick={() => wrapSelection('<strong>', '</strong>')} title="In đậm" aria-label="In đậm" className={toolClass}><Bold className="h-4 w-4" /></button>
+            <button type="button" onClick={() => wrapSelection('<em>', '</em>')} title="In nghiêng" aria-label="In nghiêng" className={toolClass}><Italic className="h-4 w-4" /></button>
+            <button type="button" onClick={() => wrapSelection('<blockquote>', '</blockquote>')} title="Trích dẫn" aria-label="Trích dẫn" className={toolClass}><Quote className="h-4 w-4" /></button>
+            <button type="button" onClick={() => insertList(false)} title="Danh sách" aria-label="Danh sách" className={toolClass}><List className="h-4 w-4" /></button>
+            <button type="button" onClick={() => insertList(true)} title="Danh sách số" aria-label="Danh sách số" className={toolClass}><ListOrdered className="h-4 w-4" /></button>
+            <button type="button" onClick={addLink} title="Liên kết" aria-label="Liên kết" className={toolClass}><Link2 className="h-4 w-4" /></button>
+            <button type="button" onClick={() => wrapSelection('<pre><code>', '</code></pre>')} title="Khối mã" aria-label="Khối mã" className={toolClass}><Code2 className="h-4 w-4" /></button>
           </div>
           <textarea ref={textareaRef} value={value} onChange={(event) => onChange(event.target.value)} spellCheck style={{ minHeight }} className="block w-full resize-y bg-white p-5 font-mono text-sm leading-7 text-slate-800 outline-none placeholder:text-slate-400" placeholder={'<h2>Tiêu đề nội dung</h2>\n<p>Nội dung chi tiết...</p>'} />
         </>
