@@ -14,10 +14,8 @@ import {
   Image as ImageIcon,
   Mail,
   MapPin,
-  PackageSearch,
   Phone,
   RefreshCw,
-  ShieldCheck,
   UploadCloud,
   UserRound,
   UserRoundCheck,
@@ -107,7 +105,7 @@ export default function ServiceRequestDetail() {
   });
 
   const request = detailQuery.data?.data;
-  const technicians: Technician[] = technicianQuery.data?.data || [];
+  const technicians = useMemo<Technician[]>(() => technicianQuery.data?.data || [], [technicianQuery.data]);
   const compatibleTechnicians = useMemo(
     () => technicians.filter((technician) =>
       technician.skills?.includes(request?.serviceCategoryId || '') &&
