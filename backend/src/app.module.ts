@@ -16,6 +16,7 @@ import { BrandsModule } from './modules/brands/brands.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { ContentModule } from './modules/content/content.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { OrdersModule } from './modules/orders/orders.module';
@@ -56,6 +57,7 @@ import { UsersModule } from './modules/users/users.module';
     ServiceRequestsModule,
     SettingsModule,
     ContactModule,
+    ContentModule,
     DashboardModule,
     CustomersModule,
     AuditLogModule,
