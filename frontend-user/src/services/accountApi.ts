@@ -10,11 +10,22 @@ export interface Address {
   district: string;
   ward: string;
   streetAddress: string;
-  note?: string | null;
-  isDefault: boolean | number;
+  note: string;
+  isDefault: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
+interface AddressWire extends Omit<Address, 'note' | 'isDefault'> {
+  note?: string | null;
+  isDefault: boolean | number;
+}
+
+const normalizeAddress = (address: AddressWire): Address => ({
+  ...address,
+  note: address.note || '',
+  isDefault: Boolean(address.isDefault),
+});
 
 export interface AccountOverview {
   user: User;
@@ -47,14 +58,20 @@ export interface AccountSession {
   current: boolean;
 }
 
-export const getAccountOverview = async () => (await api.get('/account')).data.data as AccountOverview;
+export const getAccountOverview = async () => {
+  const data = (await api.get('/account')).data.data as Omit<AccountOverview, 'defaultAddress'> & { defaultAddress: AddressWire | null };
+  return { ...data, defaultAddress: data.defaultAddress ? normalizeAddress(data.defaultAddress) : null } as AccountOverview;
+};
 export const updateProfile = async (payload: { firstName: string; lastName: string; phone: string }) =>
   (await api.patch('/account/profile', payload)).data.data as User;
-export const listAddresses = async () => (await api.get('/account/addresses')).data.data as Address[];
+export const listAddresses = async () => {
+  const rows = (await api.get('/account/addresses')).data.data as AddressWire[];
+  return rows.map(normalizeAddress);
+};
 export const createAddress = async (payload: Omit<Address, 'id' | 'createdAt' | 'updatedAt'>) =>
-  (await api.post('/account/addresses', payload)).data.data as Address;
+  normalizeAddress((await api.post('/account/addresses', payload)).data.data as AddressWire);
 export const updateAddress = async (id: number, payload: Omit<Address, 'id' | 'createdAt' | 'updatedAt'>) =>
-  (await api.patch(`/account/addresses/${id}`, payload)).data.data as Address;
+  normalizeAddress((await api.patch(`/account/addresses/${id}`, payload)).data.data as AddressWire);
 export const deleteAddress = async (id: number) => (await api.delete(`/account/addresses/${id}`)).data.data;
 export const changePassword = async (payload: { currentPassword: string; newPassword: string }) =>
   (await api.post('/account/change-password', payload)).data.data;
