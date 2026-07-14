@@ -1,0 +1,100 @@
+:root {
+  --admin-color-navy-950: #061527;
+  --admin-color-navy-900: #0c1b2e;
+  --admin-color-primary-700: #1d4ed8;
+  --admin-color-primary-600: #2563eb;
+  --admin-color-primary-500: #3b82f6;
+  --admin-color-cyan-500: #06b6d4;
+  --admin-color-canvas: #f5f7fb;
+  --admin-color-surface: #ffffff;
+  --admin-color-text: #0f172a;
+  --admin-color-muted: #64748b;
+  --admin-radius-sm: 0.625rem;
+  --admin-radius-md: 0.75rem;
+  --admin-radius-lg: 1rem;
+  --admin-radius-xl: 1.5rem;
+  --admin-shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08);
+  --admin-shadow-md: 0 14px 38px -22px rgb(15 23 42 / 0.3);
+  --admin-shadow-lg: 0 28px 70px -28px rgb(15 23 42 / 0.4);
+  --admin-space-1: 0.25rem;
+  --admin-space-2: 0.5rem;
+  --admin-space-3: 0.75rem;
+  --admin-space-4: 1rem;
+  --admin-space-5: 1.25rem;
+  --admin-space-6: 1.5rem;
+  --admin-space-8: 2rem;
+  --admin-motion-fast: 140ms;
+  --admin-motion-normal: 220ms;
+  --admin-motion-slow: 360ms;
+  --admin-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.admin-focus-ring:focus-visible {
+  outline: 3px solid rgb(37 99 235 / 0.35);
+  outline-offset: 2px;
+}
+
+.admin-demo-container {
+  width: min(100% - 1.5rem, 90rem);
+  margin-inline: auto;
+}
+
+.admin-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+
+.admin-safe-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+.admin-skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 200;
+  transform: translateY(-160%);
+  border-radius: 0.75rem;
+  background: var(--admin-color-navy-950);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+  box-shadow: var(--admin-shadow-lg);
+  transition: transform var(--admin-motion-fast) var(--admin-ease-standard);
+}
+
+.admin-skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (min-width: 640px) {
+  .admin-demo-container {
+    width: min(100% - 2.5rem, 90rem);
+  }
+}
+
+@media (pointer: coarse) {
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-skip-link,
+  [data-admin-motion] {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
