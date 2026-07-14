@@ -1,0 +1,172 @@
+name: Phase 6 Service Request Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+      - agent/phase-5-managed-content
+    paths:
+      - 'backend/prisma/**'
+      - 'backend/src/modules/service-requests/**'
+      - 'backend/src/integrations/mail/**'
+      - 'backend/package.json'
+      - 'backend/test/phase6-service-request.integration.mjs'
+      - 'frontend-user/src/pages/ServiceBooking.tsx'
+      - 'frontend-user/src/pages/ServiceRequestLookup.tsx'
+      - 'frontend-admin/src/pages/ServiceRequests.tsx'
+      - 'frontend-admin/src/pages/ServiceRequestDetail.tsx'
+      - 'tests/architecture/phase6-service-request-lifecycle.test.mjs'
+      - '.github/workflows/phase6-service-request-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase6-service-request-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lifecycle-integration:
+    name: Migrate, Start API and Verify Lifecycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ecommerce
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    env:
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/ecommerce
+      NODE_ENV: test
+      HOST: 0.0.0.0
+      PORT: 3000
+      API_PREFIX: api/v1
+      LOG_LEVEL: warn
+      SWAGGER_ENABLED: false
+      TRUST_PROXY: false
+      ADMIN_SEED_EMAIL: admin@dienlanh247.vn
+      ADMIN_SEED_PASSWORD: Phase6SecureSeed123!
+      ADMIN_NAME: Phase 6 Admin
+      JWT_ACCESS_SECRET: phase6_access_secret_for_integration_at_least_32_characters
+      JWT_REFRESH_SECRET: phase6_refresh_secret_for_integration_at_least_32_characters
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      BCRYPT_SALT_ROUNDS: 8
+      COOKIE_SECURE: false
+      COOKIE_SAME_SITE: strict
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:5174
+      FRONTEND_USER_URL: http://localhost:5173
+      FRONTEND_ADMIN_URL: http://localhost:5174
+      THROTTLE_TTL_MS: 60000
+      THROTTLE_LIMIT: 500
+      JSON_BODY_LIMIT: 2mb
+      URLENCODED_BODY_LIMIT: 200kb
+      ENABLE_DEV_ENDPOINTS: false
+      ENABLE_DEMO_ACCOUNTS: true
+      LOGIN_RATE_LIMIT_WINDOW_MS: 900000
+      LOGIN_RATE_LIMIT_MAX_PER_EMAIL: 20
+      LOGIN_RATE_LIMIT_MAX_PER_IP: 50
+      LOGIN_RATE_LIMIT_MAX_PER_IP_EMAIL: 20
+      LOGIN_RATE_LIMIT_LOCK_MS: 900000
+      AUDIT_LOG_ENABLED: true
+      AUDIT_LOG_MAX_ENTRIES: 2000
+      AUDIT_LOG_CAPTURE_FAILED_LOGIN: true
+      AUDIT_LOG_CAPTURE_RBAC_DENIED: true
+      DANGEROUS_ACTION_CONFIRMATION_REQUIRED: true
+      SOFT_DELETE_ENABLED: true
+      PHASE6_API_URL: http://127.0.0.1:3000/api/v1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Wait for MySQL
+        run: |
+          for attempt in {1..60}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'MySQL did not become ready' >&2
+          exit 1
+
+      - name: Validate Prisma and apply migrations
+        run: |
+          npm --prefix backend run prisma:validate
+          npm --prefix backend run prisma:generate
+          npm --prefix backend run prisma:migrate:deploy
+
+      - name: Seed all platform and workflow data twice
+        run: |
+          npm --prefix backend run prisma:seed
+          npm --prefix backend run prisma:seed
+
+      - name: Build backend
+        run: npm --prefix backend run build
+
+      - name: Start backend API
+        run: |
+          npm --prefix backend run start:prod > phase6-api.log 2>&1 &
+          echo $! > phase6-api.pid
+
+      - name: Wait for backend API
+        run: |
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/api/v1 >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat phase6-api.log || true
+          echo 'Backend API did not become ready' >&2
+          exit 1
+
+      - name: Run Phase 6 API lifecycle integration
+        run: node backend/test/phase6-service-request.integration.mjs | tee phase6-integration.log
+
+      - name: Verify database records
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT id, workflowStatus, requestVersion FROM ServiceRequest WHERE id LIKE 'DL247-%';"
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT requestId, fromStatus, toStatus, actorType FROM ServiceRequestStatusEvent ORDER BY id DESC LIMIT 12;"
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT requestId, action, actorType FROM ServiceRequestAudit ORDER BY id DESC LIMIT 12;"
+
+      - name: Upload Phase 6 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6-service-request-diagnostics
+          path: |
+            phase6-api.log
+            phase6-integration.log
+            backend/prisma/migrations/20260714060000_phase6_service_request_lifecycle/migration.sql
+          retention-days: 7
+
+      - name: Stop backend API
+        if: always()
+        run: |
+          if [ -f phase6-api.pid ]; then
+            kill "$(cat phase6-api.pid)" || true
+          fi

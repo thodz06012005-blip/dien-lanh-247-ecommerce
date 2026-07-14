@@ -1,19 +1,16 @@
-import { IsOptional, IsString, IsEnum, Length } from 'class-validator';
+import { IsIn, IsOptional, IsString, Length } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { SERVICE_REQUEST_STATUSES } from '../service-request-workflow';
 
 export class ServiceRequestQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
-  @IsEnum(['pending', 'confirmed', 'assigned', 'completed', 'cancelled', 'PENDING', 'CONFIRMED', 'ASSIGNED', 'COMPLETED', 'CANCELLED'], {
-    message: 'Trạng thái yêu cầu dịch vụ không hợp lệ'
-  })
+  @IsIn(SERVICE_REQUEST_STATUSES, { message: 'Trạng thái yêu cầu dịch vụ không hợp lệ' })
   status?: string;
 
   @IsOptional()
   @IsString()
-  @IsEnum(['low', 'medium', 'high', 'urgent', 'LOW', 'MEDIUM', 'HIGH', 'URGENT'], {
-    message: 'Độ ưu tiên không hợp lệ'
-  })
+  @IsIn(['low', 'medium', 'high', 'urgent'], { message: 'Độ ưu tiên không hợp lệ' })
   priority?: string;
 
   @IsOptional()
@@ -38,16 +35,21 @@ export class ServiceRequestQueryDto extends PaginationDto {
 
   @IsOptional()
   @IsString()
-  @IsEnum(['createdAt', 'updatedAt', 'status', 'priority', 'scheduledAt', 'district', 'customerName'], {
-    message: 'Trường sắp xếp không hợp lệ'
+  @IsIn(['all', 'new', 'unassigned', 'active', 'waiting-parts', 'overdue', 'warranty'], {
+    message: 'Quick filter không hợp lệ',
+  })
+  quickFilter?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['createdAt', 'updatedAt', 'workflowStatus', 'priority', 'preferredDate', 'district', 'customerName'], {
+    message: 'Trường sắp xếp không hợp lệ',
   })
   sortBy?: string;
 
   @IsOptional()
   @IsString()
-  @IsEnum(['asc', 'desc', 'ASC', 'DESC'], {
-    message: 'Thứ tự sắp xếp chỉ nhận asc hoặc desc'
-  })
+  @IsIn(['asc', 'desc'], { message: 'Thứ tự sắp xếp chỉ nhận asc hoặc desc' })
   sortOrder?: string;
 
   @IsOptional()

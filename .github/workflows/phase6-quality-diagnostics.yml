@@ -1,0 +1,94 @@
+name: Phase 6 Quality Diagnostics
+
+on:
+  pull_request:
+    branches:
+      - main
+      - agent/phase-5-managed-content
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase6-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint and Typecheck with Diagnostics
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://root:password@127.0.0.1:3306/ecommerce
+      JWT_ACCESS_SECRET: phase6_quality_access_secret_at_least_32_characters
+      JWT_REFRESH_SECRET: phase6_quality_refresh_secret_at_least_32_characters
+      ADMIN_SEED_EMAIL: admin@dienlanh247.vn
+      ADMIN_SEED_PASSWORD: Phase6QualitySeed123!
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      ENABLE_DEV_ENDPOINTS: false
+      ENABLE_DEMO_ACCOUNTS: false
+      COOKIE_SECURE: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend-user/package-lock.json
+            frontend-admin/package-lock.json
+            backend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix frontend-user ci
+          npm --prefix frontend-admin ci
+          npm --prefix backend ci
+
+      - name: Generate Prisma Client
+        run: npm --prefix backend run prisma:generate
+
+      - name: Run lint with diagnostics
+        id: lint
+        continue-on-error: true
+        run: |
+          set +e
+          npm run lint > phase6-lint.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run typecheck with diagnostics
+        id: typecheck
+        continue-on-error: true
+        run: |
+          set +e
+          npm run typecheck > phase6-typecheck.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload quality diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6-quality-diagnostics
+          path: |
+            phase6-lint.log
+            phase6-typecheck.log
+          retention-days: 7
+
+      - name: Fail when quality checks fail
+        if: steps.lint.outputs.exit_code != '0' || steps.typecheck.outputs.exit_code != '0'
+        run: |
+          cat phase6-lint.log
+          cat phase6-typecheck.log
+          exit 1
