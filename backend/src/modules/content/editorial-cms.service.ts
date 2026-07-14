@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../core/database/prisma.service';
 import { ContentService } from './content.service';
 import { ContentRevisionService } from './content-revision.service';
-import type { ContentPayloadDto } from './dto/content.dto';
+import { ContentQueryDto, type ContentPayloadDto } from './dto/content.dto';
 import type {
   EditorialPayloadDto,
   EditorialQueryDto,
@@ -23,7 +23,7 @@ import {
   type EditorialContentType,
 } from './editorial-cms.types';
 
-interface CmsRecord extends Record<string, unknown> {
+export interface CmsRecord extends Record<string, unknown> {
   id: number | string;
   version?: number;
 }
@@ -37,12 +37,15 @@ export class EditorialCmsService {
   ) {}
 
   assertType(value: string): EditorialContentType {
-    if (!isEditorialType(value)) throw new BadRequestException(`Loại nội dung không được hỗ trợ: ${value}`);
+    if (!isEditorialType(value)) {
+      throw new BadRequestException(`Loại nội dung không được hỗ trợ: ${value}`);
+    }
     return value;
   }
 
-  private normalizeRow<T extends Record<string, unknown>>(row: T): T {
-    const jsonFields = [
+  private normalizeRow(row: Record<string, unknown>): CmsRecord {
+    const normalized: Record<string, unknown> = { ...row };
+    for (const field of [
       'pricing',
       'process',
       'faq',
@@ -53,22 +56,23 @@ export class EditorialCmsService {
       'mediaIds',
       'tagIds',
       'snapshot',
-    ];
-    const normalized = { ...row };
-    for (const field of jsonFields) {
+    ]) {
       const value = normalized[field];
       if (typeof value === 'string') {
         try {
-          normalized[field] = JSON.parse(value) as T[string];
+          normalized[field] = JSON.parse(value) as unknown;
         } catch {
           normalized[field] = value;
         }
       }
     }
     for (const field of ['isActive', 'isFeatured']) {
-      if (field in normalized) normalized[field] = Boolean(normalized[field]) as T[string];
+      if (field in normalized) normalized[field] = Boolean(normalized[field]);
     }
-    return normalized;
+    if (typeof normalized.id !== 'number' && typeof normalized.id !== 'string') {
+      throw new NotFoundException('Bản ghi CMS không có định danh hợp lệ');
+    }
+    return normalized as CmsRecord;
   }
 
   private sanitizeHtml(value?: string) {
@@ -97,7 +101,7 @@ export class EditorialCmsService {
   private async assertUnique(
     table: string,
     field: string,
-    value: string,
+    value: string | number,
     currentId?: string | number,
   ) {
     const params: unknown[] = [value];
@@ -113,10 +117,12 @@ export class EditorialCmsService {
 
   private identifierWhere(type: EditorialContentType, identifier: string) {
     const config = this.table(type);
-    if (/^\d+$/.test(identifier)) return { sql: 'x.id = ?', value: Number(identifier) };
-    if (type === 'service-categories') return { sql: '(x.id = ? OR x.slug = ?)', value: identifier, duplicate: true };
-    if (type === 'site-sections') return { sql: 'x.sectionKey = ?', value: identifier };
-    if (config.slugField) return { sql: `x.${config.slugField} = ?`, value: identifier };
+    if (/^\d+$/.test(identifier)) return { sql: 'x.id = ?', params: [Number(identifier)] as unknown[] };
+    if (type === 'service-categories') {
+      return { sql: '(x.id = ? OR x.slug = ?)', params: [identifier, identifier] as unknown[] };
+    }
+    if (type === 'site-sections') return { sql: 'x.sectionKey = ?', params: [identifier] as unknown[] };
+    if (config.slugField) return { sql: `x.${config.slugField} = ?`, params: [identifier] as unknown[] };
     throw new BadRequestException('Mã nội dung phải là số');
   }
 
@@ -141,7 +147,10 @@ export class EditorialCmsService {
       clauses.push(`x.${config.activeField} = ?`);
       params.push(query.active);
     }
-    if (typeof query.featured === 'boolean' && ['services', 'service-categories', 'projects', 'posts', 'partners', 'testimonials'].includes(type)) {
+    if (
+      typeof query.featured === 'boolean' &&
+      ['services', 'service-categories', 'projects', 'posts', 'partners', 'testimonials'].includes(type)
+    ) {
       clauses.push('x.isFeatured = ?');
       params.push(query.featured);
     }
@@ -155,7 +164,7 @@ export class EditorialCmsService {
     const offset = (page - 1) * limit;
     const where = `WHERE ${clauses.join(' AND ')}`;
     const [rows, countRows] = await Promise.all([
-      this.prisma.$queryRawUnsafe<CmsRecord[]>(
+      this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
         `SELECT x.*,
                 CONCAT(COALESCE(uu.firstName, ''), ' ', COALESCE(uu.lastName, '')) AS updatedByName,
                 uu.email AS updatedByEmail
@@ -184,8 +193,7 @@ export class EditorialCmsService {
     const type = this.assertType(typeValue);
     const config = this.table(type);
     const where = this.identifierWhere(type, identifier);
-    const params = where.duplicate ? [where.value, where.value] : [where.value];
-    const rows = await this.prisma.$queryRawUnsafe<CmsRecord[]>(
+    const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
       `SELECT x.*,
               CONCAT(COALESCE(uu.firstName, ''), ' ', COALESCE(uu.lastName, '')) AS updatedByName,
               uu.email AS updatedByEmail,
@@ -194,7 +202,7 @@ export class EditorialCmsService {
        LEFT JOIN User uu ON uu.id = x.updatedById
        ${config.publishable ? 'LEFT JOIN User pu ON pu.id = x.publishedById' : 'LEFT JOIN User pu ON 1 = 0'}
        WHERE ${where.sql} LIMIT 1`,
-      ...params,
+      ...where.params,
     );
     if (!rows.length) throw new NotFoundException('Không tìm thấy nội dung');
     const item = this.normalizeRow(rows[0]);
@@ -209,7 +217,7 @@ export class EditorialCmsService {
       item.album = album.map((row) => this.normalizeRow(row));
     }
     if (type === 'posts') {
-      item.tags = await this.prisma.$queryRawUnsafe(
+      item.tags = await this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
         `SELECT t.id, t.name, t.slug FROM PostTag pt JOIN Tag t ON t.id = pt.tagId
          WHERE pt.postId = ? AND t.deletedAt IS NULL ORDER BY t.name ASC`,
         item.id,
@@ -248,15 +256,29 @@ export class EditorialCmsService {
     let identifier: string | number;
 
     if (isLegacyType(type)) {
-      const result = await this.legacyContent.createAdmin(type, payload as ContentPayloadDto) as { data: CmsRecord };
-      identifier = result.data.id ?? result.data.slug as string;
+      const rawResult = await this.legacyContent.createAdmin(type, payload as ContentPayloadDto) as unknown as {
+        data: Record<string, unknown>;
+      };
+      const rawIdentifier = rawResult.data.id ?? rawResult.data.slug;
+      if (typeof rawIdentifier !== 'string' && typeof rawIdentifier !== 'number') {
+        throw new BadRequestException('Không thể xác định nội dung vừa tạo');
+      }
+      identifier = rawIdentifier;
       await this.enrichLegacyAfterCreate(type, identifier, payload, actor);
     } else {
       identifier = await this.createEditorialRecord(type, payload, actor);
     }
 
     const result = await this.find(type, String(identifier));
-    await this.revisions.record(type, identifier, 'CREATE', Number(result.data.version ?? 1), result.data, actor, 'Tạo nội dung');
+    await this.revisions.record(
+      type,
+      identifier,
+      'CREATE',
+      Number(result.data.version ?? 1),
+      result.data,
+      actor,
+      'Tạo nội dung',
+    );
     return result;
   }
 
@@ -273,15 +295,26 @@ export class EditorialCmsService {
            placement, theme, desktopMediaId, mobileMediaId, status, isActive, sortOrder,
            publishedAt, startsAt, endsAt, updatedById, publishedById, version, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(3), NOW(3))`,
-        payload.name.trim(), payload.eyebrow ?? null, payload.title.trim(), payload.subtitle ?? null,
-        payload.ctaLabel ?? null, payload.ctaUrl ?? null, payload.secondaryCtaLabel ?? null,
-        payload.secondaryCtaUrl ?? null, payload.placement ?? 'HOME_HERO', payload.theme ?? 'DARK',
-        payload.desktopMediaId ?? null, payload.mobileMediaId ?? null, payload.status ?? 'DRAFT',
-        payload.isActive ?? true, payload.sortOrder ?? 0,
+        payload.name.trim(),
+        payload.eyebrow ?? null,
+        payload.title.trim(),
+        payload.subtitle ?? null,
+        payload.ctaLabel ?? null,
+        payload.ctaUrl ?? null,
+        payload.secondaryCtaLabel ?? null,
+        payload.secondaryCtaUrl ?? null,
+        payload.placement ?? 'HOME_HERO',
+        payload.theme ?? 'DARK',
+        payload.desktopMediaId ?? null,
+        payload.mobileMediaId ?? null,
+        payload.status ?? 'DRAFT',
+        payload.isActive ?? true,
+        payload.sortOrder ?? 0,
         payload.publishedAt ? new Date(payload.publishedAt) : null,
         payload.startsAt ? new Date(payload.startsAt) : null,
         payload.endsAt ? new Date(payload.endsAt) : null,
-        actor.userId, payload.status === 'PUBLISHED' ? actor.userId : null,
+        actor.userId,
+        payload.status === 'PUBLISHED' ? actor.userId : null,
       );
     } else if (type === 'partners') {
       if (!payload.name) throw new BadRequestException('Tên đối tác là bắt buộc');
@@ -290,59 +323,96 @@ export class EditorialCmsService {
           (name, description, websiteUrl, logoMediaId, status, isFeatured, isActive, sortOrder,
            publishedAt, updatedById, publishedById, version, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(3), NOW(3))`,
-        payload.name.trim(), payload.description ?? null, payload.websiteUrl ?? null,
-        payload.logoMediaId ?? null, payload.status ?? 'DRAFT', payload.isFeatured ?? false,
-        payload.isActive ?? true, payload.sortOrder ?? 0,
+        payload.name.trim(),
+        payload.description ?? null,
+        payload.websiteUrl ?? null,
+        payload.logoMediaId ?? null,
+        payload.status ?? 'DRAFT',
+        payload.isFeatured ?? false,
+        payload.isActive ?? true,
+        payload.sortOrder ?? 0,
         payload.publishedAt ? new Date(payload.publishedAt) : null,
-        actor.userId, payload.status === 'PUBLISHED' ? actor.userId : null,
+        actor.userId,
+        payload.status === 'PUBLISHED' ? actor.userId : null,
       );
     } else if (type === 'testimonials') {
-      if (!payload.customerName || !payload.quote) throw new BadRequestException('Tên khách hàng và nội dung đánh giá là bắt buộc');
+      if (!payload.customerName || !payload.quote) {
+        throw new BadRequestException('Tên khách hàng và nội dung đánh giá là bắt buộc');
+      }
       await this.prisma.$executeRawUnsafe(
         `INSERT INTO Testimonial
           (customerName, customerTitle, company, quote, rating, avatarMediaId, serviceId,
            status, isFeatured, isActive, sortOrder, publishedAt, updatedById, publishedById,
            version, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(3), NOW(3))`,
-        payload.customerName.trim(), payload.customerTitle ?? null, payload.company ?? null,
-        payload.quote.trim(), payload.rating ?? 5, payload.avatarMediaId ?? null,
-        payload.serviceId ?? null, payload.status ?? 'DRAFT', payload.isFeatured ?? false,
-        payload.isActive ?? true, payload.sortOrder ?? 0,
+        payload.customerName.trim(),
+        payload.customerTitle ?? null,
+        payload.company ?? null,
+        payload.quote.trim(),
+        payload.rating ?? 5,
+        payload.avatarMediaId ?? null,
+        payload.serviceId ?? null,
+        payload.status ?? 'DRAFT',
+        payload.isFeatured ?? false,
+        payload.isActive ?? true,
+        payload.sortOrder ?? 0,
         payload.publishedAt ? new Date(payload.publishedAt) : null,
-        actor.userId, payload.status === 'PUBLISHED' ? actor.userId : null,
+        actor.userId,
+        payload.status === 'PUBLISHED' ? actor.userId : null,
       );
     } else if (type === 'site-sections') {
-      if (!payload.sectionKey || !payload.name) throw new BadRequestException('Mã khu vực và tên quản trị là bắt buộc');
-      await this.assertUnique('SiteSection', 'sectionKey', payload.sectionKey);
+      if (!payload.sectionKey || !payload.name) {
+        throw new BadRequestException('Mã khu vực và tên quản trị là bắt buộc');
+      }
+      const sectionKey = payload.sectionKey.trim().toUpperCase();
+      await this.assertUnique('SiteSection', 'sectionKey', sectionKey);
       await this.prisma.$executeRawUnsafe(
         `INSERT INTO SiteSection
           (sectionKey, name, eyebrow, title, content, config, status, isActive, sortOrder,
            publishedAt, seoTitle, seoDescription, canonicalUrl, socialImageMediaId,
            updatedById, publishedById, version, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW(3), NOW(3))`,
-        payload.sectionKey.trim().toUpperCase(), payload.name.trim(), payload.eyebrow ?? null,
-        payload.title ?? null, payload.content ?? null, this.json(payload.config),
-        payload.status ?? 'DRAFT', payload.isActive ?? true, payload.sortOrder ?? 0,
+        sectionKey,
+        payload.name.trim(),
+        payload.eyebrow ?? null,
+        payload.title ?? null,
+        payload.content ?? null,
+        this.json(payload.config),
+        payload.status ?? 'DRAFT',
+        payload.isActive ?? true,
+        payload.sortOrder ?? 0,
         payload.publishedAt ? new Date(payload.publishedAt) : null,
-        payload.seoTitle ?? null, payload.seoDescription ?? null, payload.canonicalUrl ?? null,
-        payload.socialImageMediaId ?? null, actor.userId,
+        payload.seoTitle ?? null,
+        payload.seoDescription ?? null,
+        payload.canonicalUrl ?? null,
+        payload.socialImageMediaId ?? null,
+        actor.userId,
         payload.status === 'PUBLISHED' ? actor.userId : null,
       );
     } else {
-      if (!payload.userId || !payload.displayName) throw new BadRequestException('Tài khoản và tên tác giả là bắt buộc');
-      await this.assertUnique('AuthorProfile', 'userId', String(payload.userId));
+      if (!payload.userId || !payload.displayName) {
+        throw new BadRequestException('Tài khoản và tên tác giả là bắt buộc');
+      }
+      await this.assertUnique('AuthorProfile', 'userId', payload.userId);
       await this.prisma.$executeRawUnsafe(
         `INSERT INTO AuthorProfile
           (userId, displayName, title, bio, avatarMediaId, socialLinks, isActive,
            updatedById, version, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, 1, NOW(3), NOW(3))`,
-        payload.userId, payload.displayName.trim(), payload.roleTitle ?? null, payload.bio ?? null,
-        payload.avatarMediaId ?? null, this.json(payload.socialLinks), payload.isActive ?? true,
+        payload.userId,
+        payload.displayName.trim(),
+        payload.roleTitle ?? null,
+        payload.bio ?? null,
+        payload.avatarMediaId ?? null,
+        this.json(payload.socialLinks),
+        payload.isActive ?? true,
         actor.userId,
       );
     }
     const inserted = await this.prisma.$queryRawUnsafe<Array<{ id: number }>>('SELECT LAST_INSERT_ID() AS id');
-    return inserted[0]?.id;
+    const id = inserted[0]?.id;
+    if (!id) throw new BadRequestException('Không thể xác định nội dung vừa tạo');
+    return id;
   }
 
   private json(value: unknown) {
@@ -369,7 +439,15 @@ export class EditorialCmsService {
     }
 
     const result = await this.find(type, String(id));
-    await this.revisions.record(type, id, 'UPDATE', Number(result.data.version ?? 1), result.data, actor, 'Cập nhật nội dung');
+    await this.revisions.record(
+      type,
+      id,
+      'UPDATE',
+      Number(result.data.version ?? 1),
+      result.data,
+      actor,
+      'Cập nhật nội dung',
+    );
     return result;
   }
 
@@ -382,7 +460,10 @@ export class EditorialCmsService {
     const config = this.table(type);
     const assignments = ['updatedById = ?', 'version = version + 1'];
     const params: unknown[] = [actor.userId];
-    if (payload.socialImageMediaId !== undefined && ['services', 'service-categories', 'projects', 'posts', 'categories'].includes(type)) {
+    if (
+      payload.socialImageMediaId !== undefined &&
+      ['services', 'service-categories', 'projects', 'posts', 'categories'].includes(type)
+    ) {
       assignments.push('socialImageMediaId = ?');
       params.push(payload.socialImageMediaId ?? null);
     }
@@ -403,7 +484,7 @@ export class EditorialCmsService {
     payload: EditorialPayloadDto,
     actor: EditorialActor,
   ) {
-    const allowed: Record<typeof type, string[]> = {
+    const allowed: Record<string, string[]> = {
       banners: ['name','eyebrow','title','subtitle','ctaLabel','ctaUrl','secondaryCtaLabel','secondaryCtaUrl','placement','theme','desktopMediaId','mobileMediaId','status','isActive','sortOrder','publishedAt','startsAt','endsAt'],
       partners: ['name','description','websiteUrl','logoMediaId','status','isFeatured','isActive','sortOrder','publishedAt'],
       testimonials: ['customerName','customerTitle','company','quote','rating','avatarMediaId','serviceId','status','isFeatured','isActive','sortOrder','publishedAt'],
@@ -411,7 +492,7 @@ export class EditorialCmsService {
       authors: ['userId','displayName','roleTitle','bio','avatarMediaId','socialLinks','isActive'],
     };
     const fieldAliases: Record<string, string> = { roleTitle: 'title' };
-    const entries = allowed[type]
+    const entries = (allowed[type] ?? [])
       .filter((field) => (payload as Record<string, unknown>)[field] !== undefined)
       .map((field) => {
         const column = fieldAliases[field] || field;
@@ -421,10 +502,10 @@ export class EditorialCmsService {
         return [column, value] as const;
       });
     if (type === 'site-sections' && payload.sectionKey) {
-      await this.assertUnique('SiteSection', 'sectionKey', payload.sectionKey, id);
+      await this.assertUnique('SiteSection', 'sectionKey', payload.sectionKey.trim().toUpperCase(), id);
     }
     if (type === 'authors' && payload.userId) {
-      await this.assertUnique('AuthorProfile', 'userId', String(payload.userId), id);
+      await this.assertUnique('AuthorProfile', 'userId', payload.userId, id);
     }
     if (!entries.length) return;
     const assignments = entries.map(([field]) => `${field} = ?`);
@@ -437,14 +518,11 @@ export class EditorialCmsService {
     );
   }
 
-  async publish(
-    typeValue: string,
-    identifier: string,
-    dto: PublishContentDto,
-    actor: EditorialActor,
-  ) {
+  async publish(typeValue: string, identifier: string, dto: PublishContentDto, actor: EditorialActor) {
     const type = this.assertType(typeValue);
-    if (!isPublishableType(type)) throw new BadRequestException('Loại nội dung này không sử dụng workflow xuất bản');
+    if (!isPublishableType(type)) {
+      throw new BadRequestException('Loại nội dung này không sử dụng workflow xuất bản');
+    }
     const current = await this.find(type, identifier);
     const id = current.data.id;
     const config = this.table(type);
@@ -460,13 +538,23 @@ export class EditorialCmsService {
       id,
     );
     const result = await this.find(type, String(id));
-    await this.revisions.record(type, id, 'PUBLISH', Number(result.data.version ?? 1), result.data, actor, dto.summary || 'Xuất bản nội dung');
+    await this.revisions.record(
+      type,
+      id,
+      'PUBLISH',
+      Number(result.data.version ?? 1),
+      result.data,
+      actor,
+      dto.summary || 'Xuất bản nội dung',
+    );
     return result;
   }
 
   async unpublish(typeValue: string, identifier: string, actor: EditorialActor) {
     const type = this.assertType(typeValue);
-    if (!isPublishableType(type)) throw new BadRequestException('Loại nội dung này không sử dụng workflow xuất bản');
+    if (!isPublishableType(type)) {
+      throw new BadRequestException('Loại nội dung này không sử dụng workflow xuất bản');
+    }
     const current = await this.find(type, identifier);
     const id = current.data.id;
     await this.prisma.$executeRawUnsafe(
@@ -477,7 +565,15 @@ export class EditorialCmsService {
       id,
     );
     const result = await this.find(type, String(id));
-    await this.revisions.record(type, id, 'UNPUBLISH', Number(result.data.version ?? 1), result.data, actor, 'Gỡ xuất bản');
+    await this.revisions.record(
+      type,
+      id,
+      'UNPUBLISH',
+      Number(result.data.version ?? 1),
+      result.data,
+      actor,
+      'Gỡ xuất bản',
+    );
     return result;
   }
 
@@ -495,7 +591,15 @@ export class EditorialCmsService {
       id,
     );
     const result = await this.find(type, String(id));
-    await this.revisions.record(type, id, 'ARCHIVE', Number(result.data.version ?? 1), result.data, actor, 'Lưu trữ mềm');
+    await this.revisions.record(
+      type,
+      id,
+      'ARCHIVE',
+      Number(result.data.version ?? 1),
+      result.data,
+      actor,
+      'Lưu trữ mềm',
+    );
     return { success: true, data: result.data };
   }
 
@@ -513,7 +617,15 @@ export class EditorialCmsService {
       id,
     );
     const result = await this.find(type, String(id));
-    await this.revisions.record(type, id, 'RESTORE', Number(result.data.version ?? 1), result.data, actor, 'Khôi phục nội dung');
+    await this.revisions.record(
+      type,
+      id,
+      'RESTORE',
+      Number(result.data.version ?? 1),
+      result.data,
+      actor,
+      'Khôi phục nội dung',
+    );
     return result;
   }
 
@@ -524,46 +636,56 @@ export class EditorialCmsService {
 
   async getSiteBundle(scopeValue: string) {
     const scope = scopeValue.toLowerCase();
-    if (!['home', 'footer', 'all'].includes(scope)) throw new BadRequestException('Scope site content không hợp lệ');
-    const nowClause = "status = 'PUBLISHED' AND isActive = TRUE AND deletedAt IS NULL AND (publishedAt IS NULL OR publishedAt <= NOW(3))";
+    if (!['home', 'footer', 'all'].includes(scope)) {
+      throw new BadRequestException('Scope site content không hợp lệ');
+    }
+    const nowClause = "x.status = 'PUBLISHED' AND x.isActive = TRUE AND x.deletedAt IS NULL AND (x.publishedAt IS NULL OR x.publishedAt <= NOW(3))";
     const sectionFilter = scope === 'home'
-      ? "AND (sectionKey LIKE 'HOME_%' OR sectionKey = 'CONTACT')"
+      ? "AND (x.sectionKey LIKE 'HOME_%' OR x.sectionKey = 'CONTACT')"
       : scope === 'footer'
-        ? "AND (sectionKey LIKE 'FOOTER_%' OR sectionKey = 'FOOTER' OR sectionKey = 'CONTACT')"
+        ? "AND (x.sectionKey LIKE 'FOOTER_%' OR x.sectionKey = 'FOOTER' OR x.sectionKey = 'CONTACT')"
         : '';
+    const featuredQuery = Object.assign(new ContentQueryDto(), { page: 1, limit: 6, featured: true });
+    const postQuery = Object.assign(new ContentQueryDto(), { page: 1, limit: 3, featured: true });
 
     const [banners, partners, testimonials, sections, services, projects, posts] = await Promise.all([
-      scope === 'footer' ? Promise.resolve([]) : this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
-        `SELECT x.*, dm.url AS desktopMediaUrl, dm.altText AS desktopMediaAlt,
-                mm.url AS mobileMediaUrl
-         FROM Banner x
-         LEFT JOIN Media dm ON dm.id = x.desktopMediaId
-         LEFT JOIN Media mm ON mm.id = x.mobileMediaId
-         WHERE ${nowClause}
-           AND (x.startsAt IS NULL OR x.startsAt <= NOW(3))
-           AND (x.endsAt IS NULL OR x.endsAt >= NOW(3))
-         ORDER BY x.sortOrder ASC, x.updatedAt DESC`,
-      ),
-      scope === 'footer' ? Promise.resolve([]) : this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
-        `SELECT x.*, m.url AS logoUrl, m.altText AS logoAlt
-         FROM Partner x LEFT JOIN Media m ON m.id = x.logoMediaId
-         WHERE ${nowClause} ORDER BY x.isFeatured DESC, x.sortOrder ASC`,
-      ),
-      scope === 'footer' ? Promise.resolve([]) : this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
-        `SELECT x.*, m.url AS avatarUrl, s.title AS serviceTitle
-         FROM Testimonial x
-         LEFT JOIN Media m ON m.id = x.avatarMediaId
-         LEFT JOIN Service s ON s.id = x.serviceId
-         WHERE ${nowClause} ORDER BY x.isFeatured DESC, x.sortOrder ASC`,
-      ),
+      scope === 'footer'
+        ? Promise.resolve([])
+        : this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
+            `SELECT x.*, dm.url AS desktopMediaUrl, dm.altText AS desktopMediaAlt,
+                    mm.url AS mobileMediaUrl
+             FROM Banner x
+             LEFT JOIN Media dm ON dm.id = x.desktopMediaId
+             LEFT JOIN Media mm ON mm.id = x.mobileMediaId
+             WHERE ${nowClause}
+               AND (x.startsAt IS NULL OR x.startsAt <= NOW(3))
+               AND (x.endsAt IS NULL OR x.endsAt >= NOW(3))
+             ORDER BY x.sortOrder ASC, x.updatedAt DESC`,
+          ),
+      scope === 'footer'
+        ? Promise.resolve([])
+        : this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
+            `SELECT x.*, m.url AS logoUrl, m.altText AS logoAlt
+             FROM Partner x LEFT JOIN Media m ON m.id = x.logoMediaId
+             WHERE ${nowClause} ORDER BY x.isFeatured DESC, x.sortOrder ASC`,
+          ),
+      scope === 'footer'
+        ? Promise.resolve([])
+        : this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
+            `SELECT x.*, m.url AS avatarUrl, s.title AS serviceTitle
+             FROM Testimonial x
+             LEFT JOIN Media m ON m.id = x.avatarMediaId
+             LEFT JOIN Service s ON s.id = x.serviceId
+             WHERE ${nowClause} ORDER BY x.isFeatured DESC, x.sortOrder ASC`,
+          ),
       this.prisma.$queryRawUnsafe<Array<Record<string, unknown>>>(
         `SELECT x.*, m.url AS socialImageUrl FROM SiteSection x
          LEFT JOIN Media m ON m.id = x.socialImageMediaId
          WHERE ${nowClause} ${sectionFilter} ORDER BY x.sortOrder ASC`,
       ),
-      scope === 'footer' ? Promise.resolve({ data: [] }) : this.legacyContent.listPublic('services', Object.assign(new (class { page = 1; limit = 6; featured = true; })(), {})),
-      scope === 'footer' ? Promise.resolve({ data: [] }) : this.legacyContent.listPublic('projects', Object.assign(new (class { page = 1; limit = 6; featured = true; })(), {})),
-      scope === 'footer' ? Promise.resolve({ data: [] }) : this.legacyContent.listPublic('posts', Object.assign(new (class { page = 1; limit = 3; featured = true; })(), {})),
+      scope === 'footer' ? Promise.resolve({ data: [] }) : this.legacyContent.listPublic('services', featuredQuery),
+      scope === 'footer' ? Promise.resolve({ data: [] }) : this.legacyContent.listPublic('projects', featuredQuery),
+      scope === 'footer' ? Promise.resolve({ data: [] }) : this.legacyContent.listPublic('posts', postQuery),
     ]);
 
     return {
@@ -574,9 +696,9 @@ export class EditorialCmsService {
         partners: partners.map((row) => this.normalizeRow(row)),
         testimonials: testimonials.map((row) => this.normalizeRow(row)),
         sections: sections.map((row) => this.normalizeRow(row)),
-        services: (services as { data: unknown[] }).data,
-        projects: (projects as { data: unknown[] }).data,
-        posts: (posts as { data: unknown[] }).data,
+        services: services.data,
+        projects: projects.data,
+        posts: posts.data,
       },
     };
   }
