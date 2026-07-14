@@ -4,11 +4,12 @@ import { ADMIN_PERMISSIONS } from '../../common/auth/admin-permissions';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { DashboardService } from './dashboard.service';
 
 @Controller('admin/dashboard')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
 @Permissions(ADMIN_PERMISSIONS.DASHBOARD_VIEW)
 export class DashboardController {
