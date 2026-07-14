@@ -1,0 +1,130 @@
+name: Phase 7 Quality Diagnostics
+
+on:
+  pull_request:
+    branches:
+      - main
+      - agent/phase-6-service-request-lifecycle
+    paths:
+      - 'backend/src/modules/auth/**'
+      - 'backend/src/modules/users/**'
+      - 'backend/src/integrations/mail/**'
+      - 'backend/prisma/**'
+      - 'frontend-user/src/**'
+      - 'tests/architecture/phase7-customer-account-security.test.mjs'
+      - '.github/workflows/phase7-quality-diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase7-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, Typecheck, Architecture and Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/ecommerce
+      JWT_ACCESS_SECRET: phase7_quality_access_secret_more_than_32_characters
+      JWT_REFRESH_SECRET: phase7_quality_refresh_secret_more_than_32_characters
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      COOKIE_SECURE: false
+      ENABLE_DEV_ENDPOINTS: false
+      ENABLE_DEMO_ACCOUNTS: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend-user/package-lock.json
+            frontend-admin/package-lock.json
+            backend/package-lock.json
+            mock-api/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix frontend-user ci
+          npm --prefix frontend-admin ci
+          npm --prefix backend ci
+          npm --prefix mock-api ci
+
+      - name: Generate Prisma Client
+        run: npm --prefix backend run prisma:generate
+
+      - name: Run lint with diagnostics
+        id: lint
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run lint > phase7-lint.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run typecheck with diagnostics
+        id: typecheck
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run typecheck > phase7-typecheck.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run architecture contracts
+        id: architecture
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run test:architecture > phase7-architecture.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Build all applications
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run build:all > phase7-build.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload quality diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase7-quality-diagnostics
+          path: |
+            phase7-lint.log
+            phase7-typecheck.log
+            phase7-architecture.log
+            phase7-build.log
+          retention-days: 7
+
+      - name: Fail when quality checks fail
+        if: steps.lint.outputs.exit_code != '0' || steps.typecheck.outputs.exit_code != '0' || steps.architecture.outputs.exit_code != '0' || steps.build.outputs.exit_code != '0'
+        run: |
+          cat phase7-lint.log
+          cat phase7-typecheck.log
+          cat phase7-architecture.log
+          cat phase7-build.log
+          exit 1
