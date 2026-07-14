@@ -67,7 +67,31 @@ jobs:
         run: npm --prefix frontend-admin ci
 
       - name: Install backend dependencies
-        run: npm --prefix backend ci
+        id: backend-install
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm --prefix backend ci > backend-install.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload backend install diagnostics
+        if: steps.backend-install.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-install-log
+          path: backend-install.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when backend dependency installation fails
+        if: steps.backend-install.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat backend-install.log
+          exit 1
 
       - name: Install Mock API dependencies
         run: npm --prefix mock-api ci
