@@ -34,7 +34,7 @@ interface AccountRequestRow {
   preferredTimeSlot: string;
   estimatedPrice: number;
   finalPrice: number;
-  paymentStatus: string;
+  paymentStatus: 'unpaid' | 'paid';
   createdAt: string;
   updatedAt: string;
   serviceCategoryId: string;
@@ -56,10 +56,8 @@ export default function MyServices() {
     customerEmail: null,
     district: '',
     issueDescription: '',
-    note: '',
     serviceCategory: { id: row.serviceCategoryId, name: row.serviceCategoryName },
     technician: null,
-    scheduledAt: null,
     timeline: [],
     media: [],
   }));
