@@ -138,10 +138,11 @@ jobs:
       - name: Run admin platform integration
         run: node backend/test/phase8-admin-platform.integration.mjs | tee phase8-integration.log
 
-      - name: Verify admin sessions and audit denials
+      - name: Verify admin sessions and permission denial coverage
         run: |
           mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT id, userId, familyId, LENGTH(refreshTokenHash) AS hashLength, revokedAt, revokeReason FROM AuthSession ORDER BY createdAt DESC LIMIT 12;"
-          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT action, resourceType, resourceId, success, createdAt FROM AuditLog WHERE action IN ('PERMISSION_FORBIDDEN','AUTH_LOGIN_SUCCESS','AUTH_LOGOUT') ORDER BY createdAt DESC LIMIT 20;"
+          grep -F 'Phase 8 admin integration: backend permission denial' phase8-integration.log
+          grep -F 'Phase 8 admin platform integration passed.' phase8-integration.log
 
       - name: Reject token-shaped data in API logs
         run: |
