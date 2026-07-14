@@ -1,142 +1,176 @@
-import { ShieldCheck, Users, Zap, Award, Sparkles, Building } from 'lucide-react';
-import Breadcrumb from '../components/common/Breadcrumb';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Award, CheckCircle2, ShieldCheck, Sparkles, Target, Users, Wrench } from 'lucide-react';
+import Breadcrumb from '@/components/common/Breadcrumb';
+import OptimizedImage from '@/components/common/OptimizedImage';
+import useDocumentTitle from '@/hooks/useDocumentTitle';
+
+const values = [
+  {
+    icon: ShieldCheck,
+    title: 'Trung thực trong tư vấn',
+    description: 'Giải thích nguyên nhân, phương án và chi phí trước khi thực hiện thay vì tạo áp lực quyết định.',
+  },
+  {
+    icon: Wrench,
+    title: 'Kỷ luật kỹ thuật',
+    description: 'Tuân thủ kiểm tra an toàn, checklist thi công và quy trình nghiệm thu cho từng loại thiết bị.',
+  },
+  {
+    icon: Users,
+    title: 'Tôn trọng khách hàng',
+    description: 'Đúng giờ, giữ vệ sinh, giao tiếp rõ ràng và bảo vệ không gian sinh hoạt hoặc vận hành.',
+  },
+  {
+    icon: Target,
+    title: 'Cải tiến dựa trên dữ liệu',
+    description: 'Theo dõi lịch sử yêu cầu, phản hồi và tỷ lệ bảo hành để liên tục nâng chất lượng dịch vụ.',
+  },
+];
 
 export default function About() {
-  const stats = [
-    { num: '10+', label: 'Năm hoạt động' },
-    { num: '50.000+', label: 'Khách hàng hài lòng' },
-    { num: '50+', label: 'Kỹ thuật viên lành nghề' },
-    { num: '03+', label: 'Chi nhánh lớn tại HN & HCM' },
-  ];
-
-  const values = [
-    {
-      icon: <Award className="w-6 h-6 text-primary-600" />,
-      title: 'Chất lượng hàng đầu',
-      desc: 'Mọi thiết bị điện máy bán ra đều cam kết chính hãng 100%, bảo hành hãng và bảo hành lắp ráp dài lâu.',
-    },
-    {
-      icon: <Zap className="w-6 h-6 text-primary-600" />,
-      title: 'Tốc độ phục vụ',
-      desc: 'Chúng tôi hiểu mùa hè oi bức thế nào, vì vậy quy trình giao lắp được thiết lập khẩn cấp tối đa chỉ trong 2 giờ.',
-    },
-    {
-      icon: <Users className="w-6 h-6 text-primary-600" />,
-      title: 'Nhân sự chuẩn mực',
-      desc: 'Kỹ thuật viên được đào tạo chuyên môn định kỳ, văn hóa làm việc trung thực, nhiệt tình và giữ gìn vệ sinh căn hộ khách.',
-    },
-    {
-      icon: <ShieldCheck className="w-6 h-6 text-primary-600" />,
-      title: 'Trách nhiệm trọn đời',
-      desc: 'Không dừng lại sau khi lắp ráp xong, chúng tôi cung cấp gói chăm sóc bảo trì định kỳ trọn đời cho thiết bị nhà bạn.',
-    },
-  ];
+  useDocumentTitle(
+    'Giới thiệu Điện Lạnh 247',
+    'Tìm hiểu định hướng, giá trị cốt lõi và quy trình phát triển dịch vụ kỹ thuật của Điện Lạnh 247.',
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-14">
-      {/* Breadcrumbs */}
-      <div>
-        <Breadcrumb items={[{ name: 'Giới thiệu' }]} />
-        <h1 className="text-xl md:text-2xl font-black text-slate-900 mt-2">
-          Giới thiệu về Điện Lạnh 247
-        </h1>
-      </div>
-
-      {/* Grid Story and Image */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-        <div className="lg:col-span-6 flex flex-col gap-5 text-xs text-slate-600 leading-relaxed">
-          <span className="text-3xs font-extrabold text-primary-600 uppercase tracking-widest flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 fill-primary-600/10" />
-            Lịch sử hình thành & Phát triển
-          </span>
-          <h2 className="text-lg md:text-xl font-bold text-slate-900">
-            Hơn 10 năm đồng hành mang làn gió mát lành tới gia đình Việt
-          </h2>
-          <p>
-            Được thành lập từ năm 2016, khởi điểm từ một đội thợ sửa chữa điều hòa nhỏ tại Hà Nội, <strong>Điện Lạnh 247</strong> đã không ngừng nỗ lực, cải tiến quy trình phục vụ để vươn lên thành một trong những hệ thống cung cấp thiết bị điện máy và dịch vụ bảo trì uy tín hàng đầu tại Việt Nam.
-          </p>
-          <p>
-            Chúng tôi nhận thấy khách hàng khi mua điều hòa, tủ lạnh lớn thường gặp khó khăn trong khâu lắp đặt: thợ ngoài lắp sai kỹ thuật gây rò gas, chảy nước dàn lạnh, hoặc bảo hành chậm trễ trong những ngày nắng nóng đỉnh điểm. Vì vậy, Điện Lạnh 247 tiên phong mô hình <strong>"Sản phẩm chuẩn hãng - Lắp ráp chuẩn kỹ thuật - Bảo hành kép siêu tốc"</strong>.
-          </p>
-          <p>
-            Đến nay, chúng tôi tự hào được phục vụ hàng vạn hộ gia đình, căn hộ trọ, văn phòng công ty và nhận được sự hài lòng tối đa của đối tác nhờ tay nghề kỹ thuật vững vàng và sự trung thực tuyệt đối của nhân viên.
-          </p>
-        </div>
-
-        <div className="lg:col-span-6 aspect-video rounded-[2.5rem] overflow-hidden border border-slate-200 shadow-lg relative bg-slate-100 flex items-center justify-center">
-          <img
-            src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1200&auto=format&fit=crop"
-            alt="Dien Lanh Technical work team"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-primary-950/10" />
+    <div className="bg-white">
+      <section className="bg-slate-50 py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Breadcrumb items={[{ name: 'Giới thiệu' }]} />
         </div>
       </section>
 
-      {/* Stats Numbers Grid */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-6 bg-primary-900 text-white rounded-[2rem] p-8 md:p-12 text-center shadow-lg shadow-primary-500/10">
-        {stats.map((st, idx) => (
-          <div key={idx} className="flex flex-col gap-1">
-            <span className="text-3xl md:text-4xl font-black text-primary-300 font-mono">
-              {st.num}
-            </span>
-            <span className="text-2xs text-slate-300">{st.label}</span>
+      <section className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_1.05fr] lg:px-8">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-primary-700">
+            <Sparkles aria-hidden="true" className="h-4 w-4" />
+            Câu chuyện Điện Lạnh 247
           </div>
-        ))}
-      </section>
-
-      {/* Core Values Section */}
-      <section className="flex flex-col gap-10">
-        <div className="text-center max-w-xl mx-auto">
-          <span className="text-3xs font-extrabold text-primary-600 uppercase tracking-widest">
-            Giá trị cốt lõi
-          </span>
-          <h2 className="text-xl md:text-2xl font-bold text-slate-900 mt-2">
-            Kim chỉ nam trong mọi hành động
-          </h2>
-          <p className="text-xs text-slate-500 mt-3 leading-relaxed">
-            Điện Lạnh 247 cam kết duy trì những tiêu chuẩn dịch vụ khắt khe nhất để bảo vệ lợi ích tối đa của khách hàng.
+          <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
+            Xây dịch vụ điện lạnh bằng quy trình có thể kiểm chứng
+          </h1>
+          <p className="mt-6 text-base leading-8 text-slate-600">
+            Điện Lạnh 247 bắt đầu từ nhu cầu rất đơn giản: khách hàng cần biết ai đang xử lý, công việc gồm những gì, chi phí bao nhiêu và bảo hành ra sao. Từ đó, hệ thống được xây dựng xoay quanh điều phối, minh bạch và theo dõi sau dịch vụ.
           </p>
+          <p className="mt-4 text-base leading-8 text-slate-600">
+            Bên cạnh kỹ thuật, chúng tôi chú trọng trải nghiệm tại nhà và tại nơi làm việc: đúng lịch, giữ vệ sinh, hạn chế gián đoạn vận hành và hướng dẫn khách hàng sử dụng thiết bị hiệu quả hơn.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link to="/services" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 text-sm font-black text-white hover:bg-primary-700">
+              Xem dịch vụ <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </Link>
+            <Link to="/projects" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-sm font-black text-slate-800 hover:border-blue-300 hover:text-primary-700">
+              Xem dự án tiêu biểu
+            </Link>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {values.map((val, idx) => (
-            <div key={idx} className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm flex gap-4 items-start hover:shadow-xl transition-all">
-              <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 flex-shrink-0">
-                {val.icon}
+        <div className="relative pb-8 sm:pl-8">
+          <div className="overflow-hidden rounded-[2.25rem] bg-slate-100 shadow-2xl shadow-slate-900/10">
+            <OptimizedImage
+              src="https://images.unsplash.com/photo-1581092160562-40aa08e78837"
+              alt="Kỹ thuật viên trao đổi kế hoạch công việc"
+              priority
+              width={1200}
+              height={900}
+              sizes="(max-width: 1024px) 100vw, 52vw"
+              className="aspect-[4/3] h-full w-full object-cover"
+            />
+          </div>
+          <div className="absolute bottom-0 left-4 rounded-2xl border border-white/70 bg-white/95 p-5 shadow-xl backdrop-blur sm:left-0">
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                <Award aria-hidden="true" className="h-6 w-6" />
+              </span>
+              <div>
+                <strong className="block text-xl font-black text-slate-950">10+ năm</strong>
+                <span className="text-xs text-slate-500">phát triển năng lực kỹ thuật</span>
               </div>
-              <div className="flex flex-col gap-2">
-                <h3 className="text-xs font-bold text-slate-900">{val.title}</h3>
-                <p className="text-2xs text-slate-500 leading-relaxed">{val.desc}</p>
-              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-slate-200 bg-[#061527] py-14 text-white">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-4 text-center sm:px-6 lg:grid-cols-4 lg:px-8">
+          {[
+            ['50.000+', 'Lượt khách hàng phục vụ'],
+            ['50+', 'Kỹ thuật viên và cộng tác viên'],
+            ['3–12 tháng', 'Khung bảo hành dịch vụ'],
+            ['Mỗi ngày', 'Tiếp nhận và điều phối'],
+          ].map(([value, label]) => (
+            <div key={label}>
+              <strong className="block text-2xl font-black text-cyan-300 sm:text-3xl">{value}</strong>
+              <span className="mt-2 block text-xs leading-5 text-slate-400">{label}</span>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Branch networks */}
-      <section className="bg-slate-50 border border-slate-200 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex gap-4 items-center">
-          <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-primary-600 flex-shrink-0 shadow-sm">
-            <Building className="w-6 h-6" />
+      <section className="bg-slate-50 py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary-600">Giá trị cốt lõi</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Bốn nguyên tắc định hướng mọi quyết định</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-600">Các giá trị được chuyển thành yêu cầu cụ thể trong quy trình vận hành và cách kỹ thuật viên làm việc với khách hàng.</p>
           </div>
-          <div>
-            <h4 className="text-xs font-bold text-slate-900">Chi nhánh phân phối toàn quốc</h4>
-            <p className="text-2xs text-slate-500 mt-0.5 max-w-md leading-relaxed">
-              Mạng lưới chi nhánh Điện Lạnh 247 được trang bị đầy đủ kho linh kiện thay thế và xe tải vận chuyển chuyên dụng sẵn sàng phục vụ.
-            </p>
+          <div className="mt-10 grid gap-5 md:grid-cols-2">
+            {values.map((value) => (
+              <article key={value.title} className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-primary-700">
+                  <value.icon aria-hidden="true" className="h-6 w-6" />
+                </span>
+                <h3 className="mt-5 text-xl font-black text-slate-950">{value.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-600">{value.description}</p>
+              </article>
+            ))}
           </div>
-        </div>
-        <div className="flex gap-3">
-          <span className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl text-3xs font-extrabold text-slate-600">
-            Hà Nội
-          </span>
-          <span className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-xl text-3xs font-extrabold text-slate-600">
-            TP. Hồ Chí Minh
-          </span>
         </div>
       </section>
 
+      <section className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2 lg:px-8">
+        <div className="order-2 lg:order-1">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-primary-600">Cách chúng tôi làm việc</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Từ lời hứa thành checklist có thể nghiệm thu</h2>
+          <div className="mt-7 grid gap-4">
+            {[
+              'Tiếp nhận đủ thông tin trước khi điều phối.',
+              'Xác nhận lịch và nhắc hẹn trước khi đến.',
+              'Kiểm tra, giải thích và báo giá trước khi sửa.',
+              'Chạy thử, vệ sinh và bàn giao kết quả.',
+              'Ghi nhận thời hạn bảo hành và hỗ trợ sau dịch vụ.',
+            ].map((item) => (
+              <div key={item} className="flex items-start gap-3 rounded-xl bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-700">
+                <CheckCircle2 aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="order-1 overflow-hidden rounded-[2rem] bg-slate-100 lg:order-2">
+          <OptimizedImage
+            src="https://images.unsplash.com/photo-1581092334651-ddf26d9a09d0"
+            alt="Kỹ thuật viên kiểm tra thiết bị"
+            width={1000}
+            height={800}
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="aspect-[4/3] h-full w-full object-cover"
+          />
+        </div>
+      </section>
+
+      <section className="bg-blue-50 py-14">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-4 sm:px-6 md:flex-row md:items-center lg:px-8">
+          <div>
+            <h2 className="text-2xl font-black text-slate-950">Cần một đơn vị kỹ thuật có quy trình rõ ràng?</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Gửi nhu cầu để được tư vấn dịch vụ phù hợp cho gia đình hoặc doanh nghiệp.</p>
+          </div>
+          <Link to="/contact" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-primary-600 px-6 text-sm font-black text-white hover:bg-primary-700">
+            Liên hệ Điện Lạnh 247 <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

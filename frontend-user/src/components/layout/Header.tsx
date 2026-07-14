@@ -1,402 +1,223 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, Search, Menu, Phone, MessageSquare, ChevronRight, Calendar } from 'lucide-react';
-import { useAuthStore } from '../../store/authStore';
-import { useCartStore } from '../../store/cartStore';
-import MiniCart from '../cart/MiniCart';
-import MobileMenu from './MobileMenu';
-import api from '../../services/api';
-import type { Product } from '../../mock/data';
-import { useSettings } from '../../hooks/useSettings';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
+  CalendarDays,
+  LogOut,
+  Menu,
+  MessageCircle,
+  Phone,
+  ShoppingCart,
+  UserRound,
+  X,
+} from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
+import { useCartStore } from '@/store/cartStore';
+import { useSettings } from '@/hooks/useSettings';
+
+const navigation = [
+  { label: 'Trang chủ', to: '/' },
+  { label: 'Dịch vụ', to: '/services' },
+  { label: 'Dự án', to: '/projects' },
+  { label: 'Bài viết', to: '/articles' },
+  { label: 'Sản phẩm', to: '/products' },
+  { label: 'Giới thiệu', to: '/about' },
+  { label: 'Liên hệ', to: '/contact' },
+];
 
 export default function Header() {
   const { settings } = useSettings();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { items } = useCartStore();
-  const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const hotline = settings?.hotline || '1900 1234';
+  const zalo = settings?.zalo || hotline;
+  const cartCount = items.reduce((total, item) => total + item.quantity, 0);
 
-  const [isMiniCartOpen, setIsMiniCartOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-  
-  // Search Autocomplete State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<Product[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  
-  const searchRef = useRef<HTMLDivElement>(null);
-  const accountMenuRef = useRef<HTMLDivElement>(null);
-  const totalCartCount = items.reduce((acc, item) => acc + item.quantity, 0);
-
-  // Close menus when route changes
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setIsMiniCartOpen(false);
-    setShowSuggestions(false);
-    setIsAccountMenuOpen(false);
-    setSearchQuery('');
-  }, [location.pathname]);
+    setMobileOpen(false);
+  }, [location.pathname, location.search]);
 
-  // Click outside and keydown listeners to close search suggestions & account dropdown
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
-        setIsAccountMenuOpen(false);
-      }
-    }
-    
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsAccountMenuOpen(false);
-        setShowSuggestions(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+    if (!mobileOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false);
     };
-  }, []);
-
-  // Debounced search suggestion query
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(async () => {
-      const trimmed = searchQuery.trim();
-      if (trimmed.length >= 2) {
-        setIsSearching(true);
-        try {
-          const response = await api.get('/products/search', { params: { q: trimmed } });
-          if (response.data?.success) {
-            setSuggestions(response.data.data);
-          }
-        } catch (error) {
-          console.error('Error loading search suggestions', error);
-        } finally {
-          setIsSearching(false);
-        }
-      } else {
-        setSuggestions([]);
-      }
-    }, 200);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
-  const submitSearch = () => {
-    const trimmed = searchQuery.trim();
-    if (!trimmed) return;
-    setShowSuggestions(false);
-    navigate(`/products?q=${encodeURIComponent(trimmed)}`);
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    submitSearch();
-  };
-
-  const handleSuggestionClick = (slug: string) => {
-    setShowSuggestions(false);
-    setSearchQuery('');
-    navigate(`/products/${slug}`);
-  };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [mobileOpen]);
 
   const handleLogout = () => {
     logout();
-    setIsAccountMenuOpen(false);
+    setMobileOpen(false);
     navigate('/', { replace: true });
   };
 
-  const navItems = [
-    { name: 'Sản phẩm', path: '/products' },
-    { name: 'Ưu đãi', path: '/products?sort=bestSeller' },
-    { name: 'Lắp đặt', path: '/products?categoryId=dich-vu' },
-    { name: 'Sửa chữa', path: '/services' },
-    { name: 'Bảo hành', path: '/policy/warranty' },
-    { name: 'Liên hệ', path: '/contact' },
-  ];
-
   return (
     <>
-      <header className="fixed top-0 w-full z-40 glass border-b border-slate-100/80">
-        {/* Top utility bar */}
-        <div className="bg-[#040e1b] text-white text-3xs font-medium py-1.5 px-4 hidden md:block">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-xl">
+        <div className="hidden bg-[#061527] text-white md:block">
+          <div className="mx-auto flex h-9 max-w-7xl items-center justify-between px-6 text-xs lg:px-8">
             <div className="flex items-center gap-5">
-              <span className="flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-orange-500 animate-pulse fill-orange-500/10" />
-                Hotline kỹ thuật 24/7: <strong className="text-orange-400 font-extrabold text-2xs">{settings.hotline}</strong>
-              </span>
-              <span className="text-slate-700">|</span>
-              <a href={`https://zalo.me/${settings.zalo.replace(/\s+/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-cyan-400 transition-colors">
-                <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
-                Hỗ trợ Zalo tư vấn ngay
+              <a href={`tel:${hotline.replace(/\s+/g, '')}`} className="inline-flex items-center gap-2 font-bold text-slate-200 hover:text-white">
+                <Phone aria-hidden="true" className="h-3.5 w-3.5 text-orange-400" />
+                Hotline: <strong className="text-orange-300">{hotline}</strong>
+              </a>
+              <a
+                href={`https://zalo.me/${zalo.replace(/\s+/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-bold text-slate-300 hover:text-white"
+              >
+                <MessageCircle aria-hidden="true" className="h-3.5 w-3.5 text-cyan-300" /> Tư vấn qua Zalo
               </a>
             </div>
-            <div className="flex items-center gap-4 text-slate-300">
-              <Link to="/policy/shipping" className="hover:text-white transition-colors">Giao lắp siêu tốc 2h</Link>
-              <span>•</span>
-              <Link to="/policy/warranty" className="hover:text-white transition-colors">Cam kết bảo hành dài hạn</Link>
+            <div className="flex items-center gap-4 text-slate-400">
+              <Link to="/policy/warranty" className="hover:text-white">Bảo hành</Link>
+              <Link to="/policy/privacy" className="hover:text-white">Bảo mật</Link>
+              <Link to="/policy/terms" className="hover:text-white">Điều khoản</Link>
             </div>
           </div>
         </div>
 
-        {/* Main Header Row */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-[72px] md:h-[76px] gap-4">
-            
-            {/* Logo */}
-            <div className="flex items-center">
-              <Link to="/" className="flex-shrink-0 flex items-center gap-2">
-                <div className="w-8 h-8 md:w-9 md:h-9 bg-primary-600 rounded-lg flex items-center justify-center shadow-md shadow-primary-500/20">
-                  <span className="text-white font-black text-base md:text-lg">D</span>
-                </div>
-                <span className="font-extrabold text-sm md:text-base tracking-tight text-slate-900 leading-none">
-                  Điện Lạnh <span className="text-primary-600 block md:inline text-xs md:text-base">247</span>
-                </span>
-              </Link>
-            </div>
-
-            {/* Middle: Autocomplete Search Bar */}
-            <div ref={searchRef} className="flex-grow max-w-[160px] xl:max-w-[240px] relative hidden lg:block">
-              <form onSubmit={handleSearchSubmit}>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Tìm thiết bị hoặc phụ tùng linh kiện..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setShowSuggestions(true);
-                    }}
-                    onFocus={() => setShowSuggestions(true)}
-                    className="w-full pl-4 pr-10 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-3xs transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white"
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-1 top-1 bottom-1 px-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors flex items-center justify-center cursor-pointer"
-                  >
-                    <Search className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </form>
-
-              {/* Suggestions Dropdown */}
-              {showSuggestions && searchQuery.trim().length >= 2 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-slate-100 shadow-2xl overflow-hidden z-50">
-                  <div className="p-2.5 bg-slate-50 border-b border-slate-100 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <span>Gợi ý sản phẩm ({suggestions.length})</span>
-                    {isSearching && <span className="animate-pulse text-primary-500">Đang tìm...</span>}
-                  </div>
-                  
-                  <div className="max-h-60 overflow-y-auto">
-                    {suggestions.length === 0 ? (
-                      <div className="p-4 text-center text-3xs text-slate-400">
-                        Không tìm thấy sản phẩm nào khớp với từ khóa.
-                      </div>
-                    ) : (
-                      suggestions.map((product) => {
-                        const price = product.salePrice || product.basePrice;
-                        return (
-                          <button
-                            key={product.id}
-                            onClick={() => handleSuggestionClick(product.slug)}
-                            className="w-full px-3 py-2 flex gap-3 items-center hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-b-0 cursor-pointer"
-                          >
-                            <img
-                              src={product.images?.[0]?.url || '/placeholder-product.png'}
-                              alt={product.name}
-                              className="w-8 h-8 object-cover rounded border border-slate-100 flex-shrink-0"
-                              onError={(e) => {
-                                e.currentTarget.src = '/placeholder-product.png';
-                              }}
-                            />
-                            <div className="flex-grow">
-                              <h4 className="text-3xs font-bold text-slate-800 line-clamp-1">{product.name}</h4>
-                              <p className="text-[9px] text-slate-400 mt-0.5">SKU: {product.sku}</p>
-                            </div>
-                            <div className="flex-shrink-0 text-right">
-                              <span className="text-3xs font-extrabold text-primary-600">
-                                {new Intl.NumberFormat('vi-VN', {
-                                  style: 'currency',
-                                  currency: 'VND',
-                                }).format(price)}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                  <div className="p-2 bg-slate-50 border-t border-slate-100 text-center">
-                    <button
-                      type="button"
-                      onClick={submitSearch}
-                      className="text-[10px] font-extrabold text-primary-600 hover:text-primary-700 inline-flex items-center gap-1 cursor-pointer"
-                    >
-                      Xem tất cả kết quả tìm kiếm <ChevronRight className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-1">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    className={`whitespace-nowrap px-3 py-2 rounded-lg text-sm font-bold transition-all ${
-                      isActive
-                        ? 'text-primary-600 bg-primary-50/70'
-                        : 'text-slate-600 hover:text-primary-600 hover:bg-primary-50'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* Right-side Icons */}
-            <div className="flex items-center gap-2.5 md:gap-4">
-              
-              {/* Account Dropdown */}
-              {isAuthenticated ? (
-                <div ref={accountMenuRef} className="relative hidden sm:block">
-                  <button
-                    onClick={() => setIsAccountMenuOpen((prev) => !prev)}
-                    aria-haspopup="menu"
-                    aria-expanded={isAccountMenuOpen}
-                    className="flex items-center gap-1.5 py-1 text-slate-600 hover:text-primary-600 transition-colors cursor-pointer"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-black text-xs">
-                      {(user?.firstName || user?.email || 'K').charAt(0).toUpperCase()}
-                    </div>
-                    <span className="text-3xs font-bold hidden xl:block max-w-[80px] truncate">
-                      {user?.firstName || user?.email?.split('@')[0] || 'Tài khoản'}
-                    </span>
-                  </button>
-                  {/* Dropdown content */}
-                  {isAccountMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-2xl border border-slate-100 py-1.5 ring-1 ring-black/5 z-50">
-                      <div className="px-3 py-1.5 border-b border-slate-50">
-                        <p className="text-[9px] font-semibold text-slate-400">Tài khoản</p>
-                        <p className="text-3xs font-bold text-slate-800 truncate">{user?.email}</p>
-                      </div>
-                      <Link
-                        to="/account?tab=profile"
-                        onClick={() => setIsAccountMenuOpen(false)}
-                        className="block px-3 py-2 text-3xs font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
-                      >
-                        Hồ sơ cá nhân
-                      </Link>
-                      <Link
-                        to="/account?tab=orders"
-                        onClick={() => setIsAccountMenuOpen(false)}
-                        className="block px-3 py-2 text-3xs font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
-                      >
-                        Đơn hàng của tôi
-                      </Link>
-                      <Link
-                        to="/my-services"
-                        onClick={() => setIsAccountMenuOpen(false)}
-                        className="block px-3 py-2 text-3xs font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"
-                      >
-                        Lịch sử sửa chữa
-                      </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-3 py-2 text-3xs font-semibold text-red-500 hover:bg-red-50 transition-colors border-t border-slate-50 cursor-pointer"
-                      >
-                        Đăng xuất
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  to="/login"
-                  className="hidden sm:inline-flex items-center justify-center px-3 py-1.5 border border-slate-200 hover:border-slate-300 rounded-lg text-3xs font-extrabold text-slate-700 hover:bg-slate-50 transition-all"
-                >
-                  Đăng nhập
-                </Link>
-              )}
-
-              {/* Cart Icon */}
-              <button
-                onClick={() => setIsMiniCartOpen(true)}
-                className="text-slate-600 hover:text-primary-600 transition-colors relative p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer shrink-0"
-                title="Giỏ hàng"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {totalCartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[8px] font-black rounded-full h-4 w-4 flex items-center justify-center shadow-sm shadow-red-500/30">
-                    {totalCartCount}
-                  </span>
-                )}
-              </button>
-
-              <Link
-                to="/service-booking"
-                className="hidden md:inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/15 hover:shadow-orange-500/25 hover:-translate-y-0.5 transition-all shrink-0"
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                Đặt lịch sửa chữa
-              </Link>
-
-              {/* Hamburger Mobile Menu Toggle */}
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden text-slate-600 hover:text-primary-600 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Search Row (visible on mobile only) */}
-        <div className="px-4 pb-2.5 sm:hidden border-t border-slate-50 bg-white/90 flex gap-2">
-          <form onSubmit={handleSearchSubmit} className="flex-grow mt-1.5">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Tìm thiết bị, linh kiện..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-3 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] transition-all focus:outline-none focus:ring-1 focus:ring-primary-500 focus:bg-white"
-              />
-              <button
-                type="submit"
-                className="absolute right-1 top-1 bottom-1 px-2 text-slate-400 hover:text-primary-600 flex items-center justify-center cursor-pointer"
-              >
-                <Search className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </form>
-          <Link
-            to="/service-booking"
-            className="mt-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[10px] font-black flex items-center justify-center shrink-0 shadow-sm"
-          >
-            Đặt lịch
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 md:h-[76px] lg:px-8">
+          <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label="Điện Lạnh 247 - Trang chủ">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-600 to-cyan-500 text-lg font-black text-white shadow-lg shadow-blue-500/20">D</span>
+            <span className="hidden text-base font-black leading-none tracking-tight text-slate-950 sm:block">
+              Điện Lạnh <span className="text-primary-600">247</span>
+              <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Dịch vụ kỹ thuật</span>
+            </span>
           </Link>
+
+          <nav className="ml-auto hidden items-center gap-0.5 xl:flex" aria-label="Điều hướng chính">
+            {navigation.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) =>
+                  `rounded-lg px-3 py-2 text-sm font-extrabold transition ${
+                    isActive ? 'bg-blue-50 text-primary-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-1.5 xl:ml-3">
+            <Link
+              to="/service-booking"
+              className="hidden min-h-11 items-center gap-2 rounded-xl bg-orange-500 px-4 text-sm font-black text-white shadow-lg shadow-orange-500/20 transition hover:bg-orange-600 lg:inline-flex"
+            >
+              <CalendarDays aria-hidden="true" className="h-4 w-4" /> Đặt lịch
+            </Link>
+
+            <Link
+              to="/cart"
+              className="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100"
+              aria-label={`Giỏ hàng có ${cartCount} sản phẩm`}
+            >
+              <ShoppingCart aria-hidden="true" className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-black text-white">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to={isAuthenticated ? '/account' : '/login'}
+              className="hidden h-11 items-center gap-2 rounded-xl px-3 text-sm font-extrabold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 sm:flex"
+              aria-label={isAuthenticated ? 'Mở tài khoản' : 'Đăng nhập'}
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-primary-700">
+                {isAuthenticated ? (user?.firstName || user?.email || 'K').charAt(0).toUpperCase() : <UserRound aria-hidden="true" className="h-4 w-4" />}
+              </span>
+              <span className="hidden max-w-24 truncate lg:block">{isAuthenticated ? user?.firstName || 'Tài khoản' : 'Đăng nhập'}</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-100 xl:hidden"
+              aria-label="Mở menu"
+              aria-expanded={mobileOpen}
+              aria-controls="customer-mobile-menu"
+            >
+              <Menu aria-hidden="true" className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Slide-out Drawers */}
-      <MiniCart isOpen={isMiniCartOpen} onClose={() => setIsMiniCartOpen(false)} />
-      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      {mobileOpen && (
+        <div className="fixed inset-0 z-[60] xl:hidden" id="customer-mobile-menu">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Đóng menu"
+          />
+          <aside className="absolute bottom-0 right-0 top-0 flex w-[min(88vw,380px)] flex-col overflow-y-auto bg-white shadow-2xl" aria-label="Menu di động">
+            <div className="flex items-center justify-between border-b border-slate-200 p-4">
+              <Link to="/" className="flex items-center gap-2 font-black text-slate-950">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white">D</span>
+                Điện Lạnh <span className="text-primary-600">247</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100"
+                aria-label="Đóng menu"
+              >
+                <X aria-hidden="true" className="h-6 w-6" />
+              </button>
+            </div>
+
+            <nav className="grid gap-1 p-4" aria-label="Điều hướng di động">
+              {navigation.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/'}
+                  className={({ isActive }) =>
+                    `flex min-h-12 items-center rounded-xl px-4 text-base font-black ${
+                      isActive ? 'bg-blue-50 text-primary-700' : 'text-slate-700 hover:bg-slate-50'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+
+            <div className="mt-auto grid gap-3 border-t border-slate-200 p-4">
+              <Link to="/service-booking" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 text-sm font-black text-white">
+                <CalendarDays aria-hidden="true" className="h-4 w-4" /> Đặt lịch kỹ thuật
+              </Link>
+              <a href={`tel:${hotline.replace(/\s+/g, '')}`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-800">
+                <Phone aria-hidden="true" className="h-4 w-4" /> {hotline}
+              </a>
+              <Link to={isAuthenticated ? '/account' : '/login'} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-800">
+                <UserRound aria-hidden="true" className="h-4 w-4" /> {isAuthenticated ? 'Tài khoản của tôi' : 'Đăng nhập'}
+              </Link>
+              {isAuthenticated && (
+                <button type="button" onClick={handleLogout} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-black text-red-600 hover:bg-red-50">
+                  <LogOut aria-hidden="true" className="h-4 w-4" /> Đăng xuất
+                </button>
+              )}
+            </div>
+          </aside>
+        </div>
+      )}
     </>
   );
 }

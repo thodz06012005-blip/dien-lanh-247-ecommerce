@@ -1,224 +1,131 @@
-import { useState } from 'react';
-import { Phone, Mail, MapPin, Clock, MessageSquare, Send } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { useSettings } from '../hooks/useSettings';
-import api from '../services/api';
-import { useToastStore } from '../store/toastStore';
-import Breadcrumb from '../components/common/Breadcrumb';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-
-interface ContactFormInput {
-  name: string;
-  phone: string;
-  email: string;
-  subject: string;
-  message: string;
-}
+import { Clock3, Mail, MapPin, MessageCircle, Phone, Route } from 'lucide-react';
+import Breadcrumb from '@/components/common/Breadcrumb';
+import OptimizedImage from '@/components/common/OptimizedImage';
+import QuickContactForm from '@/components/contact/QuickContactForm';
+import { useSettings } from '@/hooks/useSettings';
+import useDocumentTitle from '@/hooks/useDocumentTitle';
 
 export default function Contact() {
+  useDocumentTitle(
+    'Liên hệ Điện Lạnh 247',
+    'Gọi hotline, nhắn Zalo hoặc gửi biểu mẫu để được tư vấn dịch vụ điện lạnh.',
+  );
   const { settings } = useSettings();
-  const { showSuccess, showError } = useToastStore();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const hotline = settings?.hotline || '1900 1234';
+  const zalo = settings?.zalo || hotline;
+  const email = settings?.email || 'support@dienlanh247.vn';
+  const address = settings?.address || 'Cầu Giấy, Hà Nội';
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ContactFormInput>();
-
-  const onSubmitContact = async (data: ContactFormInput) => {
-    setIsSubmitting(true);
-    try {
-      const response = await api.post('/contact', data);
-      if (response.data?.success) {
-        showSuccess('Gửi yêu cầu tư vấn thành công! Chúng tôi sẽ liên hệ trong vòng 15 phút.');
-        reset();
-      }
-    } catch {
-      showError('Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại sau.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const contactChannels = [
+  const channels = [
     {
-      icon: <Phone className="w-5 h-5" />,
-      title: 'Đường dây nóng hỗ trợ',
-      value: settings.hotline,
-      sub: 'Tư vấn miễn phí 24/7 (kể cả lễ tết)',
-      href: `tel:${settings.hotline.replace(/\s+/g, '')}`,
+      icon: Phone,
+      title: 'Hotline kỹ thuật',
+      value: hotline,
+      description: 'Ưu tiên cho sự cố cần tiếp nhận nhanh.',
+      href: `tel:${hotline.replace(/\s+/g, '')}`,
+      external: false,
     },
     {
-      icon: <MessageSquare className="w-5 h-5" />,
+      icon: MessageCircle,
       title: 'Tư vấn qua Zalo',
-      value: settings.zalo,
-      sub: 'Hỗ trợ sự cố kỹ thuật khẩn cấp 2h',
-      href: `https://zalo.me/${settings.zalo.replace(/\s+/g, '')}`,
+      value: zalo,
+      description: 'Phù hợp khi cần gửi hình ảnh tình trạng thiết bị.',
+      href: `https://zalo.me/${zalo.replace(/\s+/g, '')}`,
+      external: true,
     },
     {
-      icon: <Mail className="w-5 h-5" />,
-      title: 'Hòm thư điện tử',
-      value: settings.email,
-      sub: 'Giải quyết khiếu nại, hóa đơn VAT',
-      href: `mailto:${settings.email}`,
+      icon: Mail,
+      title: 'Email hỗ trợ',
+      value: email,
+      description: 'Dành cho báo giá doanh nghiệp, hóa đơn và phản hồi.',
+      href: `mailto:${email}`,
+      external: false,
     },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* Breadcrumbs */}
-      <Breadcrumb items={[{ name: 'Liên hệ' }]} />
-
-      <h1 className="text-xl md:text-2xl font-black text-slate-900 mb-8">
-        Liên hệ với Điện Lạnh 247
-      </h1>
-
-      {/* 3 Channels Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        {contactChannels.map((chan, idx) => (
-          <a
-            key={idx}
-            href={chan.href}
-            target={chan.href.startsWith('http') ? '_blank' : undefined}
-            rel="noopener noreferrer"
-            className="bg-white p-6 rounded-3xl border border-slate-100 hover:border-primary-100 shadow-sm hover:shadow-xl hover:shadow-primary-500/5 transition-all flex flex-col items-center text-center group cursor-pointer"
-          >
-            <div className="w-12 h-12 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-primary-600 group-hover:text-white transition-all duration-300">
-              {chan.icon}
-            </div>
-            <h3 className="text-xs font-bold text-slate-900 mb-1">{chan.title}</h3>
-            <span className="text-sm font-black text-primary-600 block mb-2">{chan.value}</span>
-            <p className="text-3xs text-slate-400 leading-normal">{chan.sub}</p>
-          </a>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        {/* Left Column: Contact Form */}
-        <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-6">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">Gửi yêu cầu tư vấn kỹ thuật</h2>
-            <p className="text-2xs text-slate-400 mt-1">Đội ngũ kỹ sư của chúng tôi sẵn sàng giải đáp thắc mắc về công suất, chọn máy lạnh, lỗi điều hòa chảy nước hay nạp gas...</p>
+    <div className="bg-slate-50">
+      <section className="bg-[#061527] py-12 text-white sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Breadcrumb items={[{ name: 'Liên hệ' }]} />
+          <div className="mt-8 max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Kết nối với chúng tôi</p>
+            <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">Chọn cách liên hệ thuận tiện nhất cho bạn</h1>
+            <p className="mt-5 text-base leading-8 text-slate-300">Thông tin liên hệ được tách rõ theo mục đích để khách hàng không phải tìm kiếm hoặc đi qua nhiều bước.</p>
           </div>
+        </div>
+      </section>
 
-          <form onSubmit={handleSubmit(onSubmitContact)} className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Họ tên của bạn (*)"
-                placeholder="Ví dụ: Nguyễn Văn A"
-                error={errors.name?.message}
-                {...register('name', { required: 'Họ tên không được để trống' })}
-              />
-              <Input
-                label="Số điện thoại (*)"
-                placeholder="Ví dụ: 0912345678"
-                type="tel"
-                error={errors.phone?.message}
-                {...register('phone', {
-                  required: 'Số điện thoại không được để trống',
-                  pattern: {
-                    value: /^(0[3|5|7|8|9])([0-9]{8})$/,
-                    message: 'Số điện thoại Việt Nam không hợp lệ',
-                  },
-                })}
-              />
-            </div>
-
-            <Input
-              label="Email"
-              placeholder="Ví dụ: email@gmail.com"
-              type="email"
-              error={errors.email?.message}
-              {...register('email')}
-            />
-
-            <Input
-              label="Tiêu đề yêu cầu (*)"
-              placeholder="Ví dụ: Cần báo giá dịch vụ vệ sinh 3 máy lạnh..."
-              error={errors.subject?.message}
-              {...register('subject', { required: 'Vui lòng nhập tiêu đề' })}
-            />
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-slate-700">Nội dung chi tiết yêu cầu (*)</label>
-              <textarea
-                placeholder="Mô tả cụ thể sự cố thiết bị của bạn hoặc yêu cầu lắp ráp..."
-                rows={4}
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
-                {...register('message', { required: 'Nội dung không được để trống' })}
-              />
-              {errors.message && (
-                <span className="text-xs text-red-500 font-medium">{errors.message.message}</span>
-              )}
-            </div>
-
-            <Button
-              variant="primary"
-              type="submit"
-              isLoading={isSubmitting}
-              leftIcon={<Send className="w-4 h-4" />}
-              className="w-fit py-3 px-6 rounded-xl self-end mt-2 font-bold cursor-pointer"
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid gap-5 md:grid-cols-3">
+          {channels.map((channel) => (
+            <a
+              key={channel.title}
+              href={channel.href}
+              target={channel.external ? '_blank' : undefined}
+              rel={channel.external ? 'noopener noreferrer' : undefined}
+              className="group rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
             >
-              Gửi tin nhắn đi
-            </Button>
-          </form>
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-primary-700 transition group-hover:bg-primary-600 group-hover:text-white">
+                <channel.icon aria-hidden="true" className="h-6 w-6" />
+              </span>
+              <h2 className="mt-5 text-lg font-black text-slate-950">{channel.title}</h2>
+              <strong className="mt-2 block break-all text-sm font-black text-primary-700">{channel.value}</strong>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{channel.description}</p>
+            </a>
+          ))}
         </div>
+      </section>
 
-        {/* Right Column: Address and Map Info */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-50 pb-2 flex items-center gap-1.5">
-              <MapPin className="w-5 h-5 text-primary-600" />
-              Hệ thống chi nhánh
-            </h3>
-            
-            <div className="text-xs text-slate-600 flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <strong className="text-slate-800 font-bold">Trụ sở chính Cầu Giấy (Hà Nội):</strong>
-                <p>{settings.address}</p>
-                <span className="text-3xs text-slate-400 mt-1 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> 8:00 - 21:00 hằng ngày</span>
-              </div>
-              <div className="flex flex-col gap-1 border-t border-slate-50 pt-3">
-                <strong className="text-slate-800 font-bold">Chi nhánh 2 (Đống Đa - Hà Nội):</strong>
-                <p>45 Đường Tây Sơn, Quang Trung, Đống Đa, Hà Nội</p>
-              </div>
-              <div className="flex flex-col gap-1 border-t border-slate-50 pt-3">
-                <strong className="text-slate-800 font-bold">Chi nhánh Quận 3 (TP. Hồ Chí Minh):</strong>
-                <p>78 Đường Cách Mạng Tháng 8, Phường 6, Quận 3, TP.HCM</p>
+      <section className="mx-auto grid max-w-7xl gap-10 px-4 pb-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:pb-20">
+        <QuickContactForm
+          title="Gửi yêu cầu tư vấn"
+          description="Mô tả ngắn tình trạng thiết bị hoặc nhu cầu bảo trì. Đội ngũ sẽ liên hệ xác nhận trước khi sắp lịch."
+        />
+
+        <div className="grid gap-6">
+          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+            <div className="relative aspect-[16/10] overflow-hidden">
+              <OptimizedImage
+                src="https://images.unsplash.com/photo-1524661135-423995f22d0b"
+                alt="Bản đồ khu vực phục vụ"
+                width={900}
+                height={560}
+                sizes="(max-width: 1024px) 100vw, 45vw"
+                className="h-full w-full object-cover opacity-70"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+              <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/30 bg-white/95 p-4 shadow-lg backdrop-blur">
+                <div className="flex items-start gap-3">
+                  <MapPin aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+                  <div>
+                    <strong className="block text-sm font-black text-slate-950">Văn phòng Điện Lạnh 247</strong>
+                    <span className="mt-1 block text-xs leading-5 text-slate-600">{address}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Map Image/Mock Graphic */}
-          <div className="bg-slate-100 border border-slate-200 rounded-[2rem] overflow-hidden aspect-video shadow-inner relative flex items-center justify-center">
-            {/* Visual map placeholder representing Dien Lanh 247 HQ */}
-            <img
-              src="https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=600&auto=format&fit=crop"
-              alt="Google Maps Placement placeholder"
-              className="w-full h-full object-cover opacity-60"
-            />
-            <div className="absolute inset-0 bg-primary-950/20" />
-            <div className="absolute bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-xl max-w-[240px] text-center flex flex-col items-center gap-2">
-              <MapPin className="w-6 h-6 text-red-500 fill-red-500/10 animate-bounce" />
-              <div>
-                <h4 className="text-3xs font-extrabold text-slate-900 leading-tight">Trụ sở Điện Lạnh 247</h4>
-                <p className="text-4xs text-slate-500 mt-0.5">{settings.address}</p>
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">Thông tin phục vụ</h2>
+            <div className="mt-5 grid gap-4 text-sm text-slate-700">
+              <div className="flex items-start gap-3">
+                <Clock3 aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary-600" />
+                <div><strong className="block text-slate-950">Thời gian tiếp nhận</strong><span className="mt-1 block text-slate-600">8:00–21:00 mỗi ngày; hotline tiếp nhận sự cố khẩn cấp.</span></div>
               </div>
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-4xs font-bold text-primary-600 hover:underline inline-flex items-center gap-0.5"
-              >
-                Mở Google Maps
-              </a>
+              <div className="flex items-start gap-3">
+                <Route aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary-600" />
+                <div><strong className="block text-slate-950">Khu vực phục vụ</strong><span className="mt-1 block text-slate-600">Ưu tiên nội thành Hà Nội và các khu vực lân cận theo lịch xác nhận.</span></div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Mail aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary-600" />
+                <div><strong className="block text-slate-950">Phản hồi doanh nghiệp</strong><span className="mt-1 block text-slate-600">Báo giá, hợp đồng bảo trì và hóa đơn được xử lý qua email.</span></div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

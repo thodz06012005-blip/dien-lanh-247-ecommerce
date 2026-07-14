@@ -1,0 +1,131 @@
+name: Customer Lighthouse
+
+on:
+  push:
+    branches:
+      - 'agent/phase-4-*'
+    paths:
+      - 'frontend-user/**'
+      - 'mock-api/**'
+      - 'scripts/verify-lighthouse.mjs'
+      - '.github/workflows/customer-lighthouse.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'frontend-user/**'
+      - 'mock-api/**'
+      - 'scripts/verify-lighthouse.mjs'
+      - '.github/workflows/customer-lighthouse.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lighthouse-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Build, Preview and Audit Customer Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            frontend-user/package-lock.json
+            mock-api/package-lock.json
+
+      - name: Install customer dependencies
+        run: npm --prefix frontend-user ci
+
+      - name: Install Mock API dependencies
+        run: npm --prefix mock-api ci
+
+      - name: Build customer website
+        env:
+          VITE_APP_NAME: Điện Lạnh 247
+          VITE_APP_ENV: test
+          VITE_APP_URL: http://127.0.0.1:4173
+          VITE_API_BASE_URL: http://127.0.0.1:3001/api/v1
+          VITE_API_TIMEOUT_MS: '15000'
+          VITE_USE_MOCK_API: 'true'
+          VITE_USE_MOCK: 'true'
+          VITE_ENABLE_QUERY_DEVTOOLS: 'false'
+        run: npm --prefix frontend-user run build
+
+      - name: Start Mock API
+        env:
+          PORT: '3001'
+          ENABLE_DEV_ENDPOINTS: 'true'
+          ENABLE_DEMO_ACCOUNTS: 'true'
+        run: |
+          node mock-api/server.js > mock-api-lighthouse.log 2>&1 &
+          echo $! > mock-api-lighthouse.pid
+
+      - name: Start customer preview
+        run: |
+          npm --prefix frontend-user run preview -- --host 127.0.0.1 --port 4173 > customer-preview.log 2>&1 &
+          echo $! > customer-preview.pid
+
+      - name: Wait for preview services
+        shell: bash
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3001/api/v1/health > /dev/null \
+              && curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              echo "Mock API and customer preview are ready."
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Preview services did not become ready."
+          cat mock-api-lighthouse.log || true
+          cat customer-preview.log || true
+          exit 1
+
+      - name: Run Lighthouse
+        run: |
+          npx --yes lighthouse@13.0.0 http://127.0.0.1:4173/#/ \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --preset=desktop \
+            --output=json \
+            --output-path=lighthouse-report.json \
+            --quiet
+
+      - name: Verify Lighthouse thresholds
+        run: node scripts/verify-lighthouse.mjs lighthouse-report.json
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-lighthouse-report
+          path: |
+            lighthouse-report.json
+            customer-preview.log
+            mock-api-lighthouse.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Stop preview services
+        if: always()
+        shell: bash
+        run: |
+          if [ -f customer-preview.pid ]; then
+            kill "$(cat customer-preview.pid)" 2>/dev/null || true
+          fi
+          if [ -f mock-api-lighthouse.pid ]; then
+            kill "$(cat mock-api-lighthouse.pid)" 2>/dev/null || true
+          fi
