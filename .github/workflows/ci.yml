@@ -66,43 +66,8 @@ jobs:
       - name: Install admin frontend dependencies
         run: npm --prefix frontend-admin ci
 
-      - name: Regenerate backend lockfile for verification
-        run: npm --prefix backend install --package-lock-only --ignore-scripts
-
-      - name: Upload corrected backend lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: corrected-backend-lockfile
-          path: backend/package-lock.json
-          if-no-files-found: error
-          retention-days: 7
-
       - name: Install backend dependencies
-        id: backend-install
-        continue-on-error: true
-        shell: bash
-        run: |
-          set +e
-          npm --prefix backend ci > backend-install.log 2>&1
-          status=$?
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Upload backend install diagnostics
-        if: steps.backend-install.outputs.exit_code != '0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-install-log
-          path: backend-install.log
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Fail when backend dependency installation fails
-        if: steps.backend-install.outputs.exit_code != '0'
-        shell: bash
-        run: |
-          cat backend-install.log
-          exit 1
+        run: npm --prefix backend ci
 
       - name: Install Mock API dependencies
         run: npm --prefix mock-api ci
@@ -117,31 +82,7 @@ jobs:
         run: npm run validate:repo
 
       - name: Run linters
-        id: lint
-        continue-on-error: true
-        shell: bash
-        run: |
-          set +e
-          npm run lint > lint.log 2>&1
-          status=$?
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Upload lint diagnostics
-        if: steps.lint.outputs.exit_code != '0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-log
-          path: lint.log
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Fail when lint fails
-        if: steps.lint.outputs.exit_code != '0'
-        shell: bash
-        run: |
-          cat lint.log
-          exit 1
+        run: npm run lint
 
       - name: Run TypeScript checks
         run: npm run typecheck
