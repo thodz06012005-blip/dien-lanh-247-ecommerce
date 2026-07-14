@@ -32,6 +32,7 @@ export interface ContentListParams {
 
 export interface SiteBanner {
   id: number;
+  placement?: string;
   eyebrow?: string | null;
   title: string;
   subtitle?: string | null;
