@@ -47,4 +47,12 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['src/modules/auth/auth.service.ts', 'src/modules/users/users.service.ts'],
+    rules: {
+      // MySQL raw queries may return TINYINT as 0/1 while test adapters return booleans.
+      // Explicit Boolean(...) normalization documents this boundary.
+      'no-extra-boolean-cast': 'off',
+    },
+  },
 );
