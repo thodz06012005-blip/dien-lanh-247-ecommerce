@@ -1,0 +1,180 @@
+name: Phase 9 Editorial CMS Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+      - agent/phase-8-admin-platform-foundation
+    paths:
+      - 'backend/prisma/**'
+      - 'backend/src/modules/content/**'
+      - 'backend/src/main.ts'
+      - 'backend/test/phase9-editorial-cms.integration.mjs'
+      - 'frontend-admin/src/**'
+      - 'frontend-user/src/**'
+      - 'tests/architecture/phase9-editorial-cms.test.mjs'
+      - '.github/workflows/phase9-editorial-cms-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase9-editorial-cms-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cms-integration:
+    name: Migrate, Run CMS and Verify Publishing
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ecommerce
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    env:
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/ecommerce
+      NODE_ENV: test
+      HOST: 0.0.0.0
+      PORT: 3000
+      API_PREFIX: api/v1
+      LOG_LEVEL: warn
+      SWAGGER_ENABLED: false
+      TRUST_PROXY: false
+      ADMIN_SEED_EMAIL: admin@dienlanh247.vn
+      ADMIN_SEED_PASSWORD: Phase9Admin@12345
+      JWT_ACCESS_SECRET: phase9_access_secret_for_editorial_integration_123456789
+      JWT_REFRESH_SECRET: phase9_refresh_secret_for_editorial_integration_12345678
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      BCRYPT_SALT_ROUNDS: 8
+      COOKIE_SECURE: false
+      COOKIE_SAME_SITE: strict
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      FRONTEND_USER_URL: http://localhost:5173
+      FRONTEND_ADMIN_URL: http://localhost:5174
+      THROTTLE_TTL_MS: 60000
+      THROTTLE_LIMIT: 500
+      ENABLE_DEV_ENDPOINTS: false
+      ENABLE_DEMO_ACCOUNTS: false
+      LOGIN_RATE_LIMIT_WINDOW_MS: 900000
+      LOGIN_RATE_LIMIT_MAX_PER_EMAIL: 20
+      LOGIN_RATE_LIMIT_MAX_PER_IP: 100
+      LOGIN_RATE_LIMIT_MAX_PER_IP_EMAIL: 20
+      LOGIN_RATE_LIMIT_LOCK_MS: 900000
+      AUDIT_LOG_ENABLED: true
+      DANGEROUS_ACTION_CONFIRMATION_REQUIRED: true
+      SOFT_DELETE_ENABLED: true
+      MEDIA_STORAGE_DRIVER: local
+      MEDIA_STORAGE_PATH: /tmp/dl247-phase9-media
+      MEDIA_MAX_BYTES: 10485760
+      PHASE9_API_URL: http://127.0.0.1:3000/api/v1
+      ADMIN_TEST_EMAIL: admin@dienlanh247.vn
+      ADMIN_TEST_PASSWORD: Phase9Admin@12345
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Wait for MySQL
+        run: |
+          for attempt in {1..60}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then exit 0; fi
+            sleep 2
+          done
+          echo 'MySQL did not become ready' >&2
+          exit 1
+
+      - name: Validate Prisma and apply all migrations
+        run: |
+          npm --prefix backend run prisma:validate
+          npm --prefix backend run prisma:generate
+          npm --prefix backend run prisma:migrate:deploy
+
+      - name: Seed platform and editorial data twice
+        run: |
+          npm --prefix backend run prisma:seed
+          npm --prefix backend run prisma:seed
+
+      - name: Verify Phase 9 schema and idempotent seed
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SHOW TABLES LIKE 'ContentRevision'; SHOW TABLES LIKE 'Banner'; SHOW TABLES LIKE 'SiteSection';"
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT sectionKey, status, version FROM SiteSection ORDER BY sectionKey;"
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT name, status, deletedAt FROM Banner ORDER BY id;"
+          duplicates=$(mysql -N -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT COUNT(*) FROM (SELECT sectionKey FROM SiteSection GROUP BY sectionKey HAVING COUNT(*) > 1) d;")
+          test "$duplicates" = "0"
+
+      - name: Build backend
+        run: npm --prefix backend run build
+
+      - name: Start backend API
+        run: |
+          npm --prefix backend run start:prod > phase9-api.log 2>&1 &
+          echo $! > phase9-api.pid
+
+      - name: Wait for backend API
+        run: |
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/api/v1 >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat phase9-api.log || true
+          exit 1
+
+      - name: Run editorial CMS HTTP lifecycle
+        shell: bash
+        run: |
+          set -o pipefail
+          node backend/test/phase9-editorial-cms.integration.mjs 2>&1 | tee phase9-integration.log
+
+      - name: Verify revisions, soft delete retention and local media
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT entityType, action, version, actorEmail, createdAt FROM ContentRevision ORDER BY id DESC LIMIT 20;"
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT id, name, status, deletedAt, version FROM Partner ORDER BY id DESC LIMIT 10;"
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT id, name, provider, url, deletedAt FROM Media ORDER BY id DESC LIMIT 10;"
+          test -n "$(find /tmp/dl247-phase9-media -type f -print -quit)"
+          grep -F 'Phase 9 editorial CMS integration passed.' phase9-integration.log
+
+      - name: Reject token-shaped data in API logs
+        run: |
+          if grep -E 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' phase9-api.log; then
+            echo 'JWT-like token found in API log' >&2
+            exit 1
+          fi
+
+      - name: Upload Phase 9 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase9-editorial-cms-diagnostics
+          path: |
+            phase9-api.log
+            phase9-integration.log
+            backend/prisma/migrations/20260714210000_phase9_editorial_cms/migration.sql
+          retention-days: 7
+
+      - name: Stop backend API
+        if: always()
+        run: |
+          if [ -f phase9-api.pid ]; then kill "$(cat phase9-api.pid)" 2>/dev/null || true; fi
