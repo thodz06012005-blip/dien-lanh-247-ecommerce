@@ -25,6 +25,7 @@ const Register = lazy(() => import('@/pages/Register'));
 const ServiceBooking = lazy(() => import('@/pages/ServiceBooking'));
 const ServiceBookingSuccess = lazy(() => import('@/pages/ServiceBookingSuccess'));
 const ServiceDetail = lazy(() => import('@/pages/ServiceDetail'));
+const ServiceRequestLookup = lazy(() => import('@/pages/ServiceRequestLookup'));
 const Services = lazy(() => import('@/pages/Services'));
 
 function ScrollToTop() {
@@ -74,6 +75,7 @@ export default function AppRouter() {
             <Route path="orders" element={<Orders />} />
             <Route path="service-booking" element={<ServiceBooking />} />
             <Route path="service-booking/success" element={<ServiceBookingSuccess />} />
+            <Route path="service-lookup" element={<ServiceRequestLookup />} />
             <Route path="my-services" element={<MyServices />} />
             <Route path="my-services/:id" element={<MyServiceDetail />} />
             <Route path="design-system" element={<DesignSystem />} />
