@@ -45,7 +45,7 @@ function readExceptionPayload(exception: unknown): ExceptionPayload {
   if (!(exception instanceof HttpException)) return {};
   const response = exception.getResponse();
   if (typeof response === 'string') return { message: response };
-  return isRecord(response) ? (response as ExceptionPayload) : {};
+  return isRecord(response) ? response : {};
 }
 
 function readStatus(exception: unknown): HttpStatus {
@@ -54,7 +54,7 @@ function readStatus(exception: unknown): HttpStatus {
 
   const candidate = Number(exception.status ?? exception.statusCode);
   if (Number.isInteger(candidate) && candidate >= 400 && candidate <= 599) {
-    return candidate as HttpStatus;
+    return candidate;
   }
 
   return HttpStatus.INTERNAL_SERVER_ERROR;
@@ -69,7 +69,7 @@ function resolveErrorCode(
   exception: unknown,
   status: HttpStatus,
   payload: ExceptionPayload,
-): ErrorCodeValue | string {
+): string {
   if (exception instanceof BusinessException) return exception.code;
   if (typeof payload.code === 'string') return payload.code;
   if (isRecord(payload.error) && typeof payload.error.code === 'string') return payload.error.code;
@@ -108,7 +108,7 @@ function resolveMessageAndDetails(
     };
   }
 
-  const errorLike = isRecord(exception) ? (exception as ErrorLike) : {};
+  const errorLike: ErrorLike = isRecord(exception) ? exception : {};
   if (status < HttpStatus.INTERNAL_SERVER_ERROR && errorLike.message) {
     return { message: errorLike.message };
   }
@@ -122,7 +122,7 @@ export class HttpErrorFilter implements ExceptionFilter {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
     const request = context.getRequest<Request>() as RequestWithContext;
-    const errorLike = isRecord(exception) ? (exception as ErrorLike) : {};
+    const errorLike: ErrorLike = isRecord(exception) ? exception : {};
 
     let status = readStatus(exception);
     if (errorLike.type === 'entity.too.large') {
