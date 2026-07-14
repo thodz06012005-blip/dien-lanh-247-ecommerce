@@ -136,7 +136,10 @@ jobs:
           exit 1
 
       - name: Run admin platform integration
-        run: node backend/test/phase8-admin-platform.integration.mjs | tee phase8-integration.log
+        shell: bash
+        run: |
+          set -o pipefail
+          node backend/test/phase8-admin-platform.integration.mjs 2>&1 | tee phase8-integration.log
 
       - name: Verify admin sessions and permission denial coverage
         run: |
