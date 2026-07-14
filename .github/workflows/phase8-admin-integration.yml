@@ -1,0 +1,166 @@
+name: Phase 8 Admin Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+      - agent/phase-7-customer-account-security
+    paths:
+      - 'backend/src/common/auth/**'
+      - 'backend/src/common/decorators/permissions.decorator.ts'
+      - 'backend/src/common/guards/permissions.guard.ts'
+      - 'backend/src/modules/auth/**'
+      - 'backend/src/modules/dashboard/**'
+      - 'backend/src/modules/orders/**'
+      - 'backend/src/modules/products/**'
+      - 'backend/src/modules/settings/**'
+      - 'backend/test/phase8-admin-platform.integration.mjs'
+      - 'frontend-admin/src/**'
+      - 'tests/architecture/phase8-admin-platform.test.mjs'
+      - '.github/workflows/phase8-admin-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase8-admin-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  admin-integration:
+    name: Migrate, Run Admin API and Verify Permissions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ecommerce
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    env:
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/ecommerce
+      NODE_ENV: test
+      HOST: 0.0.0.0
+      PORT: 3000
+      API_PREFIX: api/v1
+      LOG_LEVEL: warn
+      SWAGGER_ENABLED: false
+      TRUST_PROXY: false
+      ADMIN_SEED_EMAIL: admin@dienlanh247.vn
+      ADMIN_SEED_PASSWORD: Phase8Admin@12345
+      JWT_ACCESS_SECRET: phase8_access_secret_for_admin_integration_1234567890
+      JWT_REFRESH_SECRET: phase8_refresh_secret_for_admin_integration_123456789
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      BCRYPT_SALT_ROUNDS: 8
+      COOKIE_SECURE: false
+      COOKIE_SAME_SITE: strict
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      FRONTEND_USER_URL: http://localhost:5173
+      FRONTEND_ADMIN_URL: http://localhost:5174
+      THROTTLE_TTL_MS: 60000
+      THROTTLE_LIMIT: 500
+      ENABLE_DEV_ENDPOINTS: false
+      ENABLE_DEMO_ACCOUNTS: false
+      LOGIN_RATE_LIMIT_WINDOW_MS: 900000
+      LOGIN_RATE_LIMIT_MAX_PER_EMAIL: 20
+      LOGIN_RATE_LIMIT_MAX_PER_IP: 100
+      LOGIN_RATE_LIMIT_MAX_PER_IP_EMAIL: 20
+      LOGIN_RATE_LIMIT_LOCK_MS: 900000
+      AUDIT_LOG_ENABLED: true
+      DANGEROUS_ACTION_CONFIRMATION_REQUIRED: true
+      SOFT_DELETE_ENABLED: true
+      API_BASE_URL: http://127.0.0.1:3000/api/v1
+      ADMIN_TEST_EMAIL: admin@dienlanh247.vn
+      ADMIN_TEST_PASSWORD: Phase8Admin@12345
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Wait for MySQL
+        run: |
+          for attempt in {1..60}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then exit 0; fi
+            sleep 2
+          done
+          echo 'MySQL did not become ready' >&2
+          exit 1
+
+      - name: Validate Prisma and apply all migrations
+        run: |
+          npm --prefix backend run prisma:validate
+          npm --prefix backend run prisma:generate
+          npm --prefix backend run prisma:migrate:deploy
+
+      - name: Seed platform data twice
+        run: |
+          npm --prefix backend run prisma:seed
+          npm --prefix backend run prisma:seed
+
+      - name: Build backend
+        run: npm --prefix backend run build
+
+      - name: Start backend API
+        run: |
+          npm --prefix backend run start:prod > phase8-api.log 2>&1 &
+          echo $! > phase8-api.pid
+
+      - name: Wait for backend API
+        run: |
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/api/v1 >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat phase8-api.log || true
+          exit 1
+
+      - name: Run admin platform integration
+        run: node backend/test/phase8-admin-platform.integration.mjs | tee phase8-integration.log
+
+      - name: Verify admin sessions and audit denials
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT id, userId, familyId, LENGTH(refreshTokenHash) AS hashLength, revokedAt, revokeReason FROM AuthSession ORDER BY createdAt DESC LIMIT 12;"
+          mysql -h 127.0.0.1 -uroot -proot ecommerce -e "SELECT action, resourceType, resourceId, success, createdAt FROM AuditLog WHERE action IN ('PERMISSION_FORBIDDEN','AUTH_LOGIN_SUCCESS','AUTH_LOGOUT') ORDER BY createdAt DESC LIMIT 20;"
+
+      - name: Reject token-shaped data in API logs
+        run: |
+          if grep -E 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' phase8-api.log; then
+            echo 'JWT-like token found in API log' >&2
+            exit 1
+          fi
+
+      - name: Upload Phase 8 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase8-admin-integration-diagnostics
+          path: |
+            phase8-api.log
+            phase8-integration.log
+          retention-days: 7
+
+      - name: Stop backend API
+        if: always()
+        run: |
+          if [ -f phase8-api.pid ]; then kill "$(cat phase8-api.pid)" 2>/dev/null || true; fi
