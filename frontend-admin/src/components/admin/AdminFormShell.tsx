@@ -11,7 +11,7 @@ interface AdminFormShellProps {
   submitLabel?: string;
   error?: string | null;
   toolbar?: ReactNode;
-  onSubmit: () => void | Promise<void>;
+  onSubmit: () => unknown | Promise<unknown>;
   onCancel?: () => void;
 }
 
@@ -46,22 +46,10 @@ export default function AdminFormShell({
         </div>
         {toolbar}
       </header>
-
-      {error && (
-        <div className="mx-5 mt-5 flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700 sm:mx-7">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
+      {error && <div className="mx-5 mt-5 flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700 sm:mx-7"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span>{error}</span></div>}
       <div className="p-5 sm:p-7">{children}</div>
-
       <footer className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-7">
-        {onCancel && (
-          <button type="button" onClick={onCancel} disabled={isSubmitting} className="min-h-11 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 transition hover:bg-slate-100 disabled:opacity-50">
-            Hủy thay đổi
-          </button>
-        )}
+        {onCancel && <button type="button" onClick={onCancel} disabled={isSubmitting} className="min-h-11 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 transition hover:bg-slate-100 disabled:opacity-50">Hủy thay đổi</button>}
         <button type="submit" disabled={!isDirty || isSubmitting} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 text-sm font-black text-white shadow-lg shadow-blue-500/15 transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50">
           {isSubmitting ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white motion-reduce:animate-none" /> : <Save className="h-4 w-4" />}
           {isSubmitting ? 'Đang lưu...' : submitLabel}
