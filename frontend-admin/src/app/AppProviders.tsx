@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import AppErrorBoundary from '@/components/errors/AppErrorBoundary';
+import { AdminToastProvider } from '@/design-system';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -41,12 +42,21 @@ export default function AppProviders({ children }: AppProvidersProps) {
           theme={{
             token: {
               colorPrimary: '#2563eb',
-              borderRadius: 10,
+              colorInfo: '#2563eb',
+              colorSuccess: '#059669',
+              colorWarning: '#d97706',
+              colorError: '#dc2626',
+              colorText: '#0f172a',
+              colorTextSecondary: '#64748b',
+              colorBgLayout: '#f5f7fb',
+              borderRadius: 12,
+              borderRadiusLG: 16,
               controlHeight: 40,
+              fontFamily: "Inter, 'Be Vietnam Pro', system-ui, sans-serif",
             },
           }}
         >
-          {children}
+          <AdminToastProvider>{children}</AdminToastProvider>
         </ConfigProvider>
       </QueryClientProvider>
     </AppErrorBoundary>
