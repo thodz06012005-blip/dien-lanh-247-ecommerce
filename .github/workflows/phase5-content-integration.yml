@@ -91,7 +91,18 @@ jobs:
         run: npm --prefix backend run prisma:seed
 
       - name: Verify content database contracts
-        run: npm --prefix backend exec -- ts-node prisma/verify-content.ts
+        working-directory: backend
+        run: |
+          set -o pipefail
+          npx ts-node prisma/verify-content.ts 2>&1 | tee phase5-verify.log
+
+      - name: Upload verification log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase5-content-verification
+          path: backend/phase5-verify.log
+          retention-days: 7
 
       - name: Upload migration diagnostics
         if: failure()
