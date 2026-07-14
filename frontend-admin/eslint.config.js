@@ -22,4 +22,10 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'warn',
     }
   },
+  {
+    files: ['src/design-system/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])
