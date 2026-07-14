@@ -4,7 +4,6 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PermissionsGuard } from './common/guards/permissions.guard';
 import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
 import { validateEnvironment } from './config/environment';
 import { PrismaModule } from './core/database/prisma.module';
@@ -69,10 +68,6 @@ import { UsersModule } from './modules/users/users.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: PermissionsGuard,
     },
     {
       provide: APP_INTERCEPTOR,
