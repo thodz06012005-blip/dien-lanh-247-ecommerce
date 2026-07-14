@@ -1,5 +1,3 @@
-import type { ErrorCodeValue } from '../constants/error-codes';
-
 export interface ApiPaginationMeta {
   page: number;
   limit: number;
@@ -19,7 +17,7 @@ export interface ApiSuccessResponse<TData = unknown, TMeta = Record<string, unkn
 }
 
 export interface ApiErrorBody {
-  code: ErrorCodeValue | string;
+  code: string;
   message: string;
   details?: unknown;
 }
