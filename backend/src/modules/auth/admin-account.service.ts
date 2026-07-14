@@ -37,7 +37,7 @@ export class AdminAccountService {
     if (!user || !['ADMIN', 'SUPERADMIN', 'STAFF'].includes(user.role)) {
       throw new NotFoundException('Không tìm thấy tài khoản quản trị');
     }
-    if (!Boolean(user.isActive) || user.lockedAt) {
+    if (!user.isActive || user.lockedAt) {
       throw new ForbiddenException('Tài khoản quản trị đã bị khóa');
     }
     return user;
