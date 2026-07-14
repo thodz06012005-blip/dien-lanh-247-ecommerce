@@ -25,7 +25,7 @@ test('customer application exposes the required architecture files', () => {
 
 test('customer TypeScript and Vite resolve the same source alias', () => {
   const tsconfig = JSON.parse(read('tsconfig.app.json'));
-  assert.deepEqual(tsconfig.compilerOptions.paths['@/*'], ['src/*']);
+  assert.deepEqual(tsconfig.compilerOptions.paths['@/*'], ['./src/*']);
   assert.match(read('vite.config.ts'), /alias:\s*\{[\s\S]*['"]@['"]/);
 });
 
