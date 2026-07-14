@@ -4,9 +4,18 @@ export interface User {
   id: number;
   email: string;
   role: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  passwordChangedAt?: string | null;
+  lastLoginAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  linkedServiceRequests?: number;
+  // Legacy optional fields keep Phase 1–6 autofill screens type-compatible.
+  // Phase 7's source of truth is the protected Address API.
   city?: string;
   district?: string;
   addressDetail?: string;
@@ -16,37 +25,22 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
   setUser: (user: User | null) => void;
   setLoading: (isLoading: boolean) => void;
+  setInitialized: (isInitialized: boolean) => void;
+  clearSession: () => void;
   logout: () => void;
 }
 
-const getStoredUser = (): User | null => {
-  try {
-    const userStr = localStorage.getItem('dl247_user');
-    return userStr ? JSON.parse(userStr) : null;
-  } catch {
-    return null;
-  }
-};
-
-const initialUser = getStoredUser();
-
 export const useAuthStore = create<AuthState>((set) => ({
-  user: initialUser,
-  isAuthenticated: !!initialUser,
-  isLoading: false,
-  setUser: (user) => {
-    if (user) {
-      localStorage.setItem('dl247_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('dl247_user');
-    }
-    set({ user, isAuthenticated: !!user, isLoading: false });
-  },
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  isInitialized: false,
+  setUser: (user) => set({ user, isAuthenticated: Boolean(user), isLoading: false }),
   setLoading: (isLoading) => set({ isLoading }),
-  logout: () => {
-    localStorage.removeItem('dl247_user');
-    set({ user: null, isAuthenticated: false, isLoading: false });
-  },
+  setInitialized: (isInitialized) => set({ isInitialized, isLoading: false }),
+  clearSession: () => set({ user: null, isAuthenticated: false, isLoading: false, isInitialized: true }),
+  logout: () => set({ user: null, isAuthenticated: false, isLoading: false, isInitialized: true }),
 }));

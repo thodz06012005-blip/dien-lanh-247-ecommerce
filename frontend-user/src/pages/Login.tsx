@@ -1,132 +1,80 @@
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/authStore';
-import { useToastStore } from '../store/toastStore';
-import api from '../services/api';
-import { useState } from 'react';
+import { ArrowLeft, CheckCircle2, LockKeyhole, ShieldCheck, Wrench } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { z } from 'zod';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import api, { getApiErrorMessage } from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
+import { useToastStore } from '@/store/toastStore';
 
-const loginSchema = z.object({
+const schema = z.object({
   email: z.string().email('Địa chỉ email không hợp lệ'),
-  password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+  password: z.string().min(1, 'Vui lòng nhập mật khẩu'),
 });
-
-type LoginForm = z.infer<typeof loginSchema>;
+type LoginForm = z.infer<typeof schema>;
 
 export default function Login() {
   const navigate = useNavigate();
-  const { setUser } = useAuthStore();
-  const { showSuccess } = useToastStore();
+  const [params] = useSearchParams();
+  const setUser = useAuthStore((state) => state.setUser);
+  const showSuccess = useToastStore((state) => state.showSuccess);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({ resolver: zodResolver(schema) });
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  const onSubmit = async (data: LoginForm) => {
-    setIsLoading(true);
+  const onSubmit = async (values: LoginForm) => {
     setError('');
     try {
-      const response = await api.post('/auth/login', data);
-      if (response.data?.success) {
-        // According to standard contract, user is in response.data.data
-        setUser(response.data.data);
-        showSuccess('Đăng nhập thành công! Chào mừng bạn quay trở lại.');
-        navigate('/');
-      } else {
-        setError(response.data?.message || 'Đăng nhập thất bại.');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Sai email hoặc mật khẩu. Tài khoản mẫu: user@gmail.com / 123456');
-    } finally {
-      setIsLoading(false);
+      const response = await api.post('/auth/login', values);
+      const user = response.data?.data;
+      setUser(user);
+      const linked = Number(user?.linkedServiceRequests || 0);
+      showSuccess(linked > 0 ? `Đăng nhập thành công. Đã liên kết ${linked} yêu cầu dịch vụ.` : 'Đăng nhập thành công.');
+      const returnTo = params.get('returnTo');
+      navigate(returnTo?.startsWith('/') ? returnTo : '/account', { replace: true });
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, 'Email hoặc mật khẩu không đúng.'));
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 relative">
-      <Link to="/" className="absolute top-6 left-6 inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-primary-600 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Về trang chủ
-      </Link>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="max-w-md w-full bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-slate-100/80 flex flex-col gap-6"
-      >
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center shadow-md shadow-primary-500/20">
-              <span className="text-white font-black text-xl">D</span>
+    <main className="relative min-h-screen overflow-hidden bg-[#061527] px-4 py-10 text-white sm:py-14">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(14,165,233,0.22),transparent_32%),radial-gradient(circle_at_85%_80%,rgba(249,115,22,0.18),transparent_28%)]" />
+      <Link to="/" className="relative z-10 inline-flex items-center gap-2 text-sm font-bold text-slate-300 transition hover:text-white"><ArrowLeft className="h-4 w-4" />Về trang chủ</Link>
+      <div className="relative z-10 mx-auto mt-8 grid max-w-6xl overflow-hidden rounded-[2.75rem] border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="hidden min-h-[650px] flex-col justify-between p-12 lg:flex">
+          <div>
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-xl shadow-cyan-500/20"><Wrench className="h-7 w-7" /></div>
+            <p className="mt-10 text-xs font-black uppercase tracking-[0.3em] text-cyan-300">Điện Lạnh 247 Customer Hub</p>
+            <h1 className="mt-5 max-w-xl text-5xl font-black leading-[1.08]">Mọi dịch vụ, đơn hàng và bảo hành trong một tài khoản.</h1>
+            <p className="mt-6 max-w-lg text-base leading-8 text-slate-300">Theo dõi kỹ thuật viên, xem ảnh trước/sau sửa chữa, quản lý địa chỉ và nhận thông báo mà không phải cung cấp lại dữ liệu nhạy cảm.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[['Cookie HttpOnly', 'Token không nằm trong localStorage'], ['Tự làm mới', 'Phiên hết hạn được xử lý tự động'], ['Kiểm soát thiết bị', 'Thu hồi từng phiên đăng nhập']].map(([title, body]) => (
+              <div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-4"><CheckCircle2 className="h-5 w-5 text-cyan-300" /><strong className="mt-3 block text-sm">{title}</strong><span className="mt-1 block text-xs leading-5 text-slate-400">{body}</span></div>
+            ))}
+          </div>
+        </section>
+        <motion.section initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35 }} className="bg-white p-7 text-slate-950 sm:p-10 lg:p-12">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-primary-600"><LockKeyhole className="h-6 w-6" /></div>
+          <h2 className="mt-6 text-3xl font-black">Chào mừng trở lại</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Đăng nhập để tiếp tục quản lý hồ sơ và lịch sử của riêng bạn.</p>
+          {error && <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm leading-6 text-red-700">{error}</div>}
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+            <Input label="Email" type="email" autoComplete="email" placeholder="ban@example.com" error={errors.email?.message} {...register('email')} />
+            <Input label="Mật khẩu" type="password" autoComplete="current-password" placeholder="Nhập mật khẩu" error={errors.password?.message} {...register('password')} />
+            <div className="flex items-center justify-between text-sm">
+              <span className="inline-flex items-center gap-2 text-slate-500"><ShieldCheck className="h-4 w-4 text-emerald-500" />Phiên được bảo vệ</span>
+              <Link to="/forgot-password" className="font-black text-primary-600 hover:text-primary-700">Quên mật khẩu?</Link>
             </div>
-          </div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
-            Đăng nhập tài khoản
-          </h2>
-          <p className="text-xs text-slate-500 mt-2">
-            Chưa có tài khoản?{' '}
-            <Link to="/register" className="font-bold text-primary-600 hover:text-primary-700 transition-colors">
-              Đăng ký tài khoản mới
-            </Link>
-          </p>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl text-2xs text-center leading-relaxed">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <Input
-            label="Địa chỉ Email"
-            placeholder="Ví dụ: user@gmail.com"
-            type="email"
-            error={errors.email?.message}
-            {...register('email')}
-          />
-
-          <Input
-            label="Mật khẩu"
-            placeholder="Nhập mật khẩu"
-            type="password"
-            error={errors.password?.message}
-            {...register('password')}
-          />
-
-          <div className="flex justify-between items-center text-xs mt-1">
-            <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 select-none">
-              <input type="checkbox" className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-slate-300" />
-              <span>Ghi nhớ</span>
-            </label>
-            <a href="#" className="font-bold text-slate-500 hover:text-primary-600 transition-colors">
-              Quên mật khẩu?
-            </a>
-          </div>
-
-          <Button
-            type="submit"
-            isLoading={isLoading}
-            className="w-full py-3.5 rounded-xl font-bold mt-2 shadow-md shadow-primary-500/15"
-          >
-            Đăng nhập
-          </Button>
-        </form>
-
-        {/* Guest credentials help tip */}
-        <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl text-3xs text-slate-500 leading-normal">
-          <p className="font-bold text-slate-700 mb-1">Tài khoản demo:</p>
-          <p>• Email: <strong>user@gmail.com</strong></p>
-          <p>• Mật khẩu: <strong>123456</strong></p>
-        </div>
-      </motion.div>
-    </div>
+            <Button type="submit" isLoading={isSubmitting} className="w-full py-3.5 text-sm">Đăng nhập an toàn</Button>
+          </form>
+          <div className="mt-7 border-t border-slate-100 pt-6 text-center text-sm text-slate-500">Chưa có tài khoản? <Link to="/register" className="font-black text-primary-600">Tạo tài khoản mới</Link></div>
+        </motion.section>
+      </div>
+    </main>
   );
 }

@@ -1,16 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import type { Request } from 'express';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { AuthService } from '../auth.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(private configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly authService: AuthService,
+  ) {
     const secret = configService.get<string>('JWT_ACCESS_SECRET');
-    if (!secret) {
-      throw new Error('Missing required environment variable: JWT_ACCESS_SECRET');
-    }
+    if (!secret) throw new Error('Missing required environment variable: JWT_ACCESS_SECRET');
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -21,8 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: any) {
-    return { userId: payload.sub, email: payload.email, role: payload.role };
+  async validate(payload: { sub: number; sid: string; tv: number }) {
+    return this.authService.validateAccessSession(payload);
   }
 }
-
