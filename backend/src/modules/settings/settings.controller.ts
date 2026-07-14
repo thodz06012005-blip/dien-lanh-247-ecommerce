@@ -32,7 +32,7 @@ export class SettingsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-  @Roles(UserRole.SUPERADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   @Permissions(ADMIN_PERMISSIONS.SETTINGS_MANAGE)
   @Patch('admin/settings')
   async updateSettings(@Body() dto: UpdateSettingsDto, @Req() req: Request) {
