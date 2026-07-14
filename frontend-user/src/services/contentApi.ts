@@ -30,6 +30,64 @@ export interface ContentListParams {
   featured?: boolean;
 }
 
+export interface SiteBanner {
+  id: number;
+  eyebrow?: string | null;
+  title: string;
+  subtitle?: string | null;
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaUrl?: string | null;
+  desktopMediaUrl?: string | null;
+  mobileMediaUrl?: string | null;
+  theme?: string;
+}
+
+export interface SitePartner {
+  id: number;
+  name: string;
+  description?: string | null;
+  websiteUrl?: string | null;
+  logoUrl?: string | null;
+  logoAlt?: string | null;
+}
+
+export interface SiteTestimonial {
+  id: number;
+  customerName: string;
+  customerTitle?: string | null;
+  company?: string | null;
+  quote: string;
+  rating: number;
+  avatarUrl?: string | null;
+  serviceTitle?: string | null;
+}
+
+export interface SiteSectionContent {
+  id: number;
+  sectionKey: string;
+  name: string;
+  eyebrow?: string | null;
+  title?: string | null;
+  content?: string | null;
+  config?: Record<string, unknown> | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  socialImageUrl?: string | null;
+}
+
+export interface SiteContentBundle {
+  scope: string;
+  banners: SiteBanner[];
+  partners: SitePartner[];
+  testimonials: SiteTestimonial[];
+  sections: SiteSectionContent[];
+  services: ManagedService[];
+  projects: ManagedProject[];
+  posts: ManagedPost[];
+}
+
 export async function getServices(params: ContentListParams = {}) {
   const response = await contentApi.get('/services', { params });
   return unwrap<ContentListResponse<ManagedService>>(response.data);
@@ -58,6 +116,16 @@ export async function getPosts(params: ContentListParams = {}) {
 export async function getPost(slug: string) {
   const response = await contentApi.get(`/posts/${encodeURIComponent(slug)}`);
   return unwrap<ContentDetailResponse<ManagedPost>>(response.data);
+}
+
+export async function getSiteContent(scope: 'home' | 'footer' | 'all' = 'home') {
+  const response = await contentApi.get(`/site-content/${scope}`);
+  return unwrap<{ success: boolean; data: SiteContentBundle }>(response.data);
+}
+
+export async function getSiteSection(key: string) {
+  const response = await contentApi.get(`/site-content/section/${encodeURIComponent(key)}`);
+  return unwrap<{ success: boolean; data: SiteSectionContent }>(response.data);
 }
 
 export default contentApi;
