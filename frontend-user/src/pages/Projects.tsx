@@ -1,121 +1,60 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowRight, MapPin, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Building2, MapPin, SearchX } from 'lucide-react';
 import Breadcrumb from '@/components/common/Breadcrumb';
 import OptimizedImage from '@/components/common/OptimizedImage';
-import { projects } from '@/data/phase4Content';
+import { getProjects } from '@/services/contentApi';
 import useDocumentTitle from '@/hooks/useDocumentTitle';
 
-const categories = ['Tất cả', ...Array.from(new Set(projects.map((project) => project.category)))] as const;
-
 export default function Projects() {
-  useDocumentTitle(
-    'Dự án điện lạnh tiêu biểu',
-    'Các dự án lắp đặt, bảo trì và tối ưu hệ thống điện lạnh cho nhà ở, văn phòng, nhà hàng và bán lẻ.',
-  );
-  const [activeCategory, setActiveCategory] = useState<(typeof categories)[number]>('Tất cả');
-
-  const visibleProjects = useMemo(
-    () => (activeCategory === 'Tất cả' ? projects : projects.filter((project) => project.category === activeCategory)),
-    [activeCategory],
-  );
+  useDocumentTitle('Dự án điện lạnh', 'Các dự án điện lạnh được quản trị từ hệ thống nội dung.');
+  const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const query = useQuery({
+    queryKey: ['managed-projects', q, page],
+    queryFn: () => getProjects({ q: q || undefined, page, limit: 9 }),
+  });
+  const projects = query.data?.data ?? [];
+  const meta = query.data?.meta;
 
   return (
-    <div className="bg-slate-50">
-      <section className="relative overflow-hidden bg-[#061527] py-16 text-white sm:py-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(6,182,212,0.2),transparent_35%),radial-gradient(circle_at_12%_90%,rgba(37,99,235,0.2),transparent_38%)]" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="bg-slate-50 pb-20">
+      <section className="bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-950 py-16 text-white sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Breadcrumb items={[{ name: 'Dự án' }]} />
-          <div className="mt-8 max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Hồ sơ năng lực</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-              Dự án được kể bằng bài toán, giải pháp và kết quả
-            </h1>
-            <p className="mt-5 text-base leading-8 text-slate-300">
-              Mỗi hồ sơ dự án mẫu mô tả điều kiện thực tế, cách triển khai và kết quả bàn giao thay vì chỉ hiển thị hình ảnh.
-            </p>
-          </div>
+          <h1 className="mt-8 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">Dự án được ghi nhận bằng dữ liệu và kết quả thực tế</h1>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">Mỗi hồ sơ dự án thể hiện khách hàng, địa điểm, thời gian, nhiệm vụ, nội dung thi công, kết quả và album ảnh.</p>
         </div>
       </section>
+      <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <label className="relative block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <span className="sr-only">Tìm dự án</span>
+          <Search className="pointer-events-none absolute left-8 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input value={q} onChange={(event) => { setQ(event.target.value); setPage(1); }} placeholder="Tìm theo tên dự án, khách hàng hoặc địa điểm..." className="min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+        </label>
 
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-        <div className="mb-8 flex flex-wrap gap-2" aria-label="Lọc dự án theo loại công trình">
-          {categories.map((category) => (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setActiveCategory(category)}
-              aria-pressed={activeCategory === category}
-              className={`min-h-11 rounded-full px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 ${
-                activeCategory === category
-                  ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/20'
-                  : 'border border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:text-primary-700'
-              }`}
-            >
-              {category}
-            </button>
+        {query.isLoading && <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-96 animate-pulse rounded-3xl bg-slate-200" />)}</div>}
+        {query.isError && <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-8 text-center"><h2 className="font-black text-red-900">Không tải được dự án</h2><button onClick={() => query.refetch()} className="mt-4 rounded-xl bg-red-700 px-4 py-2 text-sm font-bold text-white">Thử lại</button></div>}
+        {!query.isLoading && !query.isError && projects.length === 0 && <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center"><h2 className="text-lg font-black text-slate-900">Chưa có dự án phù hợp</h2><p className="mt-2 text-sm text-slate-500">Nội dung nháp hoặc đã ẩn sẽ không xuất hiện ở website khách hàng.</p></div>}
+
+        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => (
+            <article key={project.id} className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+              <OptimizedImage src={project.coverUrl || 'https://images.unsplash.com/photo-1497366754035-f200968a6e72'} alt={project.coverAlt || project.title} width={800} height={520} sizes="(max-width: 768px) 100vw, 33vw" className="aspect-[16/10] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+              <div className="p-6">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-500"><MapPin className="h-4 w-4 text-blue-600" />{project.location || 'Đang cập nhật địa điểm'}</div>
+                <h2 className="mt-3 text-xl font-black text-slate-950">{project.title}</h2>
+                <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{project.excerpt}</p>
+                {project.clientName && <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Khách hàng: {project.clientName}</p>}
+                <Link to={`/projects/${project.slug}`} className="mt-5 inline-flex items-center gap-2 text-sm font-black text-blue-700 hover:text-blue-900">Xem hồ sơ dự án <ArrowRight className="h-4 w-4" /></Link>
+              </div>
+            </article>
           ))}
         </div>
 
-        {visibleProjects.length === 0 ? (
-          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-            <SearchX aria-hidden="true" className="mx-auto h-10 w-10 text-slate-300" />
-            <h2 className="mt-4 text-xl font-black text-slate-900">Chưa có dự án trong nhóm này</h2>
-            <p className="mt-2 text-sm text-slate-500">Hãy chọn một nhóm công trình khác để tiếp tục xem.</p>
-          </div>
-        ) : (
-          <div className="grid gap-7 lg:grid-cols-2">
-            {visibleProjects.map((project) => (
-              <article
-                key={project.slug}
-                className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl"
-              >
-                <Link to={`/projects/${project.slug}`} className="block">
-                  <div className="relative aspect-[16/10] overflow-hidden">
-                    <OptimizedImage
-                      src={project.image}
-                      alt={project.title}
-                      width={960}
-                      height={600}
-                      sizes="(max-width: 1024px) 100vw, 50vw"
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
-                    <span className="absolute left-5 top-5 rounded-full bg-white/95 px-3 py-1 text-xs font-black text-slate-800 shadow-sm backdrop-blur">
-                      {project.category}
-                    </span>
-                  </div>
-                  <div className="p-6 sm:p-7">
-                    <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-500">
-                      <span className="inline-flex items-center gap-1.5">
-                        <MapPin aria-hidden="true" className="h-3.5 w-3.5 text-primary-600" />
-                        {project.location}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Building2 aria-hidden="true" className="h-3.5 w-3.5 text-primary-600" />
-                        {project.completedAt}
-                      </span>
-                    </div>
-                    <h2 className="mt-4 text-xl font-black leading-tight text-slate-950 sm:text-2xl">{project.title}</h2>
-                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{project.summary}</p>
-                    <div className="mt-5 grid grid-cols-3 gap-2">
-                      {project.metrics.map((metric) => (
-                        <div key={metric.label} className="rounded-xl bg-slate-50 p-3">
-                          <strong className="block text-xs font-black text-slate-900">{metric.value}</strong>
-                          <span className="mt-1 block text-[11px] text-slate-500">{metric.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <span className="mt-6 inline-flex items-center gap-2 text-sm font-black text-primary-700">
-                      Xem chi tiết dự án <ArrowRight aria-hidden="true" className="h-4 w-4 transition group-hover:translate-x-1" />
-                    </span>
-                  </div>
-                </Link>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+        {meta && meta.totalPages > 1 && <div className="mt-10 flex justify-center gap-3"><button disabled={page <= 1} onClick={() => setPage((v) => v - 1)} className="min-h-11 rounded-xl border bg-white px-4 text-sm font-bold disabled:opacity-40">Trang trước</button><span className="self-center text-sm font-semibold text-slate-600">{meta.page}/{meta.totalPages}</span><button disabled={page >= meta.totalPages} onClick={() => setPage((v) => v + 1)} className="min-h-11 rounded-xl border bg-white px-4 text-sm font-bold disabled:opacity-40">Trang sau</button></div>}
+      </main>
     </div>
   );
 }
