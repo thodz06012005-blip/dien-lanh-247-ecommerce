@@ -2,6 +2,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import AdminLayout from '@/layouts/AdminLayout';
 import Customers from '@/pages/Customers';
 import Dashboard from '@/pages/Dashboard';
+import DesignSystem from '@/pages/DesignSystem';
 import Forbidden from '@/pages/Forbidden';
 import Login from '@/pages/Login';
 import Orders from '@/pages/Orders';
@@ -46,6 +47,7 @@ export default function AppRouter() {
           <Route path="service-requests" element={<ServiceRequests />} />
           <Route path="service-requests/:id" element={<ServiceRequestDetail />} />
           <Route path="technicians" element={<Technicians />} />
+          <Route path="design-system" element={<DesignSystem />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

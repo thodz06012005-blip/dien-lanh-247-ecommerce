@@ -25,4 +25,10 @@ export default defineConfig([
       'no-prototype-builtins': 'off',
     }
   },
+  {
+    files: ['src/design-system/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])
