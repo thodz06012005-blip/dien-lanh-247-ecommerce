@@ -73,6 +73,7 @@ export interface ServiceRequest {
   serviceCategoryName?: string;
   applianceType: string;
   issueDescription: string;
+  images?: string[];
   preferredDate: string;
   preferredTimeSlot: string;
   scheduledAt?: string | null;
@@ -84,6 +85,14 @@ export interface ServiceRequest {
   assignedTechnicianId?: string | null;
   technicianName?: string | null;
   technicianAvatar?: string | null;
+  technician?: {
+    id: string;
+    name: string;
+    phone?: string;
+    avatar?: string;
+    rating?: number;
+    skills?: string[];
+  } | null;
   priority: ServiceRequestPriority;
   estimatedPrice: number;
   finalPrice: number;
@@ -95,6 +104,12 @@ export interface ServiceRequest {
   timeline?: ServiceRequestStatusEvent[];
   media?: ServiceRequestMedia[];
   audits?: ServiceRequestAudit[];
+  statusHistory?: Array<{
+    status: string;
+    note: string;
+    updatedBy: string;
+    createdAt: string;
+  }>;
 }
 
 export interface ServiceRequestListResponse {
