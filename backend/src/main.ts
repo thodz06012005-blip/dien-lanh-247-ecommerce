@@ -1,82 +1,89 @@
-import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { HttpErrorFilter } from './common/filters/http-exception.filter';
+import { requestContextMiddleware } from './common/middleware/request-context.middleware';
+import {
+  contentTypeGuardMiddleware,
+  securityHeadersMiddleware,
+} from './common/middleware/security.middleware';
 
 async function bootstrap() {
-  // Disable default bodyParser to allow custom limits and pre-parsing Content-Type checks
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+    bufferLogs: true,
+  });
+  const config = app.get(ConfigService);
 
-  app.setGlobalPrefix('api/v1');
+  const host = config.get<string>('HOST', '0.0.0.0');
+  const port = config.get<number>('PORT', 3000);
+  const apiPrefix = config.get<string>('API_PREFIX', 'api/v1');
+  const trustProxy = config.get<boolean>('TRUST_PROXY', false);
+  const jsonBodyLimit = config.get<string>('JSON_BODY_LIMIT', '1mb');
+  const urlencodedBodyLimit = config.get<string>('URLENCODED_BODY_LIMIT', '100kb');
 
+  if (apiPrefix) {
+    app.setGlobalPrefix(apiPrefix);
+  }
+
+  if (trustProxy) {
+    const expressApplication = app.getHttpAdapter().getInstance() as {
+      set: (setting: string, value: unknown) => void;
+    };
+    expressApplication.set('trust proxy', 1);
+  }
+
+  app.use(requestContextMiddleware);
+  app.use(securityHeadersMiddleware);
   app.use(cookieParser());
+  app.use(contentTypeGuardMiddleware);
+  app.use(json({ limit: jsonBodyLimit }));
+  app.use(urlencoded({ extended: false, limit: urlencodedBodyLimit }));
 
-  // Custom Security Headers Middleware (Plan 18 Hardening)
-  app.use((req: any, res: any, next: any) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-    res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:3001 http://localhost:3000 ws://localhost:3001 ws://localhost:3000 http://127.0.0.1:3001 http://127.0.0.1:3000 ws://127.0.0.1:3001 ws://127.0.0.1:3000;");
-    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
-      res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
-    }
-    next();
-  });
-
-  // 1. Content-Type Guard for POST/PATCH/PUT
-  app.use((req: any, res: any, next: any) => {
-    const method = req.method;
-    if (['POST', 'PUT', 'PATCH'].includes(method)) {
-      const contentType = req.headers['content-type'];
-      const contentLength = req.headers['content-length'];
-      if (contentLength === '0') {
-        return next();
-      }
-      if (!contentType || !contentType.toLowerCase().startsWith('application/json')) {
-        return res.status(415).json({
-          success: false,
-          message: 'Unsupported content type'
-        });
-      }
-    }
-    next();
-  });
-
-  const jsonLimit = process.env.JSON_BODY_LIMIT || '1mb';
-  const urlencodedLimit = process.env.URLENCODED_BODY_LIMIT || '100kb';
-
-  app.use(json({ limit: jsonLimit }));
-  app.use(urlencoded({ extended: false, limit: urlencodedLimit }));
-
-  // Register Global Error Filter
-  app.useGlobalFilters(new HttpErrorFilter());
-
-  const corsOriginsEnv = process.env.CORS_ORIGINS || process.env.ALLOWED_ORIGINS;
-  const corsOrigins = corsOriginsEnv
-    ? corsOriginsEnv.split(',').map(o => o.trim()).filter(o => o.length > 0)
-    : [
-        'http://localhost:5174',
-        'http://localhost:5173',
-        'http://127.0.0.1:5174',
-        'http://127.0.0.1:5173'
-      ];
+  const configuredOrigins = config.get<string>('CORS_ORIGINS', '');
+  const corsOrigins = configuredOrigins
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
   app.enableCors({
     origin: corsOrigins,
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With', 'Cookie'],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Accept',
+      'Authorization',
+      'Content-Type',
+      'Cookie',
+      'X-Confirm-Dangerous-Action',
+      'X-Request-Id',
+      'X-Requested-With',
+    ],
+    exposedHeaders: ['X-Request-Id'],
   });
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalFilters(new HttpErrorFilter());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+      stopAtFirstError: false,
+    }),
+  );
+  app.enableShutdownHooks();
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(port, host);
+  console.log(`Điện Lạnh 247 API listening on http://${host}:${port}/${apiPrefix}`);
 }
-bootstrap();
+
+void bootstrap().catch((error: unknown) => {
+  console.error('Failed to start Điện Lạnh 247 API', error);
+  process.exitCode = 1;
+});
