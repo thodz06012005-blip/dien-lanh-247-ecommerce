@@ -3,10 +3,10 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import { ADMIN_PERMISSIONS } from '@/config/adminPermissions';
 import AdminLayout from '@/layouts/AdminLayout';
 import AdminProfile from '@/pages/AdminProfile';
-import Content from '@/pages/Content';
 import Customers from '@/pages/Customers';
 import Dashboard from '@/pages/Dashboard';
 import DesignSystem from '@/pages/DesignSystem';
+import EditorialCms from '@/pages/EditorialCms';
 import Forbidden from '@/pages/Forbidden';
 import Login from '@/pages/Login';
 import NotFound from '@/pages/NotFound';
@@ -34,7 +34,7 @@ export default function AppRouter() {
         <Route element={<AdminProtectedRoute />}>
           <Route path="/" element={<AdminLayout />}>
             <Route index element={<ProtectedPage permission={ADMIN_PERMISSIONS.DASHBOARD_VIEW}><Dashboard /></ProtectedPage>} />
-            <Route path="content" element={<ProtectedPage permission={ADMIN_PERMISSIONS.CONTENT_VIEW}><Content /></ProtectedPage>} />
+            <Route path="content" element={<ProtectedPage permission={ADMIN_PERMISSIONS.CONTENT_VIEW}><EditorialCms /></ProtectedPage>} />
             <Route path="products" element={<ProtectedPage permission={ADMIN_PERMISSIONS.PRODUCTS_VIEW}><Products /></ProtectedPage>} />
             <Route path="orders" element={<ProtectedPage permission={ADMIN_PERMISSIONS.ORDERS_VIEW}><Orders /></ProtectedPage>} />
             <Route path="customers" element={<ProtectedPage permission={ADMIN_PERMISSIONS.CUSTOMERS_VIEW}><Customers /></ProtectedPage>} />
