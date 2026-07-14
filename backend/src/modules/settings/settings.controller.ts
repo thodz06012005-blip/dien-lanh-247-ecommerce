@@ -5,6 +5,7 @@ import { ADMIN_PERMISSIONS } from '../../common/auth/admin-permissions';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AuditLogService } from '../audit/audit-log.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
@@ -22,7 +23,7 @@ export class SettingsController {
     return this.settingsService.getPublicSettings();
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
   @Permissions(ADMIN_PERMISSIONS.SETTINGS_VIEW)
   @Get('admin/settings')
@@ -30,7 +31,7 @@ export class SettingsController {
     return this.settingsService.getAdminSettings();
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles(UserRole.SUPERADMIN)
   @Permissions(ADMIN_PERMISSIONS.SETTINGS_MANAGE)
   @Patch('admin/settings')
