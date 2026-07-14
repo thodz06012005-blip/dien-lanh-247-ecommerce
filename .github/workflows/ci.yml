@@ -4,15 +4,42 @@ on:
   push:
     branches:
       - main
-      - security/*
+      - 'feature/**'
+      - 'fix/**'
+      - 'security/**'
+      - 'agent/**'
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_ENV: test
+  HOST: 127.0.0.1
+  PORT: 3000
+  API_PREFIX: api/v1
+  DATABASE_URL: mysql://root:ci_password@127.0.0.1:3306/ecommerce_ci
+  JWT_ACCESS_SECRET: ci_access_secret_with_more_than_thirty_two_characters
+  JWT_REFRESH_SECRET: ci_refresh_secret_with_more_than_thirty_two_characters
+  ADMIN_SEED_EMAIL: admin-ci@dienlanh247.vn
+  ADMIN_SEED_PASSWORD: ci_seed_password_123456
+  CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+  ENABLE_DEV_ENDPOINTS: 'false'
+  ENABLE_DEMO_ACCOUNTS: 'false'
+  COOKIE_SECURE: 'false'
 
 jobs:
   verify:
-    name: Lint, Typecheck and Build Validation
+    name: Install, Lint, Typecheck, Test and Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -21,35 +48,50 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend-user/package-lock.json
+            frontend-admin/package-lock.json
+            backend/package-lock.json
+            mock-api/package-lock.json
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install root dependencies
+        run: npm ci
 
-      - name: Install NestJS CLI globally
-        run: npm install -g @nestjs/cli
+      - name: Install customer frontend dependencies
+        run: npm --prefix frontend-user ci
+
+      - name: Install admin frontend dependencies
+        run: npm --prefix frontend-admin ci
 
       - name: Install backend dependencies
-        run: npm --prefix backend install
+        run: npm --prefix backend ci
+
+      - name: Install Mock API dependencies
+        run: npm --prefix mock-api ci
+
+      - name: Validate Prisma schema
+        run: npm run prisma:validate
 
       - name: Generate Prisma Client
-        run: npm --prefix backend run prisma:generate
+        run: npm run prisma:generate
 
-      - name: Install frontend-admin dependencies
-        run: npm --prefix frontend-admin install
+      - name: Validate repository architecture and secret rules
+        run: npm run validate:repo
 
-      - name: Install frontend-user dependencies
-        run: npm --prefix frontend-user install
+      - name: Run linters
+        run: npm run lint
 
-      - name: Run code quality checks (check:all)
-        run: npm run check:all
+      - name: Run TypeScript checks
+        run: npm run typecheck
 
-      - name: Build backend application
-        run: npm --prefix backend run build
+      - name: Run architecture tests
+        run: npm run test:architecture
 
-      - name: Build frontend-admin portal
-        run: npm --prefix frontend-admin run build
+      - name: Build all applications
+        run: npm run build:all
 
-      - name: Build frontend-user portal
-        run: npm --prefix frontend-user run build
+      - name: Run Mock API business tests
+        run: npm run test:mock
