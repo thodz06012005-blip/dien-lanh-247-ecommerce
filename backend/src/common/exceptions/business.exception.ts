@@ -1,14 +1,14 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { ErrorCode, type ErrorCodeValue } from '../constants/error-codes';
+import { ErrorCode } from '../constants/error-codes';
 
 export interface BusinessExceptionOptions {
-  code?: ErrorCodeValue | string;
+  code?: string;
   status?: HttpStatus;
   details?: unknown;
 }
 
 export class BusinessException extends HttpException {
-  readonly code: ErrorCodeValue | string;
+  readonly code: string;
   readonly details?: unknown;
 
   constructor(message: string, options: BusinessExceptionOptions = {}) {
