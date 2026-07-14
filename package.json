@@ -29,7 +29,7 @@
     "typecheck:admin": "npm --prefix frontend-admin run typecheck",
     "typecheck:backend": "npm --prefix backend run typecheck",
     "test": "npm run test:architecture && npm run test:mock",
-    "test:architecture": "node --test tests/architecture && npm --prefix frontend-user run test:architecture && npm --prefix frontend-admin run test:architecture && npm --prefix backend run test:architecture",
+    "test:architecture": "node --test tests/architecture/*.test.mjs && npm --prefix frontend-user run test:architecture && npm --prefix frontend-admin run test:architecture && npm --prefix backend run test:architecture",
     "test:mock": "node tests/test_order_pricing.js && node tests/test_service_request_lifecycle.js && node tests/test_technician_rules.js && node tests/test_enum_contract.js",
     "test:backend": "node tests/test_nestjs_api.js",
     "format": "node backend/node_modules/prettier/bin/prettier.cjs --write .",
