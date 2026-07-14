@@ -13,17 +13,17 @@ test('Phase 7 migration is additive and introduces customer security records', (
   assert.equal(existsSync(resolve(root, migrationPath)), true);
   const migration = read(migrationPath);
   for (const table of ['AuthSession', 'PasswordResetToken', 'EmailVerificationToken', 'CustomerNotification', 'ServiceRequestReview']) {
-    assert.match(migration, new RegExp(`CREATE TABLE \\`${table}\\``));
+    assert.equal(migration.includes(`CREATE TABLE \`${table}\``), true, `missing table ${table}`);
   }
   for (const column of ['normalizedPhone', 'emailVerifiedAt', 'phoneVerifiedAt', 'tokenVersion', 'customerUserId']) {
-    assert.match(migration, new RegExp(`ADD COLUMN \\`${column}\\``));
+    assert.equal(migration.includes(`ADD COLUMN \`${column}\``), true, `missing column ${column}`);
   }
   assert.doesNotMatch(migration, /DROP TABLE|DROP COLUMN|RENAME TABLE/i);
 });
 
 test('refresh tokens are rotated per session and raw tokens are not persisted', () => {
   const service = read('backend/src/modules/auth/auth.service.ts');
-  assert.match(service, /CREATE TABLE|AuthSession/);
+  assert.match(service, /AuthSession/);
   assert.match(service, /refreshTokenHash/);
   assert.match(service, /TOKEN_REUSE_DETECTED/);
   assert.match(service, /tokenVersion/);
