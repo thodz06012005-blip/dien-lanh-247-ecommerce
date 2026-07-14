@@ -54,9 +54,8 @@ test('CMS admin client is cookie backed and exposes full workflow', () => {
   const client = read('frontend-admin/src/services/cmsApi.ts');
   const page = read('frontend-admin/src/pages/EditorialCms.tsx');
   assert.doesNotMatch(client, /localStorage|sessionStorage|Authorization/);
-  for (const operation of ['publishCms', 'unpublishCms', 'archiveCms', 'restoreCms', 'getCmsHistory', 'uploadCmsMedia']) {
-    assert.match(client, new RegExp(operation));
-  }
+  for (const operation of ['publishCms', 'unpublishCms', 'archiveCms', 'restoreCms', 'getCmsHistory', 'uploadCmsMedia']) assert.match(client, new RegExp(operation));
+  assert.match(client, /multipart\/form-data/);
   assert.match(page, /AdminDataTable/);
   assert.match(page, /CmsEditorDrawer/);
   assert.match(page, /CmsPreviewModal/);
@@ -74,7 +73,6 @@ test('content editor supports rich content, media, SEO and publish settings', ()
   assert.match(editor, /Social Image Media ID/);
   assert.match(rich, /sandbox=""/);
   assert.match(rich, /wrapSelection/);
-  assert.match(media, /multipart\/form-data/);
   assert.match(media, /Alt text/);
 });
 
