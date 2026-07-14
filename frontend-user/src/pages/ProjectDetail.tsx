@@ -1,143 +1,57 @@
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, CalendarDays, CheckCircle2, MapPin, UserRound } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle2, MapPin } from 'lucide-react';
 import Breadcrumb from '@/components/common/Breadcrumb';
 import OptimizedImage from '@/components/common/OptimizedImage';
-import { projects } from '@/data/phase4Content';
+import { getProject } from '@/services/contentApi';
 import useDocumentTitle from '@/hooks/useDocumentTitle';
 
+const formatDate = (value?: string) => value ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium' }).format(new Date(value)) : 'Đang cập nhật';
+
 export default function ProjectDetail() {
-  const { slug } = useParams<{ slug: string }>();
-  const project = projects.find((item) => item.slug === slug);
-  useDocumentTitle(project ? `${project.title} | Dự án Điện Lạnh 247` : 'Không tìm thấy dự án');
+  const { slug = '' } = useParams();
+  const query = useQuery({ queryKey: ['managed-project', slug], queryFn: () => getProject(slug), enabled: Boolean(slug) });
+  const project = query.data?.data;
+  useDocumentTitle(project ? `${project.title} | Dự án Điện Lạnh 247` : 'Chi tiết dự án', project?.excerpt);
 
-  if (!project) {
-    return (
-      <section className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-primary-600">Không tìm thấy dữ liệu</p>
-        <h1 className="mt-3 text-3xl font-black text-slate-950">Dự án không tồn tại hoặc đã được cập nhật</h1>
-        <p className="mt-4 text-sm leading-6 text-slate-600">Bạn có thể quay lại danh sách dự án để xem các hồ sơ đang được công bố.</p>
-        <Link to="/projects" className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary-600 px-5 text-sm font-black text-white">
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" /> Quay lại danh sách
-        </Link>
-      </section>
-    );
-  }
-
-  const related = projects.filter((item) => item.slug !== project.slug).slice(0, 2);
+  if (query.isLoading) return <div className="mx-auto max-w-7xl px-4 py-20"><div className="h-[620px] animate-pulse rounded-3xl bg-slate-200" /></div>;
+  if (query.isError || !project) return <section className="mx-auto max-w-3xl px-4 py-24 text-center"><h1 className="text-3xl font-black text-slate-950">Dự án không tồn tại hoặc chưa được xuất bản</h1><Link to="/projects" className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-black text-white"><ArrowLeft className="h-4 w-4" /> Quay lại danh sách</Link></section>;
 
   return (
-    <div className="bg-white">
-      <section className="bg-slate-50 py-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Breadcrumb items={[{ name: 'Dự án' }, { name: project.title }]} />
+    <article className="bg-white pb-20">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <Breadcrumb items={[{ name: 'Dự án', path: '/projects' }, { name: project.title }]} />
+        <div className="mt-8 overflow-hidden rounded-[2rem] bg-[#061527] text-white shadow-2xl">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="p-8 sm:p-12">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">Hồ sơ dự án</p>
+              <h1 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">{project.title}</h1>
+              <p className="mt-5 text-base leading-8 text-slate-300">{project.excerpt}</p>
+              <dl className="mt-8 grid gap-4 text-sm sm:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4"><dt className="flex items-center gap-2 text-slate-400"><UserRound className="h-4 w-4" />Khách hàng</dt><dd className="mt-2 font-bold text-white">{project.clientName || 'Bảo mật theo thỏa thuận'}</dd></div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4"><dt className="flex items-center gap-2 text-slate-400"><MapPin className="h-4 w-4" />Địa điểm</dt><dd className="mt-2 font-bold text-white">{project.location || 'Đang cập nhật'}</dd></div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4"><dt className="flex items-center gap-2 text-slate-400"><CalendarDays className="h-4 w-4" />Bắt đầu</dt><dd className="mt-2 font-bold text-white">{formatDate(project.startedAt)}</dd></div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4"><dt className="flex items-center gap-2 text-slate-400"><CalendarDays className="h-4 w-4" />Hoàn thành</dt><dd className="mt-2 font-bold text-white">{formatDate(project.completedAt)}</dd></div>
+              </dl>
+            </div>
+            <OptimizedImage src={project.coverUrl || 'https://images.unsplash.com/photo-1497366754035-f200968a6e72'} alt={project.coverAlt || project.title} width={1200} height={900} priority className="min-h-[360px] h-full w-full object-cover" />
+          </div>
         </div>
-      </section>
 
-      <article>
-        <header className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:px-8 lg:py-16">
-          <div className="self-center">
-            <div className="flex flex-wrap gap-2 text-xs font-black text-primary-700">
-              <span className="rounded-full bg-blue-50 px-3 py-1">{project.category}</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">{project.completedAt}</span>
-            </div>
-            <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">{project.title}</h1>
-            <p className="mt-5 text-base leading-8 text-slate-600">{project.summary}</p>
-            <p className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-slate-700">
-              <MapPin aria-hidden="true" className="h-5 w-5 text-primary-600" /> {project.location}
-            </p>
-            <div className="mt-8 grid grid-cols-3 gap-3">
-              {project.metrics.map((metric) => (
-                <div key={metric.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <strong className="block text-sm font-black text-slate-950">{metric.value}</strong>
-                  <span className="mt-1 block text-xs text-slate-500">{metric.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="overflow-hidden rounded-[2rem] bg-slate-100 shadow-2xl shadow-slate-900/10">
-            <OptimizedImage
-              src={project.image}
-              alt={project.title}
-              priority
-              width={1200}
-              height={900}
-              sizes="(max-width: 1024px) 100vw, 55vw"
-              className="aspect-[4/3] h-full w-full object-cover"
-            />
-          </div>
-        </header>
+        <div className="mt-14 grid gap-10 lg:grid-cols-[1fr_340px]">
+          <div>
+            <h2 className="text-2xl font-black text-slate-950">Nội dung thực hiện</h2>
+            <div className="prose prose-slate mt-5 max-w-none leading-8" dangerouslySetInnerHTML={{ __html: project.content || '<p>Nội dung đang được cập nhật.</p>' }} />
 
-        <section className="border-y border-slate-200 bg-slate-50 py-16">
-          <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
-            {[
-              ['Bài toán', project.challenge],
-              ['Giải pháp', project.solution],
-              ['Kết quả', project.result],
-            ].map(([title, content], index) => (
-              <div key={title} className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-sm font-black text-white">0{index + 1}</span>
-                <h2 className="mt-5 text-xl font-black text-slate-950">{title}</h2>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{content}</p>
-              </div>
-            ))}
+            {(project.album || []).length > 0 && <section className="mt-12"><h2 className="text-2xl font-black text-slate-950">Album ảnh dự án</h2><div className="mt-5 grid gap-4 sm:grid-cols-2">{project.album?.map((media) => <figure key={media.id} className="overflow-hidden rounded-2xl border border-slate-200"><OptimizedImage src={media.url} alt={media.altText || media.caption || project.title} width={900} height={650} sizes="(max-width: 640px) 100vw, 50vw" className="aspect-[4/3] w-full object-cover" />{media.caption && <figcaption className="p-3 text-sm text-slate-600">{media.caption}</figcaption>}</figure>)}</div></section>}
           </div>
-        </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="max-w-2xl">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary-600">Hình ảnh triển khai</p>
-            <h2 className="mt-3 text-3xl font-black text-slate-950">Một số góc nhìn trong dự án</h2>
-          </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {project.gallery.map((image, index) => (
-              <div key={image} className="overflow-hidden rounded-[1.5rem] bg-slate-100">
-                <OptimizedImage
-                  src={image}
-                  alt={`${project.title} - hình ${index + 1}`}
-                  width={720}
-                  height={560}
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="aspect-[4/3] h-full w-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="bg-[#061527] py-16 text-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-              <div>
-                <CheckCircle2 aria-hidden="true" className="h-8 w-8 text-cyan-300" />
-                <h2 className="mt-4 text-3xl font-black">Bạn có công trình tương tự?</h2>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">Gửi thông tin cơ bản để đội ngũ kỹ thuật khảo sát nhu cầu và đề xuất phương án phù hợp.</p>
-              </div>
-              <Link to="/contact" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-black text-white hover:bg-orange-600">
-                Liên hệ tư vấn <ArrowRight aria-hidden="true" className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between gap-4">
-            <h2 className="text-2xl font-black text-slate-950">Dự án khác</h2>
-            <Link to="/projects" className="text-sm font-black text-primary-700">Xem tất cả</Link>
-          </div>
-          <div className="mt-7 grid gap-5 md:grid-cols-2">
-            {related.map((item) => (
-              <Link key={item.slug} to={`/projects/${item.slug}`} className="group flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <OptimizedImage src={item.image} alt={item.title} width={360} height={260} sizes="160px" className="h-36 w-40 shrink-0 object-cover" />
-                <div className="p-5">
-                  <span className="text-xs font-bold text-primary-700">{item.category}</span>
-                  <h3 className="mt-2 line-clamp-2 font-black text-slate-950 group-hover:text-primary-700">{item.title}</h3>
-                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-slate-500">Chi tiết <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      </article>
-    </div>
+          <aside className="space-y-5">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6"><h2 className="font-black text-slate-950">Nhiệm vụ chính</h2><ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">{(project.tasks || []).map((task) => <li key={task} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />{task}</li>)}</ul></div>
+            <div className="rounded-2xl bg-emerald-50 p-6"><h2 className="font-black text-emerald-950">Kết quả</h2><p className="mt-3 text-sm leading-7 text-emerald-900">{project.result || 'Kết quả nghiệm thu đang được cập nhật.'}</p></div>
+          </aside>
+        </div>
+      </div>
+    </article>
   );
 }
