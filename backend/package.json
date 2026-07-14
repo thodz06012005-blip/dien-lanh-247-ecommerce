@@ -34,7 +34,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:migrate:status": "prisma migrate status",
     "prisma:reset": "prisma migrate reset --force",
-    "prisma:seed": "prisma db seed",
+    "prisma:seed": "npm run prisma:seed:core && npm run prisma:seed:content",
+    "prisma:seed:core": "ts-node prisma/seed.ts",
     "prisma:seed:content": "ts-node prisma/seed-content.ts",
     "prisma:studio": "prisma studio"
   },
@@ -109,6 +110,6 @@
     "testEnvironment": "node"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts && ts-node prisma/seed-content.ts"
+    "seed": "npm run prisma:seed"
   }
 }
