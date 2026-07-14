@@ -1,12 +1,14 @@
-import { Controller, Get, Patch, Body, UseGuards, Req } from '@nestjs/common';
-import { SettingsService } from './settings.service';
-import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import type { Request } from 'express';
+import { ADMIN_PERMISSIONS } from '../../common/auth/admin-permissions';
+import { Permissions } from '../../common/decorators/permissions.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
-import { Request } from 'express';
 import { AuditLogService } from '../audit/audit-log.service';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { SettingsService } from './settings.service';
 
 @Controller()
 export class SettingsController {
@@ -22,6 +24,7 @@ export class SettingsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Permissions(ADMIN_PERMISSIONS.SETTINGS_VIEW)
   @Get('admin/settings')
   getAdminSettings() {
     return this.settingsService.getAdminSettings();
@@ -29,6 +32,7 @@ export class SettingsController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.SUPERADMIN)
+  @Permissions(ADMIN_PERMISSIONS.SETTINGS_MANAGE)
   @Patch('admin/settings')
   async updateSettings(@Body() dto: UpdateSettingsDto, @Req() req: Request) {
     const result = await this.settingsService.updateSettings(dto);
@@ -36,4 +40,3 @@ export class SettingsController {
     return result;
   }
 }
-
