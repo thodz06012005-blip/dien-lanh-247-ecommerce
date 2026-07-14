@@ -40,6 +40,20 @@ function request(method, path, body = null, token = null) {
   });
 }
 
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getFutureDate(daysFromToday = 7) {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + daysFromToday);
+  return formatLocalDate(date);
+}
+
 async function runTests() {
   console.log('=== Running Service Request Lifecycle & Technician Matching Tests ===');
 
@@ -67,6 +81,16 @@ async function runTests() {
   const sr2 = srRes.data.data.find(r => r.id === 'SR-240602'); // status: pending, district: Quận Đống Đa, categoryId: sua-dieu-hoa
   const tech1 = techRes.data.data.find(t => t.id === 'TECH-001'); // skills: sua-dieu-hoa, ve-sinh-dieu-hoa; areas: Quận Cầu Giấy, Quận Nam Từ Liêm
   const tech2 = techRes.data.data.find(t => t.id === 'TECH-002'); // skills: sua-tu-lanh, sua-may-giat, sua-dieu-hoa; areas: Quận Đống Đa, Quận Thanh Xuân
+
+  if (!sr1 || !sr2 || !tech1 || !tech2) {
+    console.error('ERROR: Required service request or technician fixtures are missing.', {
+      sr1: Boolean(sr1),
+      sr2: Boolean(sr2),
+      tech1: Boolean(tech1),
+      tech2: Boolean(tech2)
+    });
+    process.exit(1);
+  }
 
   // 1. pending -> confirmed (Xác nhận nhanh)
   console.log('\n[Test 2] Transitioning pending -> confirmed...');
@@ -143,9 +167,14 @@ async function runTests() {
   // 6. Assign busy technician (Should be BLOCKED)
   console.log('\n[Test 7] Assigning busy technician...');
   // Assign tech1 to sr1 (Quận Cầu Giấy, ve-sinh-dieu-hoa). tech1 becomes busy.
-  await request('PATCH', `/api/v1/admin/service-requests/${sr1.id}/assign-technician`, { technicianId: tech1.id }, token);
-  
-  // Create another request in Quận Cầu Giấy, ve-sinh-dieu-hoa
+  const busyAssignment = await request('PATCH', `/api/v1/admin/service-requests/${sr1.id}/assign-technician`, { technicianId: tech1.id }, token);
+  if (busyAssignment.status !== 200) {
+    console.error('ERROR: Failed to prepare busy technician fixture!', busyAssignment);
+    process.exit(1);
+  }
+
+  // Create another request in Quận Cầu Giấy, ve-sinh-dieu-hoa.
+  // Use a date relative to execution time so the test remains valid in future years.
   const newSrRes = await request('POST', '/api/v1/service-requests', {
     customerName: 'Customer 2',
     customerPhone: '0911111111',
@@ -154,11 +183,21 @@ async function runTests() {
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa',
     issueDescription: 'Vệ sinh máy',
-    preferredDate: '2026-07-10',
+    preferredDate: getFutureDate(7),
     preferredTimeSlot: '10:00 - 12:00'
   });
+
+  if (newSrRes.status !== 201 || !newSrRes.data?.data?.id) {
+    console.error('ERROR: Failed to create future service request fixture!', newSrRes);
+    process.exit(1);
+  }
+
   const sr3Id = newSrRes.data.data.id;
-  await request('PATCH', `/api/v1/admin/service-requests/${sr3Id}/status`, { status: 'confirmed' }, token);
+  const confirmSr3 = await request('PATCH', `/api/v1/admin/service-requests/${sr3Id}/status`, { status: 'confirmed' }, token);
+  if (confirmSr3.status !== 200) {
+    console.error('ERROR: Failed to confirm generated service request!', confirmSr3);
+    process.exit(1);
+  }
 
   // Now try to assign tech1 (who is busy with sr1) to sr3.
   const failAssign3 = await request('PATCH', `/api/v1/admin/service-requests/${sr3Id}/assign-technician`, { technicianId: tech1.id }, token);
@@ -172,7 +211,11 @@ async function runTests() {
   // 7. Complete and release logic
   console.log('\n[Test 8] Complete and release logic...');
   // Complete sr1
-  await request('PATCH', `/api/v1/admin/service-requests/${sr1.id}/status`, { status: 'completed', finalPrice: 250000 }, token);
+  const releaseRes = await request('PATCH', `/api/v1/admin/service-requests/${sr1.id}/status`, { status: 'completed', finalPrice: 250000 }, token);
+  if (releaseRes.status !== 200) {
+    console.error('ERROR: Failed to complete request and release technician!', releaseRes);
+    process.exit(1);
+  }
 
   // Check tech1 status: should be available and completedCount should increase
   const tRes1 = await request('GET', '/api/v1/admin/technicians', null, token);

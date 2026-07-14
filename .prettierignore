@@ -1,0 +1,12 @@
+**/node_modules/**
+**/dist/**
+**/build/**
+**/coverage/**
+**/.vite/**
+**/*.min.*
+**/package-lock.json
+mock-api/mock-db.json
+mock-api/backups/**
+backend/prisma/migrations/**/migration.sql
+*.zip
+*.rar

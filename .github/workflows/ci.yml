@@ -4,15 +4,42 @@ on:
   push:
     branches:
       - main
-      - security/*
+      - 'feature/**'
+      - 'fix/**'
+      - 'security/**'
+      - 'agent/**'
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_ENV: test
+  HOST: 127.0.0.1
+  PORT: 3000
+  API_PREFIX: api/v1
+  DATABASE_URL: mysql://root:ci_password@127.0.0.1:3306/ecommerce_ci
+  JWT_ACCESS_SECRET: ci_access_secret_with_more_than_thirty_two_characters
+  JWT_REFRESH_SECRET: ci_refresh_secret_with_more_than_thirty_two_characters
+  ADMIN_SEED_EMAIL: admin-ci@dienlanh247.vn
+  ADMIN_SEED_PASSWORD: ci_seed_password_123456
+  CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+  ENABLE_DEV_ENDPOINTS: 'false'
+  ENABLE_DEMO_ACCOUNTS: 'false'
+  COOKIE_SECURE: 'false'
 
 jobs:
   verify:
-    name: Lint, Typecheck and Build Validation
+    name: Install, Lint, Typecheck, Test and Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -21,35 +48,185 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend-user/package-lock.json
+            frontend-admin/package-lock.json
+            backend/package-lock.json
+            mock-api/package-lock.json
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install root dependencies
+        run: npm ci
 
-      - name: Install NestJS CLI globally
-        run: npm install -g @nestjs/cli
+      - name: Install customer frontend dependencies
+        run: npm --prefix frontend-user ci
+
+      - name: Install admin frontend dependencies
+        run: npm --prefix frontend-admin ci
 
       - name: Install backend dependencies
-        run: npm --prefix backend install
+        run: npm --prefix backend ci
+
+      - name: Install Mock API dependencies
+        run: npm --prefix mock-api ci
+
+      - name: Validate Prisma schema
+        run: npm run prisma:validate
 
       - name: Generate Prisma Client
-        run: npm --prefix backend run prisma:generate
+        run: npm run prisma:generate
 
-      - name: Install frontend-admin dependencies
-        run: npm --prefix frontend-admin install
+      - name: Validate repository architecture and secret rules
+        run: npm run validate:repo
 
-      - name: Install frontend-user dependencies
-        run: npm --prefix frontend-user install
+      - name: Run linters
+        run: npm run lint
 
-      - name: Run code quality checks (check:all)
-        run: npm run check:all
+      - name: Run TypeScript checks
+        id: typecheck
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run typecheck > typecheck.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
 
-      - name: Build backend application
-        run: npm --prefix backend run build
+      - name: Upload TypeScript diagnostics
+        if: steps.typecheck.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: typecheck-log
+          path: typecheck.log
+          if-no-files-found: error
+          retention-days: 7
 
-      - name: Build frontend-admin portal
-        run: npm --prefix frontend-admin run build
+      - name: Fail when TypeScript checks fail
+        if: steps.typecheck.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat typecheck.log
+          exit 1
 
-      - name: Build frontend-user portal
-        run: npm --prefix frontend-user run build
+      - name: Run architecture tests
+        id: architecture
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run test:architecture > architecture.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload architecture diagnostics
+        if: steps.architecture.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: architecture-log
+          path: architecture.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when architecture tests fail
+        if: steps.architecture.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat architecture.log
+          exit 1
+
+      - name: Build all applications
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run build:all > build.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload build diagnostics
+        if: steps.build.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when build fails
+        if: steps.build.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat build.log
+          exit 1
+
+      - name: Start Mock API for business tests
+        shell: bash
+        env:
+          PORT: 3001
+          ENABLE_DEV_ENDPOINTS: 'true'
+          ENABLE_DEMO_ACCOUNTS: 'true'
+        run: |
+          node mock-api/server.js > mock-api.log 2>&1 &
+          echo $! > mock-api.pid
+
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3001/api/v1/health > /dev/null; then
+              echo "Mock API is ready."
+              exit 0
+            fi
+
+            if ! kill -0 "$(cat mock-api.pid)" 2>/dev/null; then
+              echo "Mock API stopped before becoming ready."
+              cat mock-api.log
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          echo "Mock API did not become ready within 30 seconds."
+          cat mock-api.log
+          exit 1
+
+      - name: Run Mock API business tests
+        id: mock-tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run test:mock > mock-tests.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload Mock API business test diagnostics
+        if: steps.mock-tests.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mock-tests-log
+          path: |
+            mock-tests.log
+            mock-api.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when Mock API business tests fail
+        if: steps.mock-tests.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat mock-tests.log
+          exit 1
+
+      - name: Stop Mock API
+        if: always()
+        shell: bash
+        run: |
+          if [ -f mock-api.pid ]; then
+            kill "$(cat mock-api.pid)" 2>/dev/null || true
+          fi
