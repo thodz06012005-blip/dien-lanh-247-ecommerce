@@ -117,7 +117,31 @@ jobs:
         run: npm run validate:repo
 
       - name: Run linters
-        run: npm run lint
+        id: lint
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run lint > lint.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload lint diagnostics
+        if: steps.lint.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-log
+          path: lint.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when lint fails
+        if: steps.lint.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat lint.log
+          exit 1
 
       - name: Run TypeScript checks
         run: npm run typecheck
