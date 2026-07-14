@@ -9,7 +9,12 @@ export type ServiceRequestStatus =
   | 'CLOSED'
   | 'CANCELLED'
   | 'REJECTED'
-  | 'RESCHEDULED';
+  | 'RESCHEDULED'
+  | 'pending'
+  | 'confirmed'
+  | 'assigned'
+  | 'completed'
+  | 'cancelled';
 
 export type ServiceRequestPriority = 'low' | 'medium' | 'high' | 'urgent';
 
