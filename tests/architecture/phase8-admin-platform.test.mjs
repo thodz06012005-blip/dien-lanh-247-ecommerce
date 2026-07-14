@@ -41,12 +41,15 @@ test('permission catalog controls backend and direct frontend routes', () => {
   const permissionGuard = read('backend/src/common/guards/permissions.guard.ts');
   const router = read('frontend-admin/src/router/AppRouter.tsx');
   const layout = read('frontend-admin/src/layouts/AdminLayout.tsx');
+  const settings = read('backend/src/modules/settings/settings.controller.ts');
   assert.match(permissionGuard, /hasAdminPermissions/);
   assert.match(permissionGuard, /PERMISSION_FORBIDDEN/);
   assert.match(router, /permission=\{ADMIN_PERMISSIONS\.SETTINGS_VIEW\}/);
   assert.match(router, /permission=\{ADMIN_PERMISSIONS\.PROFILE_VIEW\}/);
   assert.match(layout, /filter\(\(item\) => canAccess\(permissions, item\.permission\)\)/);
   assert.match(layout, /allowedSearchItems/);
+  assert.match(settings, /PermissionsGuard/);
+  assert.match(settings, /SETTINGS_MANAGE/);
 });
 
 test('dashboard consumes a single real backend snapshot', () => {
@@ -55,9 +58,7 @@ test('dashboard consumes a single real backend snapshot', () => {
   assert.match(page, /api\.get\('\/admin\/dashboard'\)/);
   assert.doesNotMatch(page, /api\.get\('\/admin\/orders'\)/);
   assert.doesNotMatch(page, /api\.get\('\/admin\/products'\)/);
-  for (const contract of ['revenue7d', 'orderStatus', 'serviceStatus', 'attention', 'recentOrders']) {
-    assert.match(service, new RegExp(contract));
-  }
+  for (const contract of ['revenue7d', 'orderStatus', 'serviceStatus', 'attention', 'recentOrders']) assert.match(service, new RegExp(contract));
   assert.match(service, /FROM ServiceRequest/);
   assert.match(service, /prisma\.order/);
   assert.match(service, /prisma\.variant/);
@@ -65,17 +66,16 @@ test('dashboard consumes a single real backend snapshot', () => {
 
 test('standard data table supports all required administration operations', () => {
   const table = read('frontend-admin/src/components/admin/AdminDataTable.tsx');
-  for (const capability of ['searchFields', 'filters', 'toggleSort', 'togglePage', 'selectedRows', 'exportCsv', 'pageSize']) {
-    assert.match(table, new RegExp(capability));
-  }
+  for (const capability of ['searchFields', 'filters', 'toggleSort', 'togglePage', 'selectedRows', 'exportCsv', 'pageSize']) assert.match(table, new RegExp(capability));
   assert.match(table, /text\/csv/);
 });
 
 test('admin forms warn before discarding unsaved changes', () => {
   const hook = read('frontend-admin/src/hooks/useUnsavedChanges.ts');
   const shell = read('frontend-admin/src/components/admin/AdminFormShell.tsx');
-  assert.match(hook, /useBlocker/);
+  assert.match(hook, /hashchange/);
   assert.match(hook, /beforeunload/);
+  assert.match(hook, /window\.confirm/);
   assert.match(shell, /useUnsavedChanges/);
   assert.match(shell, /Chưa lưu/);
 });
