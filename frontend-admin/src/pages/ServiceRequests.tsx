@@ -16,7 +16,7 @@ import {
 import type { AxiosError } from 'axios';
 import api from '@/services/api';
 import { listServiceRequests, updateServiceRequestStatus } from '@/services/serviceRequestApi';
-import type { ServiceCategory, ServiceRequest, ServiceRequestStatus } from '@/features/service-requests/types';
+import type { ServiceCategory, ServiceRequest } from '@/features/service-requests/types';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
