@@ -3,17 +3,14 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
-  IsEmail,
   IsIn,
   IsInt,
-  IsObject,
   IsOptional,
   IsString,
   IsUrl,
   Max,
   MaxLength,
   Min,
-  ValidateNested,
 } from 'class-validator';
 
 const asBoolean = ({ value }: { value: unknown }) => {
