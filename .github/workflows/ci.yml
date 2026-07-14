@@ -166,4 +166,28 @@ jobs:
           exit 1
 
       - name: Run Mock API business tests
-        run: npm run test:mock
+        id: mock-tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run test:mock > mock-tests.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload Mock API business test diagnostics
+        if: steps.mock-tests.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mock-tests-log
+          path: mock-tests.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when Mock API business tests fail
+        if: steps.mock-tests.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          cat mock-tests.log
+          exit 1
