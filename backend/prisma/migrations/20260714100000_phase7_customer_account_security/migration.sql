@@ -1,5 +1,6 @@
 -- Phase 7: customer account, secure sessions, password recovery and ownership.
 -- Additive migration: no legacy column or table is removed.
+-- Deployment invariant: Phase 1–6 data remains readable during staged application rollout.
 
 ALTER TABLE `User`
   ADD COLUMN `normalizedPhone` VARCHAR(32) NULL,
