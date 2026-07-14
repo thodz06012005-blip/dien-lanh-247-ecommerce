@@ -1,5 +1,6 @@
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import AdminLayout from '@/layouts/AdminLayout';
+import Content from '@/pages/Content';
 import Customers from '@/pages/Customers';
 import Dashboard from '@/pages/Dashboard';
 import DesignSystem from '@/pages/DesignSystem';
@@ -18,9 +19,7 @@ function NotFoundPage() {
     <section className="flex min-h-64 flex-col items-center justify-center gap-3 px-4 text-center">
       <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">404</p>
       <h1 className="text-2xl font-bold text-slate-900">Không tìm thấy trang quản trị</h1>
-      <p className="max-w-md text-sm leading-6 text-slate-500">
-        Kiểm tra lại đường dẫn hoặc quyền truy cập của tài khoản hiện tại.
-      </p>
+      <p className="max-w-md text-sm leading-6 text-slate-500">Kiểm tra lại đường dẫn hoặc quyền truy cập của tài khoản hiện tại.</p>
     </section>
   );
 }
@@ -40,6 +39,7 @@ export default function AppRouter() {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="content" element={<Content />} />
           <Route path="products" element={<Products />} />
           <Route path="orders" element={<Orders />} />
           <Route path="customers" element={<Customers />} />

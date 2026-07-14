@@ -1,0 +1,117 @@
+name: Phase 5 Content Integration
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/prisma/**'
+      - 'backend/src/modules/content/**'
+      - 'backend/src/app.module.ts'
+      - 'backend/package.json'
+      - '.github/workflows/phase5-content-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase5-content-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrate-seed-verify:
+    name: Migrate, Seed and Verify Managed Content
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ecommerce
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    env:
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/ecommerce
+      NODE_ENV: test
+      ADMIN_SEED_EMAIL: admin@dienlanh247.vn
+      ADMIN_SEED_PASSWORD: Phase5SecureSeed123!
+      ADMIN_NAME: Phase 5 Admin
+      JWT_ACCESS_SECRET: phase5_access_secret_for_ci_at_least_32_characters
+      JWT_REFRESH_SECRET: phase5_refresh_secret_for_ci_at_least_32_characters
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      BCRYPT_SALT_ROUNDS: 4
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Wait for MySQL
+        run: |
+          for attempt in {1..60}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'MySQL did not become ready' >&2
+          exit 1
+
+      - name: Validate and generate Prisma client
+        run: |
+          npm --prefix backend run prisma:validate
+          npm --prefix backend run prisma:generate
+
+      - name: Apply all migrations to clean database
+        run: npm --prefix backend run prisma:migrate:deploy
+
+      - name: Run core and managed-content seed
+        run: npm --prefix backend run prisma:seed
+
+      - name: Verify seed is idempotent
+        run: npm --prefix backend run prisma:seed
+
+      - name: Verify content database contracts
+        working-directory: backend
+        run: |
+          set -o pipefail
+          npx ts-node prisma/verify-content.ts 2>&1 | tee phase5-verify.log
+
+      - name: Upload verification log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase5-content-verification
+          path: backend/phase5-verify.log
+          retention-days: 7
+
+      - name: Upload migration diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase5-migration-diagnostics
+          path: |
+            backend/prisma/migrations
+            backend/prisma/schema.prisma
+            backend/prisma/seed-content.ts
+            backend/prisma/verify-content.ts
+          retention-days: 7

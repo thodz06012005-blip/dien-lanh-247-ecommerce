@@ -24,6 +24,7 @@ const Projects = lazy(() => import('@/pages/Projects'));
 const Register = lazy(() => import('@/pages/Register'));
 const ServiceBooking = lazy(() => import('@/pages/ServiceBooking'));
 const ServiceBookingSuccess = lazy(() => import('@/pages/ServiceBookingSuccess'));
+const ServiceDetail = lazy(() => import('@/pages/ServiceDetail'));
 const Services = lazy(() => import('@/pages/Services'));
 
 function ScrollToTop() {
@@ -57,6 +58,7 @@ export default function AppRouter() {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Home />} />
             <Route path="services" element={<Services />} />
+            <Route path="services/:slug" element={<ServiceDetail />} />
             <Route path="projects" element={<Projects />} />
             <Route path="projects/:slug" element={<ProjectDetail />} />
             <Route path="articles" element={<Articles />} />
