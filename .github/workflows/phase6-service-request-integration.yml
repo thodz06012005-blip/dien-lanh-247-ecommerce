@@ -62,7 +62,7 @@ jobs:
       JWT_REFRESH_SECRET: phase6_refresh_secret_for_integration_at_least_32_characters
       JWT_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
-      BCRYPT_SALT_ROUNDS: 4
+      BCRYPT_SALT_ROUNDS: 8
       COOKIE_SECURE: false
       COOKIE_SAME_SITE: strict
       CORS_ORIGINS: http://localhost:5173,http://localhost:5174
