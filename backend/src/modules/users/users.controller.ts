@@ -27,18 +27,27 @@ interface AccountUser {
   sessionId: string;
 }
 
+interface AccountApiResponse {
+  success: boolean;
+  message?: string;
+  data: unknown;
+}
+
 @Controller('account')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  async overview(@CurrentUser() user: AccountUser) {
+  async overview(@CurrentUser() user: AccountUser): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.getOverview(user.userId) };
   }
 
   @Patch('profile')
-  async updateProfile(@CurrentUser() user: AccountUser, @Body() dto: UpdateProfileDto) {
+  async updateProfile(
+    @CurrentUser() user: AccountUser,
+    @Body() dto: UpdateProfileDto,
+  ): Promise<AccountApiResponse> {
     return {
       success: true,
       message: 'Cập nhật hồ sơ thành công',
@@ -47,12 +56,15 @@ export class UsersController {
   }
 
   @Get('addresses')
-  async addresses(@CurrentUser() user: AccountUser) {
+  async addresses(@CurrentUser() user: AccountUser): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.listAddresses(user.userId) };
   }
 
   @Post('addresses')
-  async createAddress(@CurrentUser() user: AccountUser, @Body() dto: AddressDto) {
+  async createAddress(
+    @CurrentUser() user: AccountUser,
+    @Body() dto: AddressDto,
+  ): Promise<AccountApiResponse> {
     return {
       success: true,
       message: 'Đã thêm địa chỉ',
@@ -65,7 +77,7 @@ export class UsersController {
     @CurrentUser() user: AccountUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AddressDto,
-  ) {
+  ): Promise<AccountApiResponse> {
     return {
       success: true,
       message: 'Đã cập nhật địa chỉ',
@@ -77,7 +89,7 @@ export class UsersController {
   async deleteAddress(
     @CurrentUser() user: AccountUser,
     @Param('id', ParseIntPipe) id: number,
-  ) {
+  ): Promise<AccountApiResponse> {
     return {
       success: true,
       message: 'Đã xóa địa chỉ',
@@ -90,7 +102,7 @@ export class UsersController {
     @CurrentUser() user: AccountUser,
     @Body() dto: ChangePasswordDto,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<AccountApiResponse> {
     const data = await this.usersService.changePassword(user.userId, dto);
     res.clearCookie('accessToken', { path: '/' });
     res.clearCookie('refreshToken', { path: '/api/v1/auth/refresh' });
@@ -102,7 +114,7 @@ export class UsersController {
   }
 
   @Get('orders')
-  async orders(@CurrentUser() user: AccountUser) {
+  async orders(@CurrentUser() user: AccountUser): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.listOrders(user.userId) };
   }
 
@@ -110,17 +122,20 @@ export class UsersController {
   async order(
     @CurrentUser() user: AccountUser,
     @Param('id', ParseIntPipe) id: number,
-  ) {
+  ): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.getOrder(user.userId, id) };
   }
 
   @Get('service-requests')
-  async serviceRequests(@CurrentUser() user: AccountUser) {
+  async serviceRequests(@CurrentUser() user: AccountUser): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.listServiceRequests(user.userId) };
   }
 
   @Get('service-requests/:id')
-  async serviceRequest(@CurrentUser() user: AccountUser, @Param('id') id: string) {
+  async serviceRequest(
+    @CurrentUser() user: AccountUser,
+    @Param('id') id: string,
+  ): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.getServiceRequest(user.userId, id) };
   }
 
@@ -128,7 +143,7 @@ export class UsersController {
   async claimServiceRequest(
     @CurrentUser() user: AccountUser,
     @Body() dto: ClaimServiceRequestDto,
-  ) {
+  ): Promise<AccountApiResponse> {
     return {
       success: true,
       message: 'Yêu cầu dịch vụ đã được liên kết với tài khoản',
@@ -141,7 +156,7 @@ export class UsersController {
     @CurrentUser() user: AccountUser,
     @Param('id') id: string,
     @Body() dto: ServiceRequestReviewDto,
-  ) {
+  ): Promise<AccountApiResponse> {
     return {
       success: true,
       message: 'Cảm ơn bạn đã đánh giá dịch vụ',
@@ -150,22 +165,25 @@ export class UsersController {
   }
 
   @Get('notifications')
-  async notifications(@CurrentUser() user: AccountUser) {
+  async notifications(@CurrentUser() user: AccountUser): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.listNotifications(user.userId) };
   }
 
   @Patch('notifications/read-all')
-  async readAllNotifications(@CurrentUser() user: AccountUser) {
+  async readAllNotifications(@CurrentUser() user: AccountUser): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.markAllNotificationsRead(user.userId) };
   }
 
   @Patch('notifications/:id/read')
-  async readNotification(@CurrentUser() user: AccountUser, @Param('id') id: string) {
+  async readNotification(
+    @CurrentUser() user: AccountUser,
+    @Param('id') id: string,
+  ): Promise<AccountApiResponse> {
     return { success: true, data: await this.usersService.markNotificationRead(user.userId, BigInt(id)) };
   }
 
   @Get('sessions')
-  async sessions(@CurrentUser() user: AccountUser) {
+  async sessions(@CurrentUser() user: AccountUser): Promise<AccountApiResponse> {
     return {
       success: true,
       data: await this.usersService.listSessions(user.userId, user.sessionId),
@@ -173,7 +191,10 @@ export class UsersController {
   }
 
   @Delete('sessions/:id')
-  async revokeSession(@CurrentUser() user: AccountUser, @Param('id') id: string) {
+  async revokeSession(
+    @CurrentUser() user: AccountUser,
+    @Param('id') id: string,
+  ): Promise<AccountApiResponse> {
     return {
       success: true,
       message: id === user.sessionId ? 'Phiên hiện tại đã được thu hồi' : 'Phiên đăng nhập đã được thu hồi',
