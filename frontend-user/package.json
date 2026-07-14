@@ -13,7 +13,7 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:architecture": "node --test tests",
+    "test:architecture": "node --test tests/*.test.mjs",
     "check": "npm run lint && npm run typecheck && npm run test:architecture && npm run build",
     "preview": "vite preview --host 0.0.0.0"
   },
