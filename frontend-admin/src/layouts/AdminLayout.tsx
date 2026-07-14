@@ -1,319 +1,139 @@
-import { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Bell,
-  ChevronDown,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  Package,
-  Palette,
-  Search,
-  Settings as SettingsIcon,
-  ShoppingBag,
-  Snowflake,
-  User,
-  Users,
-  Wrench,
-} from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { useAdminAuthStore } from '../store/adminAuthStore';
+import { Bell, ChevronDown, Command, ExternalLink, LogOut, Menu, Search, Snowflake, UserRound, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import AdminBreadcrumb from '@/components/admin/AdminBreadcrumb';
+import { adminNavigation, flatAdminNavigation, getAdminRouteMeta } from '@/config/adminNavigation';
+import { canAccess } from '@/config/adminPermissions';
+import api from '@/services/api';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
+
+interface DashboardHeaderData { attention?: Array<unknown>; }
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
+  const { admin, permissions, logout, hasPermission } = useAdminAuthStore();
 
-  const admin = useAdminAuthStore((state) => state.admin);
-  const logoutStore = useAdminAuthStore((state) => state.logout);
+  const allowedGroups = useMemo(() => adminNavigation
+    .map((group) => ({ ...group, items: group.items.filter((item) => canAccess(permissions, item.permission)) }))
+    .filter((group) => group.items.length > 0), [permissions]);
 
-  const handleLogout = async () => {
-    await logoutStore();
-    navigate('/login');
-  };
+  const allowedSearchItems = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase('vi-VN');
+    return flatAdminNavigation
+      .filter((item) => canAccess(permissions, item.permission))
+      .filter((item) => !query || [item.label, item.shortLabel, ...(item.keywords || [])].join(' ').toLocaleLowerCase('vi-VN').includes(query));
+  }, [permissions, searchQuery]);
+
+  const dashboardQuery = useQuery({
+    queryKey: ['admin-dashboard'],
+    queryFn: async () => (await api.get('/admin/dashboard')).data.data as DashboardHeaderData,
+    enabled: hasPermission('dashboard.view'),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsMobileOpen(false);
+    const timeout = window.setTimeout(() => {
+      setMobileOpen(false);
+      setProfileOpen(false);
+      setSearchOpen(false);
+      setSearchQuery('');
     }, 0);
-    return () => clearTimeout(timer);
+    return () => window.clearTimeout(timeout);
   }, [location.pathname]);
 
-  const menuGroups = [
-    {
-      title: 'Chính',
-      items: [
-        { path: '/', label: 'Tổng quan', icon: <LayoutDashboard className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/orders', label: 'Đơn hàng', icon: <ShoppingBag className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/products', label: 'Sản phẩm', icon: <Package className="h-[18px] w-[18px] shrink-0" /> },
-      ],
-    },
-    {
-      title: 'Dịch vụ',
-      items: [
-        { path: '/service-requests', label: 'Yêu cầu sửa chữa', icon: <Wrench className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/technicians', label: 'Quản lý thợ kỹ thuật', icon: <Users className="h-[18px] w-[18px] shrink-0" /> },
-      ],
-    },
-    {
-      title: 'Quản lý',
-      items: [
-        { path: '/customers', label: 'Khách hàng', icon: <Users className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/settings', label: 'Cài đặt', icon: <SettingsIcon className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/design-system', label: 'Thư viện giao diện', icon: <Palette className="h-[18px] w-[18px] shrink-0" /> },
-      ],
-    },
-  ];
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+      if (event.key === 'Escape') {
+        setSearchOpen(false);
+        setProfileOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
 
-  const breadcrumbs: Record<string, string> = {
-    '/': 'Tổng quan hệ thống',
-    '/orders': 'Quản lý Đơn hàng',
-    '/products': 'Quản lý Sản phẩm',
-    '/customers': 'Quản lý Khách hàng',
-    '/settings': 'Cài đặt Hệ thống',
-    '/service-requests': 'Yêu cầu dịch vụ sửa chữa',
-    '/technicians': 'Quản lý Thợ kỹ thuật',
-    '/design-system': 'Thư viện giao diện quản trị',
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
   };
 
-  const getBreadcrumbTitle = (pathname: string) => {
-    if (pathname.startsWith('/service-requests/')) return 'Yêu cầu sửa chữa / Chi tiết yêu cầu';
-    if (pathname.startsWith('/orders/')) return 'Quản lý Đơn hàng / Chi tiết đơn hàng';
-    if (pathname.startsWith('/products/')) return 'Quản lý Sản phẩm / Chi tiết sản phẩm';
-    if (pathname.startsWith('/technicians/')) return 'Quản lý Thợ kỹ thuật / Chi tiết thợ';
-    return breadcrumbs[pathname] || 'Dashboard';
-  };
+  const routeMeta = getAdminRouteMeta(location.pathname);
+  const attentionCount = dashboardQuery.data?.attention?.length ?? 0;
 
-  const currentPageTitle = getBreadcrumbTitle(location.pathname);
-
-  const sidebarContent = (
+  const sidebar = (
     <>
-      <div
-        className={clsx(
-          'flex h-16 items-center gap-3.5 border-b border-white/5 px-6',
-          collapsed && 'justify-center px-0',
-        )}
-      >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg shadow-blue-500/20">
-          <Snowflake className="h-5 w-5 text-white" />
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col justify-center">
-            <strong className="text-sm font-bold leading-tight text-white">Điện Lạnh 247</strong>
-            <span className="mt-0.5 text-[11px] text-slate-400">Admin Panel</span>
-          </div>
-        )}
+      <div className={clsx('flex h-16 items-center gap-3 border-b border-white/5 px-5', collapsed && 'justify-center px-0')}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg shadow-blue-500/20"><Snowflake className="h-5 w-5 text-white" /></div>
+        {!collapsed && <div><strong className="block text-sm font-black text-white">Điện Lạnh 247</strong><span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300/80">Admin Workspace</span></div>}
       </div>
-
-      <nav aria-label="Điều hướng quản trị" className="flex flex-grow flex-col gap-6 overflow-y-auto px-3 py-4">
-        {menuGroups.map((group) => (
-          <div key={group.title} className="flex flex-col gap-1.5">
-            {!collapsed && (
-              <span className="px-3 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-slate-400/80">
-                {group.title}
-              </span>
-            )}
-            {group.items.map((item) => {
-              const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  title={collapsed ? item.label : undefined}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={clsx(
-                    'admin-focus-ring group relative flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition',
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md shadow-blue-900/20'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-white',
-                    collapsed && 'justify-center',
-                  )}
-                >
-                  {isActive && !collapsed && (
-                    <div className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
-                  )}
-                  {item.icon}
-                  {!collapsed && <span>{item.label}</span>}
-                </Link>
-              );
-            })}
-          </div>
+      <nav aria-label="Điều hướng quản trị" className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+        {allowedGroups.map((group) => (
+          <section key={group.title}>
+            {!collapsed && <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{group.title}</p>}
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);
+                const Icon = item.icon;
+                return (
+                  <Link key={item.path} to={item.path} title={collapsed ? item.label : undefined} aria-current={active ? 'page' : undefined} className={clsx('group relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition', active ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-950/20' : 'text-slate-400 hover:bg-white/5 hover:text-white', collapsed && 'justify-center px-0')}>
+                    <Icon className="h-[18px] w-[18px] shrink-0" />
+                    {!collapsed && <span className="truncate">{item.shortLabel || item.label}</span>}
+                    {active && !collapsed && <span className="absolute right-2 h-1.5 w-1.5 rounded-full bg-white" />}
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
         ))}
       </nav>
-
-      <div
-        className={clsx(
-          'mt-auto flex items-center gap-3 border-t border-white/5 p-5 pb-6',
-          collapsed && 'justify-center p-3',
-        )}
-      >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-800 text-sm font-bold text-slate-300">
-          {admin?.name?.[0] || 'A'}
-        </div>
-        {!collapsed && (
-          <div className="flex min-w-0 flex-col">
-            <strong className="truncate text-sm font-semibold text-slate-200">{admin?.name || 'Administrator'}</strong>
-            <span className="truncate text-xs text-slate-400">{admin?.email || 'owner@dienlanh247.vn'}</span>
-          </div>
-        )}
-      </div>
+      <Link to="/profile" className={clsx('m-3 flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.04] p-3 transition hover:bg-white/[0.08]', collapsed && 'justify-center')}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 text-sm font-black text-white">{admin?.name?.charAt(0).toUpperCase() || 'A'}</div>
+        {!collapsed && <div className="min-w-0"><strong className="block truncate text-sm text-white">{admin?.name || 'Administrator'}</strong><span className="mt-0.5 block truncate text-[10px] font-black uppercase tracking-wider text-cyan-300">{admin?.role || 'admin'}</span></div>}
+      </Link>
     </>
   );
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-[#F5F7FB] font-sans text-slate-800 antialiased">
-      <a href="#admin-main-content" className="admin-skip-link">
-        Chuyển đến nội dung quản trị
-      </a>
-
-      <aside
-        aria-label="Thanh điều hướng quản trị"
-        className={clsx(
-          'sidebar-gradient sticky top-0 z-30 hidden h-screen shrink-0 flex-col border-r border-slate-800 text-white shadow-xl transition-all duration-300 lg:flex',
-          collapsed ? 'w-[72px]' : 'w-[260px]',
-        )}
-      >
-        {sidebarContent}
-      </aside>
-
-      {isMobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            aria-label="Đóng menu quản trị"
-            className="absolute inset-0 cursor-default bg-slate-900/60 backdrop-blur-sm"
-            onClick={() => setIsMobileOpen(false)}
-          />
-          <aside aria-label="Menu quản trị trên thiết bị di động" className="sidebar-gradient absolute inset-y-0 left-0 flex w-[min(86vw,260px)] flex-col text-white shadow-2xl">
-            {sidebarContent}
-          </aside>
-        </div>
-      )}
-
-      <div className="flex h-screen min-w-0 flex-grow flex-col overflow-hidden">
-        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/60 bg-white px-4 shadow-sm lg:px-8">
-          <div className="flex min-w-0 items-center gap-4">
-            <button
-              type="button"
-              aria-label={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
-              aria-expanded={!collapsed}
-              onClick={() => setCollapsed(!collapsed)}
-              className="admin-focus-ring hidden h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 lg:flex"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Mở menu quản trị"
-              aria-expanded={isMobileOpen}
-              onClick={() => setIsMobileOpen(true)}
-              className="admin-focus-ring flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 lg:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <h1 className="hidden truncate text-sm font-extrabold tracking-tight text-slate-800 sm:block">
-              {currentPageTitle}
-            </h1>
+    <div className="flex min-h-screen overflow-hidden bg-[#F4F7FB] text-slate-800 antialiased">
+      <a href="#admin-main-content" className="admin-skip-link">Chuyển đến nội dung quản trị</a>
+      <aside className={clsx('sidebar-gradient sticky top-0 z-30 hidden h-screen shrink-0 flex-col border-r border-slate-800 shadow-xl transition-[width] duration-300 lg:flex', collapsed ? 'w-[76px]' : 'w-[264px]')} aria-label="Thanh điều hướng quản trị">{sidebar}</aside>
+      {mobileOpen && <div className="fixed inset-0 z-50 lg:hidden"><button type="button" className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => setMobileOpen(false)} aria-label="Đóng menu" /><aside className="sidebar-gradient absolute inset-y-0 left-0 flex w-[min(86vw,280px)] flex-col shadow-2xl">{sidebar}</aside></div>}
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/70 bg-white/95 px-4 shadow-sm backdrop-blur lg:px-7">
+          <div className="flex min-w-0 items-center gap-3">
+            <button type="button" onClick={() => setMobileOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Mở menu"><Menu className="h-5 w-5" /></button>
+            <button type="button" onClick={() => setCollapsed((value) => !value)} className="hidden h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 lg:flex" aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}><Menu className="h-5 w-5" /></button>
+            <div className="min-w-0"><AdminBreadcrumb /><h1 className="mt-0.5 hidden truncate text-sm font-black text-slate-950 md:block">{routeMeta.label}</h1></div>
           </div>
-
-          <div className="flex items-center gap-2 lg:gap-5">
-            <button
-              type="button"
-              disabled
-              aria-label="Tìm kiếm chưa khả dụng"
-              className="relative flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-xl text-slate-500 opacity-50"
-              title="Tính năng tìm kiếm đang được phát triển"
-            >
-              <Search className="h-[18px] w-[18px]" />
-            </button>
-            <button
-              type="button"
-              disabled
-              aria-label="Thông báo chưa khả dụng"
-              className="relative flex h-10 w-10 cursor-not-allowed items-center justify-center rounded-xl text-slate-500 opacity-50"
-              title="Tính năng thông báo đang được phát triển"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-white bg-red-500" />
-            </button>
-
-            <div className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
-
-            <a
-              href="http://localhost:5173"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="admin-focus-ring hidden min-h-10 items-center rounded-lg bg-primary-50 px-3 text-[11px] font-bold text-primary-600 transition-colors hover:text-primary-700 sm:flex"
-            >
-              Xem Web
-            </a>
-
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setSearchOpen(true)} className="hidden min-h-10 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-500 hover:border-primary-200 hover:bg-white sm:flex"><Search className="h-4 w-4" /><span>Tìm module</span><kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px]">Ctrl K</kbd></button>
+            <button type="button" onClick={() => navigate('/')} className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label={`${attentionCount} công việc cần chú ý`}><Bell className="h-[18px] w-[18px]" />{attentionCount > 0 && <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">{Math.min(attentionCount, 9)}{attentionCount > 9 ? '+' : ''}</span>}</button>
+            <a href="http://localhost:5173" target="_blank" rel="noopener noreferrer" className="hidden min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-black text-slate-600 hover:border-primary-200 hover:text-primary-700 xl:flex">Website <ExternalLink className="h-3.5 w-3.5" /></a>
             <div className="relative">
-              <button
-                type="button"
-                aria-haspopup="menu"
-                aria-expanded={showProfileDropdown}
-                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="admin-focus-ring flex min-h-10 cursor-pointer items-center gap-3 rounded-xl border border-transparent p-1 transition-colors hover:border-slate-200 hover:bg-slate-50"
-              >
-                <div className="hidden flex-col items-end text-right sm:flex">
-                  <span className="text-sm font-medium leading-tight text-slate-900">{admin?.name || 'Administrator'}</span>
-                  <span className="mt-0.5 text-xs text-slate-500">{admin?.email || 'owner@dienlanh247.vn'}</span>
-                </div>
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-gradient-to-br from-blue-500 to-cyan-500 text-sm font-bold text-white">
-                  {admin?.name?.[0] || 'A'}
-                </div>
-                <ChevronDown className="hidden h-3.5 w-3.5 text-slate-400 sm:block" />
+              <button type="button" onClick={() => setProfileOpen((value) => !value)} className="flex min-h-10 items-center gap-2 rounded-xl border border-transparent p-1.5 hover:border-slate-200 hover:bg-slate-50" aria-haspopup="menu" aria-expanded={profileOpen}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-sm font-black text-white">{admin?.name?.charAt(0).toUpperCase() || 'A'}</div>
+                <div className="hidden text-left md:block"><strong className="block max-w-32 truncate text-xs text-slate-900">{admin?.name}</strong><span className="block text-[10px] font-bold uppercase tracking-wide text-slate-400">{admin?.role}</span></div><ChevronDown className="hidden h-3.5 w-3.5 text-slate-400 md:block" />
               </button>
-
-              {showProfileDropdown && (
-                <>
-                  <button
-                    type="button"
-                    aria-label="Đóng menu tài khoản"
-                    className="fixed inset-0 z-10 cursor-default"
-                    onClick={() => setShowProfileDropdown(false)}
-                  />
-                  <div role="menu" className="absolute right-0 z-20 mt-2 flex w-48 flex-col rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold shadow-xl">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setShowProfileDropdown(false);
-                        navigate('/settings');
-                      }}
-                      className="admin-focus-ring flex min-h-10 w-full cursor-pointer items-center gap-2.5 px-4 py-2 text-left text-slate-600 transition-colors hover:bg-slate-50"
-                    >
-                      <User className="h-4 w-4" />
-                      <span>Thông tin tài khoản</span>
-                    </button>
-                    <hr className="my-1 border-slate-100" />
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={handleLogout}
-                      className="admin-focus-ring flex min-h-10 w-full cursor-pointer items-center gap-2.5 px-4 py-2 text-left text-red-600 transition-colors hover:bg-red-50"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>Đăng xuất</span>
-                    </button>
-                  </div>
-                </>
-              )}
+              {profileOpen && <div role="menu" className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"><div className="border-b border-slate-100 px-3 py-3"><p className="truncate text-sm font-black text-slate-900">{admin?.name}</p><p className="mt-1 truncate text-xs text-slate-500">{admin?.email}</p></div><Link to="/profile" role="menuitem" className="mt-2 flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold text-slate-600 hover:bg-slate-50"><UserRound className="h-4 w-4" />Hồ sơ và bảo mật</Link><button type="button" role="menuitem" onClick={handleLogout} className="flex min-h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm font-bold text-red-600 hover:bg-red-50"><LogOut className="h-4 w-4" />Đăng xuất</button></div>}
             </div>
           </div>
         </header>
-
-        <main
-          id="admin-main-content"
-          tabIndex={-1}
-          className="page-fade-in relative w-full flex-grow overflow-y-auto p-4 outline-none lg:p-8"
-        >
-          <Outlet />
-        </main>
+        <main id="admin-main-content" tabIndex={-1} className="min-w-0 flex-1 overflow-y-auto px-4 py-5 outline-none sm:px-6 lg:px-8 lg:py-7"><Outlet /></main>
       </div>
+      {searchOpen && <div className="fixed inset-0 z-[70] flex items-start justify-center bg-slate-950/65 px-4 pt-[12vh] backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Tìm kiếm module quản trị"><button type="button" className="absolute inset-0" onClick={() => setSearchOpen(false)} aria-label="Đóng tìm kiếm" /><section className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl"><div className="flex items-center gap-3 border-b border-slate-100 px-5"><Command className="h-5 w-5 text-primary-600" /><input autoFocus value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="min-h-16 flex-1 text-base font-bold outline-none placeholder:text-slate-400" placeholder="Tìm đơn hàng, sản phẩm, dịch vụ..." /><button type="button" onClick={() => setSearchOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" aria-label="Đóng"><X className="h-4 w-4" /></button></div><div className="max-h-[50vh] overflow-y-auto p-3">{allowedSearchItems.map((item) => { const Icon = item.icon; return <button key={item.path} type="button" onClick={() => navigate(item.path)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-slate-50"><div className="rounded-xl bg-blue-50 p-2 text-primary-600"><Icon className="h-4 w-4" /></div><div><strong className="text-sm text-slate-900">{item.label}</strong><p className="mt-0.5 text-xs text-slate-400">{item.path}</p></div></button>; })}{!allowedSearchItems.length && <div className="p-8 text-center text-sm text-slate-500">Không có module phù hợp trong phạm vi quyền hiện tại.</div>}</div></section></div>}
     </div>
   );
 }

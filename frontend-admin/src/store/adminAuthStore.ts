@@ -1,149 +1,89 @@
 import { create } from 'zustand';
-import api from '../services/api';
-
-export interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-}
+import { canAccess } from '@/config/adminPermissions';
+import api, { getApiErrorMessage } from '@/services/api';
+import type { AdminPermission, AdminSessionPayload, AdminUser } from '@/types/admin';
 
 interface AdminAuthState {
   admin: AdminUser | null;
-  token: string | null;
+  permissions: AdminPermission[];
   isAuthenticated: boolean;
-  expiresAt: number | null;
+  isInitialized: boolean;
   isLoading: boolean;
+  expiresAt: number | null;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  bootstrap: () => Promise<boolean>;
   logout: () => Promise<void>;
-  fetchCurrentUser: () => Promise<boolean>;
-  checkAuth: () => boolean;
+  setSession: (payload: AdminSessionPayload) => void;
   clearAuth: () => void;
+  hasPermission: (permission?: AdminPermission | readonly AdminPermission[], mode?: 'all' | 'any') => boolean;
 }
 
-const getStoredAdmin = (): AdminUser | null => {
-  try {
-    const adminStr = localStorage.getItem('dl247_admin_user');
-    return adminStr ? JSON.parse(adminStr) : null;
-  } catch {
-    return null;
-  }
-};
-
-const getStoredExpiresAt = (): number | null => {
-  const expiresStr = localStorage.getItem('dl247_admin_expires_at');
-  return expiresStr ? Number(expiresStr) : null;
-};
-
-const initialAdmin = getStoredAdmin();
-const initialExpiresAt = getStoredExpiresAt();
-
-const isSessionValid = (expiresAt: number | null): boolean => {
-  if (!expiresAt) return false;
-  return Date.now() < expiresAt;
-};
+export type { AdminUser } from '@/types/admin';
 
 export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
-  admin: isSessionValid(initialExpiresAt) ? initialAdmin : null,
-  token: isSessionValid(initialExpiresAt) ? 'session_active' : null,
-  isAuthenticated: !!(isSessionValid(initialExpiresAt) && initialAdmin),
-  expiresAt: isSessionValid(initialExpiresAt) ? initialExpiresAt : null,
+  admin: null,
+  permissions: [],
+  isAuthenticated: false,
+  isInitialized: false,
   isLoading: false,
+  expiresAt: null,
 
-  // Login via API (Security-1B: no more hardcoded credentials in frontend)
+  setSession: (payload) => {
+    const permissions = payload.permissions ?? payload.admin.permissions ?? [];
+    set({
+      admin: { ...payload.admin, permissions },
+      permissions,
+      isAuthenticated: true,
+      isInitialized: true,
+      isLoading: false,
+      expiresAt: payload.expiresAt ?? null,
+    });
+  },
+
   login: async (email, password) => {
+    set({ isLoading: true });
     try {
       const response = await api.post('/admin/auth/login', { email, password });
-      const { admin, expiresAt } = response.data.data;
-
-      localStorage.setItem('dl247_admin_user', JSON.stringify(admin));
-      localStorage.setItem('dl247_admin_expires_at', String(expiresAt));
-
-      set({
-        admin,
-        token: 'session_active',
-        isAuthenticated: true,
-        expiresAt
-      });
-
+      get().setSession(response.data.data as AdminSessionPayload);
       return { success: true, message: response.data.message || 'Đăng nhập thành công' };
     } catch (error) {
-      const err = error as { response?: { data?: { message?: string }, status?: number } };
-      let message = err?.response?.data?.message || 'Email hoặc mật khẩu không chính xác';
-      if (err?.response?.status === 429) {
-        message = 'Bạn thử đăng nhập quá nhiều lần. Vui lòng thử lại sau.';
-      }
-      return { success: false, message };
+      set({ isLoading: false });
+      return { success: false, message: getApiErrorMessage(error, 'Email hoặc mật khẩu không chính xác') };
     }
   },
 
-  // Logout via API (Security-1B: server invalidates the session)
-  logout: async () => {
-    try {
-      const { isAuthenticated } = get();
-      if (isAuthenticated) {
-        await api.post('/admin/auth/logout');
-      }
-    } catch {
-      // Ignore errors during logout - still clear local state
-    }
-    get().clearAuth();
-  },
-
-  // Fetch current user from server to verify session validity (for F5/page reload)
-  fetchCurrentUser: async () => {
-    const { isAuthenticated } = get();
-    if (!isAuthenticated) return false;
-
+  bootstrap: async () => {
+    if (get().isLoading) return get().isAuthenticated;
     set({ isLoading: true });
     try {
       const response = await api.get('/admin/auth/me');
-      const { admin } = response.data.data;
-
-      localStorage.setItem('dl247_admin_user', JSON.stringify(admin));
-
-      set({
-        admin,
-        token: 'session_active',
-        isAuthenticated: true,
-        isLoading: false
-      });
-
+      get().setSession(response.data.data as AdminSessionPayload);
       return true;
     } catch {
-      // Server rejected the token - clear everything
       get().clearAuth();
-      set({ isLoading: false });
       return false;
     }
   },
 
-  // Quick client-side check (for immediate rendering decisions)
-  checkAuth: () => {
-    const { isAuthenticated, expiresAt } = get();
-
-    if (isAuthenticated) {
-      if (!expiresAt || Date.now() > expiresAt) {
-        get().clearAuth();
-        return false;
-      }
-      return true;
+  logout: async () => {
+    try {
+      await api.post('/admin/auth/logout');
+    } catch {
+      // Server may already have expired or revoked the session.
     }
-
-    return false;
+    get().clearAuth();
   },
 
-  // Clear all auth data from localStorage and store
   clearAuth: () => {
-    localStorage.removeItem('dl247_admin_user');
-    localStorage.removeItem('dl247_admin_expires_at');
-
     set({
       admin: null,
-      token: null,
+      permissions: [],
       isAuthenticated: false,
-      expiresAt: null
+      isInitialized: true,
+      isLoading: false,
+      expiresAt: null,
     });
-  }
+  },
+
+  hasPermission: (permission, mode = 'all') => canAccess(get().permissions, permission, mode),
 }));

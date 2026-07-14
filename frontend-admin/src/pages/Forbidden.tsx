@@ -1,51 +1,37 @@
-import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft, LogOut } from 'lucide-react';
-import { useAdminAuthStore } from '../store/adminAuthStore';
+import { ArrowLeft, LogOut, ShieldAlert } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { flatAdminNavigation } from '@/config/adminNavigation';
+import { canAccess } from '@/config/adminPermissions';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
 
 export default function Forbidden() {
   const navigate = useNavigate();
-  const logout = useAdminAuthStore((state) => state.logout);
+  const location = useLocation();
+  const { permissions, logout } = useAdminAuthStore();
+  const fallback = flatAdminNavigation.find((item) => canAccess(permissions, item.permission))?.path ?? '/profile';
+  const attempted = (location.state as { from?: string } | null)?.from;
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F5F7FB] px-4 font-sans text-slate-800">
-      <div className="w-full max-w-md text-center bg-white border border-slate-200/60 rounded-2xl shadow-xl p-8 relative overflow-hidden">
-        {/* Glamour top line */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-red-500" />
-        
-        <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-6 shadow-sm border border-red-100">
-          <ShieldAlert className="w-9 h-9" />
+    <main className="flex min-h-screen items-center justify-center bg-[#071426] px-4 py-12 text-white">
+      <section className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 p-8 text-center shadow-2xl backdrop-blur-xl sm:p-10">
+        <div className="absolute -left-24 -top-24 h-64 w-64 rounded-full bg-red-500/15 blur-3xl" />
+        <div className="relative">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/15 text-red-300"><ShieldAlert className="h-8 w-8" /></div>
+          <p className="mt-6 text-xs font-black uppercase tracking-[0.25em] text-red-300">Error 403</p>
+          <h1 className="mt-3 text-3xl font-black">Không có quyền truy cập</h1>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-300">Menu đã được ẩn theo quyền và route guard cũng chặn truy cập trực tiếp. Liên hệ Super Admin khi cần bổ sung phạm vi công việc.</p>
+          {attempted && <code className="mt-4 inline-flex max-w-full truncate rounded-lg bg-black/30 px-3 py-1.5 text-xs text-slate-300">{attempted}</code>}
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+            <button type="button" onClick={() => navigate(fallback, { replace: true })} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-slate-950"><ArrowLeft className="h-4 w-4" />Về trang được phép</button>
+            <button type="button" onClick={handleLogout} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 px-5 text-sm font-black text-white hover:bg-white/10"><LogOut className="h-4 w-4" />Đăng xuất</button>
+          </div>
         </div>
-        
-        <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">403</h1>
-        <h2 className="text-lg font-bold text-slate-800 mb-3">Không có quyền truy cập</h2>
-        
-        <p className="text-slate-500 text-sm leading-relaxed mb-8 max-w-sm mx-auto">
-          Tài khoản của bạn không được phân quyền để truy cập vào tài nguyên này. Vui lòng liên hệ với quản trị viên hệ thống nếu bạn nghĩ đây là một sự nhầm lẫn.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-xs transition duration-150 cursor-pointer shadow-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Quay về Dashboard</span>
-          </button>
-          
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl text-xs transition duration-150 cursor-pointer shadow-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Đăng xuất</span>
-          </button>
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

@@ -1,66 +1,54 @@
-import { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAdminAuthStore } from '../store/adminAuthStore';
+import { useEffect } from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { canAccess } from '@/config/adminPermissions';
+import { useAdminAuthStore } from '@/store/adminAuthStore';
+import type { AdminPermission } from '@/types/admin';
 
 interface AdminProtectedRouteProps {
-  requiredRole?: string;
+  permission?: AdminPermission | readonly AdminPermission[];
+  mode?: 'all' | 'any';
   children?: React.ReactNode;
 }
 
-export default function AdminProtectedRoute({ requiredRole = 'owner', children }: AdminProtectedRouteProps) {
-  const admin = useAdminAuthStore((state) => state.admin);
-  const isAuthenticated = useAdminAuthStore((state) => state.isAuthenticated);
-  const checkAuth = useAdminAuthStore((state) => state.checkAuth);
-  const fetchCurrentUser = useAdminAuthStore((state) => state.fetchCurrentUser);
-  const isLoading = useAdminAuthStore((state) => state.isLoading);
+export default function AdminProtectedRoute({
+  permission,
+  mode = 'all',
+  children,
+}: AdminProtectedRouteProps) {
+  const location = useLocation();
+  const {
+    isAuthenticated,
+    isInitialized,
+    isLoading,
+    permissions,
+    bootstrap,
+  } = useAdminAuthStore();
 
-  const [isVerified, setIsVerified] = useState(false);
-
-  // Quick client-side check
-  const isAuthValid = checkAuth();
-
-  // If session is active but not yet verified with server, we are in verifying state
-  const isVerifying = isAuthenticated && isAuthValid && !isVerified;
-
-  // On mount or when we have an active session but need to verify with server (e.g. F5 reload)
   useEffect(() => {
-    if (isVerifying) {
-      fetchCurrentUser().then(() => {
-        setIsVerified(true);
-      });
-    }
-  }, [isVerifying, fetchCurrentUser]);
+    if (!isInitialized && !isLoading) void bootstrap();
+  }, [bootstrap, isInitialized, isLoading]);
 
-  // No active session at all → redirect to login immediately
-  if (!isAuthenticated || !isAuthValid) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Still verifying with server → show loading spinner
-  if (isVerifying || isLoading) {
+  if (!isInitialized || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0c1b30]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-3 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm font-medium">Đang xác thực phiên làm việc...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#071426]" role="status" aria-live="polite" aria-busy="true">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="h-11 w-11 animate-spin rounded-full border-4 border-cyan-400/20 border-t-cyan-400 motion-reduce:animate-none" />
+          <div>
+            <p className="text-sm font-black text-white">Đang xác thực phiên quản trị</p>
+            <p className="mt-1 text-xs text-slate-400">Hệ thống đang kiểm tra cookie và quyền truy cập.</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Role check
-  const allowedRoles = ['admin', 'superadmin', 'owner'];
-  const currentRole = admin?.role?.toLowerCase();
+  if (!isAuthenticated) {
+    const returnTo = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?returnTo=${encodeURIComponent(returnTo)}`} replace />;
+  }
 
-  if (requiredRole) {
-    const reqRole = requiredRole.toLowerCase();
-    if (reqRole === 'owner') {
-      if (!allowedRoles.includes(currentRole || '')) {
-        return <Navigate to="/403" replace />;
-      }
-    } else if (currentRole !== reqRole) {
-      return <Navigate to="/403" replace />;
-    }
+  if (!canAccess(permissions, permission, mode)) {
+    return <Navigate to="/403" replace state={{ from: location.pathname }} />;
   }
 
   return children ? <>{children}</> : <Outlet />;
