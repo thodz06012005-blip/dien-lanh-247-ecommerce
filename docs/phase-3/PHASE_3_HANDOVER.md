@@ -199,3 +199,7 @@ Do đây là stacked PR:
 2. Sau khi Giai đoạn 2 vào `main`, rebase hoặc retarget Giai đoạn 3 về `main`.
 3. Chạy lại toàn bộ CI.
 4. Merge Giai đoạn 3 sau khi diff chỉ còn thay đổi UI Phase 3.
+
+## 11. Nguồn nghiệm thu
+
+GitHub Actions trên Pull Request là nguồn xác nhận cuối cùng cho clean install, lint, type-check, architecture tests, build ba ứng dụng và Mock API business tests. Không đánh dấu Giai đoạn 3 hoàn tất nếu bất kỳ quality gate nào chưa đạt.
