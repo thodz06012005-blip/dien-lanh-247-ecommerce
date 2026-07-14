@@ -25,6 +25,8 @@ export const LEGACY_CONTENT_TYPES = [
   'media',
 ] as const satisfies readonly EditorialContentType[];
 
+export type LegacyContentType = (typeof LEGACY_CONTENT_TYPES)[number];
+
 export const PUBLISHABLE_CONTENT_TYPES = [
   'services',
   'projects',
@@ -34,6 +36,8 @@ export const PUBLISHABLE_CONTENT_TYPES = [
   'testimonials',
   'site-sections',
 ] as const satisfies readonly EditorialContentType[];
+
+export type PublishableContentType = (typeof PUBLISHABLE_CONTENT_TYPES)[number];
 
 export interface EditorialActor {
   userId: number;
@@ -68,8 +72,8 @@ export const EDITORIAL_TABLES: Record<EditorialContentType, EditorialTableConfig
 export const isEditorialType = (value: string): value is EditorialContentType =>
   EDITORIAL_CONTENT_TYPES.includes(value as EditorialContentType);
 
-export const isLegacyType = (value: EditorialContentType) =>
+export const isLegacyType = (value: EditorialContentType): value is LegacyContentType =>
   (LEGACY_CONTENT_TYPES as readonly string[]).includes(value);
 
-export const isPublishableType = (value: EditorialContentType) =>
+export const isPublishableType = (value: EditorialContentType): value is PublishableContentType =>
   (PUBLISHABLE_CONTENT_TYPES as readonly string[]).includes(value);
