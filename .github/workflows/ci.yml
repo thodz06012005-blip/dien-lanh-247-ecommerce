@@ -66,6 +66,17 @@ jobs:
       - name: Install admin frontend dependencies
         run: npm --prefix frontend-admin ci
 
+      - name: Regenerate backend lockfile for verification
+        run: npm --prefix backend install --package-lock-only --ignore-scripts
+
+      - name: Upload corrected backend lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: corrected-backend-lockfile
+          path: backend/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Install backend dependencies
         id: backend-install
         continue-on-error: true
