@@ -34,8 +34,7 @@ export default function RichContentEditor({
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = value.slice(start, end) || 'Nội dung';
-    const next = `${value.slice(0, start)}${before}${selected}${after}${value.slice(end)}`;
-    onChange(next);
+    onChange(`${value.slice(0, start)}${before}${selected}${after}${value.slice(end)}`);
     requestAnimationFrame(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length, start + before.length + selected.length);
@@ -50,14 +49,12 @@ export default function RichContentEditor({
     const selected = value.slice(start, end).trim() || 'Mục 1\nMục 2';
     const items = selected.split(/\n+/).map((item) => `<li>${item.replace(/^[-*]\s*/, '')}</li>`).join('\n');
     const tag = ordered ? 'ol' : 'ul';
-    const block = `<${tag}>\n${items}\n</${tag}>`;
-    onChange(`${value.slice(0, start)}${block}${value.slice(end)}`);
+    onChange(`${value.slice(0, start)}<${tag}>\n${items}\n</${tag}>${value.slice(end)}`);
   };
 
   const addLink = () => {
     const href = window.prompt('Nhập URL liên kết', 'https://');
-    if (!href) return;
-    wrapSelection(`<a href="${href}" target="_blank" rel="noopener noreferrer">`, '</a>');
+    if (href) wrapSelection(`<a href="${href}" target="_blank" rel="noopener noreferrer">`, '</a>');
   };
 
   const tools = [
@@ -75,30 +72,22 @@ export default function RichContentEditor({
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <header className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <label className="text-sm font-black text-slate-900">{label}</label>
-          <p className="mt-0.5 text-xs leading-5 text-slate-500">{hint}</p>
-        </div>
+        <div><label className="text-sm font-black text-slate-900">{label}</label><p className="mt-0.5 text-xs leading-5 text-slate-500">{hint}</p></div>
         <div className="inline-flex self-start rounded-xl border border-slate-200 bg-white p-1">
           <button type="button" onClick={() => setMode('edit')} className={`inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-black ${mode === 'edit' ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-50'}`}><Code2 className="h-3.5 w-3.5" />Soạn thảo</button>
           <button type="button" onClick={() => setMode('preview')} className={`inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-xs font-black ${mode === 'preview' ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-50'}`}><Eye className="h-3.5 w-3.5" />Preview</button>
         </div>
       </header>
-
       {mode === 'edit' ? (
         <>
           <div className="flex flex-wrap gap-1 border-b border-slate-100 p-2">
-            {tools.map((tool) => <button key={tool.label} type="button" onClick={tool.action} title={tool.label} aria-label={tool.label} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-blue-50 hover:text-primary-700"><tool.icon className="h-4 w-4" /></button>)}
-        </div>
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          spellCheck
-          style={{ minHeight }}
-          className="block w-full resize-y bg-white p-5 font-mono text-sm leading-7 text-slate-800 outline-none placeholder:text-slate-400"
-          placeholder="<h2>Tiêu đề nội dung</h2>\n<p>Nội dung chi tiết...</p>"
-        />
+            {tools.map((tool) => {
+              const Icon = tool.icon;
+              return <button key={tool.label} type="button" onClick={tool.action} title={tool.label} aria-label={tool.label} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-blue-50 hover:text-primary-700"><Icon className="h-4 w-4" /></button>;
+            })}
+          </div>
+          <textarea ref={textareaRef} value={value} onChange={(event) => onChange(event.target.value)} spellCheck style={{ minHeight }} className="block w-full resize-y bg-white p-5 font-mono text-sm leading-7 text-slate-800 outline-none placeholder:text-slate-400" placeholder={'<h2>Tiêu đề nội dung</h2>\n<p>Nội dung chi tiết...</p>'} />
+        </>
       ) : (
         <iframe title="Xem trước nội dung CMS" sandbox="" srcDoc={preview} style={{ minHeight }} className="block w-full border-0 bg-white" />
       )}
