@@ -15,7 +15,16 @@ function readString(
   options: { fallback?: string; required?: boolean } = {},
 ): string {
   const rawValue = source[name];
-  const value = rawValue === undefined || rawValue === null ? options.fallback ?? '' : String(rawValue);
+  let value = options.fallback ?? '';
+
+  if (typeof rawValue === 'string') {
+    value = rawValue;
+  } else if (typeof rawValue === 'number' || typeof rawValue === 'boolean') {
+    value = String(rawValue);
+  } else if (rawValue !== undefined && rawValue !== null) {
+    throw new Error(`${name} must be a string, number or boolean value.`);
+  }
+
   const normalized = value.trim();
 
   if (options.required && normalized.length === 0) {
