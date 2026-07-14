@@ -1,27 +1,26 @@
 import { HashRouter, Route, Routes } from 'react-router-dom';
+import { ADMIN_PERMISSIONS } from '@/config/adminPermissions';
 import AdminLayout from '@/layouts/AdminLayout';
+import AdminProfile from '@/pages/AdminProfile';
 import Content from '@/pages/Content';
 import Customers from '@/pages/Customers';
 import Dashboard from '@/pages/Dashboard';
 import DesignSystem from '@/pages/DesignSystem';
 import Forbidden from '@/pages/Forbidden';
 import Login from '@/pages/Login';
+import NotFound from '@/pages/NotFound';
 import Orders from '@/pages/Orders';
 import Products from '@/pages/Products';
 import ServiceRequestDetail from '@/pages/ServiceRequestDetail';
 import ServiceRequests from '@/pages/ServiceRequests';
 import Settings from '@/pages/Settings';
+import SystemError from '@/pages/SystemError';
 import Technicians from '@/pages/Technicians';
 import AdminProtectedRoute from '@/routes/AdminProtectedRoute';
+import type { AdminPermission } from '@/types/admin';
 
-function NotFoundPage() {
-  return (
-    <section className="flex min-h-64 flex-col items-center justify-center gap-3 px-4 text-center">
-      <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">404</p>
-      <h1 className="text-2xl font-bold text-slate-900">Không tìm thấy trang quản trị</h1>
-      <p className="max-w-md text-sm leading-6 text-slate-500">Kiểm tra lại đường dẫn hoặc quyền truy cập của tài khoản hiện tại.</p>
-    </section>
-  );
+function ProtectedPage({ permission, children }: { permission: AdminPermission; children: React.ReactNode }) {
+  return <AdminProtectedRoute permission={permission}>{children}</AdminProtectedRoute>;
 }
 
 export default function AppRouter() {
@@ -30,26 +29,25 @@ export default function AppRouter() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/403" element={<Forbidden />} />
-        <Route
-          path="/"
-          element={
-            <AdminProtectedRoute requiredRole="owner">
-              <AdminLayout />
-            </AdminProtectedRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="content" element={<Content />} />
-          <Route path="products" element={<Products />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="service-requests" element={<ServiceRequests />} />
-          <Route path="service-requests/:id" element={<ServiceRequestDetail />} />
-          <Route path="technicians" element={<Technicians />} />
-          <Route path="design-system" element={<DesignSystem />} />
-          <Route path="*" element={<NotFoundPage />} />
+        <Route path="/500" element={<SystemError />} />
+
+        <Route element={<AdminProtectedRoute />}>
+          <Route path="/" element={<AdminLayout />}>
+            <Route index element={<ProtectedPage permission={ADMIN_PERMISSIONS.DASHBOARD_VIEW}><Dashboard /></ProtectedPage>} />
+            <Route path="content" element={<ProtectedPage permission={ADMIN_PERMISSIONS.CONTENT_VIEW}><Content /></ProtectedPage>} />
+            <Route path="products" element={<ProtectedPage permission={ADMIN_PERMISSIONS.PRODUCTS_VIEW}><Products /></ProtectedPage>} />
+            <Route path="orders" element={<ProtectedPage permission={ADMIN_PERMISSIONS.ORDERS_VIEW}><Orders /></ProtectedPage>} />
+            <Route path="customers" element={<ProtectedPage permission={ADMIN_PERMISSIONS.CUSTOMERS_VIEW}><Customers /></ProtectedPage>} />
+            <Route path="settings" element={<ProtectedPage permission={ADMIN_PERMISSIONS.SETTINGS_VIEW}><Settings /></ProtectedPage>} />
+            <Route path="service-requests" element={<ProtectedPage permission={ADMIN_PERMISSIONS.SERVICES_VIEW}><ServiceRequests /></ProtectedPage>} />
+            <Route path="service-requests/:id" element={<ProtectedPage permission={ADMIN_PERMISSIONS.SERVICES_VIEW}><ServiceRequestDetail /></ProtectedPage>} />
+            <Route path="technicians" element={<ProtectedPage permission={ADMIN_PERMISSIONS.TECHNICIANS_VIEW}><Technicians /></ProtectedPage>} />
+            <Route path="design-system" element={<ProtectedPage permission={ADMIN_PERMISSIONS.DESIGN_SYSTEM_VIEW}><DesignSystem /></ProtectedPage>} />
+            <Route path="profile" element={<ProtectedPage permission={ADMIN_PERMISSIONS.PROFILE_VIEW}><AdminProfile /></ProtectedPage>} />
+          </Route>
         </Route>
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </HashRouter>
   );
