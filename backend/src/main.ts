@@ -2,7 +2,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
-import { json, urlencoded } from 'express';
+import { json, static as serveStatic, urlencoded } from 'express';
+import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { HttpErrorFilter } from './common/filters/http-exception.filter';
 import { requestContextMiddleware } from './common/middleware/request-context.middleware';
@@ -24,6 +25,7 @@ async function bootstrap() {
   const trustProxy = config.get<boolean>('TRUST_PROXY', false);
   const jsonBodyLimit = config.get<string>('JSON_BODY_LIMIT', '1mb');
   const urlencodedBodyLimit = config.get<string>('URLENCODED_BODY_LIMIT', '100kb');
+  const mediaStoragePath = config.get<string>('MEDIA_STORAGE_PATH') || join(process.cwd(), 'storage');
 
   if (apiPrefix) {
     app.setGlobalPrefix(apiPrefix);
@@ -39,6 +41,12 @@ async function bootstrap() {
   app.use(requestContextMiddleware);
   app.use(securityHeadersMiddleware);
   app.use(cookieParser());
+  app.use('/uploads', serveStatic(mediaStoragePath, {
+    fallthrough: false,
+    immutable: true,
+    maxAge: '7d',
+    index: false,
+  }));
   app.use(contentTypeGuardMiddleware);
   app.use(json({ limit: jsonBodyLimit }));
   app.use(urlencoded({ extended: false, limit: urlencodedBodyLimit }));
