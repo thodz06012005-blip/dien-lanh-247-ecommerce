@@ -5,14 +5,17 @@ import { MailerService } from '@nestjs-modules/mailer';
 export class MailService {
   constructor(private readonly mailerService: MailerService) {}
 
-  private async deliver(to: string, subject: string, text: string) {
-    // Never print reset/verification links or tokens to logs.
+  private async deliver(to: string, subject: string, text: string, html?: string) {
     if (!process.env.MAIL_HOST && !process.env.SMTP_HOST) {
       console.log(`[MailService] Simulated email: ${subject} -> ${to}`);
       return { delivered: false, simulated: true };
     }
-    await this.mailerService.sendMail({ to, subject, text });
+    await this.mailerService.sendMail({ to, subject, text, html });
     return { delivered: true, simulated: false };
+  }
+
+  sendTemplated(to: string, subject: string, text: string, html: string) {
+    return this.deliver(to, subject, text, html);
   }
 
   async sendOrderConfirmation(email: string, order: { orderNumber: string }) {
