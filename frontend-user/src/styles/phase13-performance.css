@@ -11,6 +11,13 @@
   }
 }
 
+/* The home page has a white overflow container directly below the main landmark.
+   Defer layout and paint for sections well below the first viewport while preserving scroll size. */
+#main-content > div.overflow-hidden.bg-white > section:nth-of-type(n + 4) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 760px;
+}
+
 [class~='bg-orange-500'][class~='text-white'] {
   background-color: #c2410c;
 }
