@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
-import api from '@/services/api';
 import { getPost, getProject, getService } from '@/services/contentApi';
 
 const SITE_URL = (import.meta.env.VITE_SITE_URL || 'https://dienlanh247.vn').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1').replace(/\/$/, '');
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
 const DEFAULT_IMAGE = `${SITE_URL}/og-cover.jpg`;
 const BUSINESS_NAME = 'Điện Lạnh 247';
 const CACHE_FIVE_MINUTES = 5 * 60_000;
@@ -20,7 +21,6 @@ interface SeoEntry {
 
 interface ProductSeoRecord {
   name?: string;
-  slug?: string;
   description?: string;
   thumbnail?: string;
   images?: string[];
@@ -141,24 +141,18 @@ function fallbackSeo(pathname: string): SeoEntry {
   if (/^\/(account|orders|my-services)(\/|$)/.test(pathname)) {
     return { title: 'Khu vực khách hàng | Điện Lạnh 247', description: 'Nội dung riêng tư dành cho tài khoản đang đăng nhập.', noindex: true };
   }
-  if (/^\/services\/[\w-]+$/.test(pathname)) return {
-    title: 'Chi tiết dịch vụ | Điện Lạnh 247',
-    description: 'Thông tin chi tiết, quy trình, bảng giá tham khảo và chính sách bảo hành của dịch vụ điện lạnh.',
-  };
-  if (/^\/projects\/[\w-]+$/.test(pathname)) return {
-    title: 'Chi tiết dự án | Điện Lạnh 247',
-    description: 'Thông tin dự án điện lạnh tiêu biểu do Điện Lạnh 247 thực hiện.',
-  };
-  if (/^\/products\/[\w-]+$/.test(pathname)) return {
-    title: 'Chi tiết sản phẩm | Điện Lạnh 247',
-    description: 'Thông tin sản phẩm, thông số, giá bán và chính sách hỗ trợ tại Điện Lạnh 247.',
-    type: 'product',
-  };
-  if (/^\/articles\/[\w-]+$/.test(pathname)) return {
-    title: 'Bài viết điện lạnh | Điện Lạnh 247',
-    description: 'Kiến thức và hướng dẫn thực tế về sử dụng, bảo trì và sửa chữa thiết bị điện lạnh.',
-    type: 'article',
-  };
+  if (/^\/services\/[\w-]+$/.test(pathname)) {
+    return { title: 'Chi tiết dịch vụ | Điện Lạnh 247', description: 'Thông tin chi tiết, quy trình, bảng giá tham khảo và chính sách bảo hành của dịch vụ điện lạnh.' };
+  }
+  if (/^\/projects\/[\w-]+$/.test(pathname)) {
+    return { title: 'Chi tiết dự án | Điện Lạnh 247', description: 'Thông tin dự án điện lạnh tiêu biểu do Điện Lạnh 247 thực hiện.' };
+  }
+  if (/^\/products\/[\w-]+$/.test(pathname)) {
+    return { title: 'Chi tiết sản phẩm | Điện Lạnh 247', description: 'Thông tin sản phẩm, thông số, giá bán và chính sách hỗ trợ tại Điện Lạnh 247.', type: 'product' };
+  }
+  if (/^\/articles\/[\w-]+$/.test(pathname)) {
+    return { title: 'Bài viết điện lạnh | Điện Lạnh 247', description: 'Kiến thức và hướng dẫn thực tế về sử dụng, bảo trì và sửa chữa thiết bị điện lạnh.', type: 'article' };
+  }
   return { title: 'Không tìm thấy trang | Điện Lạnh 247', description: 'Trang bạn tìm kiếm không tồn tại hoặc đã được chuyển sang địa chỉ mới.', noindex: true };
 }
 
@@ -172,6 +166,22 @@ function setMeta(selector: string, attribute: 'name' | 'property', key: string, 
   node.content = content;
 }
 
+function unwrapProduct(payload: unknown): ProductSeoRecord | undefined {
+  const first = payload as { data?: unknown };
+  const second = first?.data as { data?: unknown } | undefined;
+  return (second?.data || first?.data || payload) as ProductSeoRecord | undefined;
+}
+
+async function getProductSeo(identifier: string) {
+  const response = await fetch(`${API_BASE_URL}/products/${encodeURIComponent(identifier)}`, {
+    headers: { Accept: 'application/json' },
+    credentials: 'omit',
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+  });
+  if (!response.ok) throw new Error(`Product SEO request failed: ${response.status}`);
+  return { data: unwrapProduct(await response.json()) };
+}
+
 export default function SeoManager() {
   const { pathname } = useLocation();
   const serviceSlug = pathname.match(/^\/services\/([\w-]+)$/)?.[1] || '';
@@ -179,33 +189,10 @@ export default function SeoManager() {
   const articleSlug = pathname.match(/^\/articles\/([\w-]+)$/)?.[1] || '';
   const productIdentifier = pathname.match(/^\/products\/([\w-]+)$/)?.[1] || '';
 
-  const serviceQuery = useQuery({
-    queryKey: ['managed-service', serviceSlug],
-    queryFn: () => getService(serviceSlug),
-    enabled: Boolean(serviceSlug),
-    staleTime: CACHE_FIVE_MINUTES,
-  });
-  const projectQuery = useQuery({
-    queryKey: ['managed-project', projectSlug],
-    queryFn: () => getProject(projectSlug),
-    enabled: Boolean(projectSlug),
-    staleTime: CACHE_FIVE_MINUTES,
-  });
-  const articleQuery = useQuery({
-    queryKey: ['managed-post', articleSlug],
-    queryFn: () => getPost(articleSlug),
-    enabled: Boolean(articleSlug),
-    staleTime: CACHE_FIVE_MINUTES,
-  });
-  const productQuery = useQuery({
-    queryKey: ['product', productIdentifier],
-    queryFn: async () => {
-      const response = await api.get(`/products/${encodeURIComponent(productIdentifier)}`);
-      return response.data as { data?: ProductSeoRecord };
-    },
-    enabled: Boolean(productIdentifier),
-    staleTime: CACHE_FIVE_MINUTES,
-  });
+  const serviceQuery = useQuery({ queryKey: ['managed-service', serviceSlug], queryFn: () => getService(serviceSlug), enabled: Boolean(serviceSlug), staleTime: CACHE_FIVE_MINUTES });
+  const projectQuery = useQuery({ queryKey: ['managed-project', projectSlug], queryFn: () => getProject(projectSlug), enabled: Boolean(projectSlug), staleTime: CACHE_FIVE_MINUTES });
+  const articleQuery = useQuery({ queryKey: ['managed-post', articleSlug], queryFn: () => getPost(articleSlug), enabled: Boolean(articleSlug), staleTime: CACHE_FIVE_MINUTES });
+  const productQuery = useQuery({ queryKey: ['product', productIdentifier], queryFn: () => getProductSeo(productIdentifier), enabled: Boolean(productIdentifier), staleTime: CACHE_FIVE_MINUTES });
 
   const seo = useMemo<SeoEntry>(() => {
     const service = serviceQuery.data?.data;
@@ -215,9 +202,7 @@ export default function SeoManager() {
         description: service.seoDescription || service.excerpt || 'Dịch vụ điện lạnh chuyên nghiệp, báo giá minh bạch và bảo hành rõ ràng.',
         image: service.socialImageUrl || service.coverUrl || DEFAULT_IMAGE,
         schema: {
-          '@context': 'https://schema.org',
-          '@type': 'Service',
-          name: service.title,
+          '@context': 'https://schema.org', '@type': 'Service', name: service.title,
           description: service.seoDescription || service.excerpt,
           image: service.socialImageUrl || service.coverUrl || DEFAULT_IMAGE,
           url: `${SITE_URL}${pathname}`,
@@ -234,9 +219,7 @@ export default function SeoManager() {
         description: project.seoDescription || project.excerpt || 'Dự án điện lạnh tiêu biểu do Điện Lạnh 247 thực hiện.',
         image: project.socialImageUrl || project.coverUrl || DEFAULT_IMAGE,
         schema: {
-          '@context': 'https://schema.org',
-          '@type': 'CreativeWork',
-          name: project.title,
+          '@context': 'https://schema.org', '@type': 'CreativeWork', name: project.title,
           description: project.seoDescription || project.excerpt,
           image: project.socialImageUrl || project.coverUrl || DEFAULT_IMAGE,
           url: `${SITE_URL}${pathname}`,
@@ -252,13 +235,10 @@ export default function SeoManager() {
         image: article.socialImageUrl || article.coverUrl || DEFAULT_IMAGE,
         type: 'article',
         schema: {
-          '@context': 'https://schema.org',
-          '@type': 'Article',
-          headline: article.title,
+          '@context': 'https://schema.org', '@type': 'Article', headline: article.title,
           description: article.seoDescription || article.excerpt,
           image: article.socialImageUrl || article.coverUrl || DEFAULT_IMAGE,
-          datePublished: article.publishedAt,
-          dateModified: article.updatedAt,
+          datePublished: article.publishedAt, dateModified: article.updatedAt,
           author: { '@type': 'Person', name: article.authorName?.trim() || `Ban biên tập ${BUSINESS_NAME}` },
           publisher: { '@type': 'Organization', name: BUSINESS_NAME, url: SITE_URL },
           mainEntityOfPage: `${SITE_URL}${pathname}`,
@@ -275,17 +255,13 @@ export default function SeoManager() {
         image: product.thumbnail || product.images?.[0] || DEFAULT_IMAGE,
         type: 'product',
         schema: {
-          '@context': 'https://schema.org',
-          '@type': 'Product',
-          name: product.name,
+          '@context': 'https://schema.org', '@type': 'Product', name: product.name,
           description: product.description,
           image: product.images?.length ? product.images : [product.thumbnail || DEFAULT_IMAGE],
           sku: product.sku,
           brand: { '@type': 'Brand', name: product.brand?.name || BUSINESS_NAME },
           offers: price ? {
-            '@type': 'Offer',
-            priceCurrency: 'VND',
-            price,
+            '@type': 'Offer', priceCurrency: 'VND', price,
             availability: product.inStock === false ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
             url: `${SITE_URL}${pathname}`,
           } : undefined,
@@ -325,21 +301,17 @@ export default function SeoManager() {
     document.querySelectorAll('script[data-seo-schema]').forEach((node) => node.remove());
     const pathSegments = pathname.split('/').filter(Boolean);
     const breadcrumb = pathSegments.length ? {
-      '@context': 'https://schema.org',
-      '@type': 'BreadcrumbList',
+      '@context': 'https://schema.org', '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Trang chủ', item: SITE_URL },
         ...pathSegments.map((segment, index) => ({
-          '@type': 'ListItem',
-          position: index + 2,
-          name: segmentLabel(segment),
+          '@type': 'ListItem', position: index + 2, name: segmentLabel(segment),
           item: `${SITE_URL}/${pathSegments.slice(0, index + 1).join('/')}`,
         })),
       ],
     } : undefined;
 
-    const schemas = [seo.schema, breadcrumb].flat().filter(Boolean);
-    for (const schema of schemas) {
+    for (const schema of [seo.schema, breadcrumb].flat().filter(Boolean)) {
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.dataset.seoSchema = 'true';
