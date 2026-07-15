@@ -10,6 +10,7 @@ import EditorialCms from '@/pages/EditorialCms';
 import Forbidden from '@/pages/Forbidden';
 import Login from '@/pages/Login';
 import NotFound from '@/pages/NotFound';
+import Operations from '@/pages/Operations';
 import Orders from '@/pages/Orders';
 import Products from '@/pages/Products';
 import ServiceRequestDetail from '@/pages/ServiceRequestDetail';
@@ -34,6 +35,7 @@ export default function AppRouter() {
         <Route element={<AdminProtectedRoute />}>
           <Route path="/" element={<AdminLayout />}>
             <Route index element={<ProtectedPage permission={ADMIN_PERMISSIONS.DASHBOARD_VIEW}><Dashboard /></ProtectedPage>} />
+            <Route path="operations" element={<ProtectedPage permission={ADMIN_PERMISSIONS.OPERATIONS_VIEW}><Operations /></ProtectedPage>} />
             <Route path="content" element={<ProtectedPage permission={ADMIN_PERMISSIONS.CONTENT_VIEW}><EditorialCms /></ProtectedPage>} />
             <Route path="products" element={<ProtectedPage permission={ADMIN_PERMISSIONS.PRODUCTS_VIEW}><Products /></ProtectedPage>} />
             <Route path="orders" element={<ProtectedPage permission={ADMIN_PERMISSIONS.ORDERS_VIEW}><Orders /></ProtectedPage>} />
