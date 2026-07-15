@@ -1,17 +1,20 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
+import Articles from '@/pages/Articles';
+import Home from '@/pages/Home';
+import Products from '@/pages/Products';
+import ServiceBooking from '@/pages/ServiceBooking';
+import Services from '@/pages/Services';
 import SeoManager from '@/seo/SeoManager';
 import { useAuthStore } from '@/store/authStore';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1').replace(/\/$/, '');
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
 
-const Home = lazy(() => import('@/pages/Home'));
 const About = lazy(() => import('@/pages/About'));
 const Account = lazy(() => import('@/pages/Account'));
 const ArticleDetail = lazy(() => import('@/pages/ArticleDetail'));
-const Articles = lazy(() => import('@/pages/Articles'));
 const Cart = lazy(() => import('@/pages/Cart'));
 const Checkout = lazy(() => import('@/pages/Checkout'));
 const Contact = lazy(() => import('@/pages/Contact'));
@@ -24,17 +27,14 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const Orders = lazy(() => import('@/pages/Orders'));
 const Policy = lazy(() => import('@/pages/Policy'));
 const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
-const Products = lazy(() => import('@/pages/Products'));
 const ProjectDetail = lazy(() => import('@/pages/ProjectDetail'));
 const Projects = lazy(() => import('@/pages/Projects'));
 const QuoteConfirmation = lazy(() => import('@/pages/QuoteConfirmation'));
 const Register = lazy(() => import('@/pages/Register'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const ServiceBooking = lazy(() => import('@/pages/ServiceBooking'));
 const ServiceBookingSuccess = lazy(() => import('@/pages/ServiceBookingSuccess'));
 const ServiceDetail = lazy(() => import('@/pages/ServiceDetail'));
 const ServiceRequestLookup = lazy(() => import('@/pages/ServiceRequestLookup'));
-const Services = lazy(() => import('@/pages/Services'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 
 function LegacyHashRedirect() {
