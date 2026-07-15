@@ -1,0 +1,20 @@
+/* Phase 13 accessibility and performance safeguards. */
+
+[class~='bg-orange-500'][class~='text-white'] {
+  background-color: #c2410c;
+}
+
+[class~='bg-orange-500'][class~='text-white']:hover {
+  background-color: #9a3412;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
