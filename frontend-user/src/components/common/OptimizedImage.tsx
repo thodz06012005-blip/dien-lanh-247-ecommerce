@@ -10,16 +10,21 @@ interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 
   fallbackClassName?: string;
 }
 
-function appendImageParams(src: string, width: number) {
+function appendImageParams(src: string, width: number, format?: 'avif' | 'webp') {
   const separator = src.includes('?') ? '&' : '?';
-  return `${src}${separator}auto=format&fit=crop&w=${width}&q=78`;
+  const fm = format ? `&fm=${format}` : '';
+  return `${src}${separator}fit=crop&w=${width}&q=72${fm}`;
+}
+
+function buildSrcSet(src: string, widths: number[], format?: 'avif' | 'webp') {
+  return widths.map((itemWidth) => `${appendImageParams(src, itemWidth, format)} ${itemWidth}w`).join(', ');
 }
 
 export default function OptimizedImage({
   src,
   alt,
   priority = false,
-  widths = [480, 768, 1024, 1440],
+  widths = [320, 480, 768, 1024, 1440],
   sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px',
   className,
   fallbackClassName,
@@ -28,11 +33,8 @@ export default function OptimizedImage({
   ...props
 }: OptimizedImageProps) {
   const [hasError, setHasError] = useState(false);
-  const supportsResponsiveSource = src.includes('images.unsplash.com');
-  const srcSet = supportsResponsiveSource
-    ? widths.map((itemWidth) => `${appendImageParams(src, itemWidth)} ${itemWidth}w`).join(', ')
-    : undefined;
-  const resolvedSrc = supportsResponsiveSource ? appendImageParams(src, Number(width) || 1200) : src;
+  const supportsResponsiveSource = /images\.unsplash\.com|images\.pexels\.com/.test(src);
+  const resolvedSrc = supportsResponsiveSource ? appendImageParams(src, Number(width) || 1200, 'webp') : src;
 
   if (hasError) {
     return (
@@ -50,11 +52,11 @@ export default function OptimizedImage({
     );
   }
 
-  return (
+  const image = (
     <img
       src={resolvedSrc}
-      srcSet={srcSet}
-      sizes={srcSet ? sizes : undefined}
+      srcSet={supportsResponsiveSource ? buildSrcSet(src, widths, 'webp') : undefined}
+      sizes={supportsResponsiveSource ? sizes : undefined}
       alt={alt}
       width={width}
       height={height}
@@ -65,5 +67,14 @@ export default function OptimizedImage({
       onError={() => setHasError(true)}
       {...props}
     />
+  );
+
+  if (!supportsResponsiveSource) return image;
+  return (
+    <picture>
+      <source type="image/avif" srcSet={buildSrcSet(src, widths, 'avif')} sizes={sizes} />
+      <source type="image/webp" srcSet={buildSrcSet(src, widths, 'webp')} sizes={sizes} />
+      {image}
+    </picture>
   );
 }
