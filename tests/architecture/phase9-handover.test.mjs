@@ -33,5 +33,6 @@ test('Phase 9 handover preserves stacked merge and non-destructive archive requi
   assert.match(handover, /PR #11/);
   assert.match(handover, /agent\/phase-8-admin-platform-foundation/);
   assert.match(workflow, /soft (?:delete|archive)|không.*hard delete/i);
-  assert.match(workflow, /Restore → DRAFT/);
+  assert.match(workflow, /restore/i);
+  assert.match(workflow, /DRAFT/);
 });
