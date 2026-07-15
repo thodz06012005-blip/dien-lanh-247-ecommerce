@@ -1,0 +1,7 @@
+/#/services/*  /services/:splat  301!
+/#/products/*  /products/:splat  301!
+/#/articles/*  /articles/:splat  301!
+/#/projects/*  /projects/:splat  301!
+/#/about  /about  301!
+/#/contact  /contact  301!
+/*  /index.html  200
