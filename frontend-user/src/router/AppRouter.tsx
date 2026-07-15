@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { HashRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import Home from '@/pages/Home';
+import SeoManager from '@/seo/SeoManager';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -34,6 +35,14 @@ const ServiceRequestLookup = lazy(() => import('@/pages/ServiceRequestLookup'));
 const Services = lazy(() => import('@/pages/Services'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 
+function LegacyHashRedirect() {
+  useEffect(() => {
+    const hashPath = window.location.hash.replace(/^#/, '');
+    if (hashPath.startsWith('/')) window.location.replace(hashPath);
+  }, []);
+  return null;
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -60,15 +69,9 @@ function AuthBootstrap() {
     if (isInitialized) return;
     let active = true;
     void api.get('/auth/me')
-      .then((response) => {
-        if (active) setUser(response.data?.data ?? null);
-      })
-      .catch(() => {
-        if (active) clearSession();
-      })
-      .finally(() => {
-        if (active) setInitialized(true);
-      });
+      .then((response) => { if (active) setUser(response.data?.data ?? null); })
+      .catch(() => { if (active) clearSession(); })
+      .finally(() => { if (active) setInitialized(true); });
     return () => { active = false; };
   }, [clearSession, isInitialized, setInitialized, setUser]);
   return null;
@@ -87,9 +90,11 @@ function ProtectedRoute() {
 
 export default function AppRouter() {
   return (
-    <HashRouter>
+    <BrowserRouter>
+      <LegacyHashRedirect />
       <AuthBootstrap />
       <ScrollToTop />
+      <SeoManager />
       <Suspense fallback={<RouteLoading />}>
         <Routes>
           <Route path="/" element={<MainLayout />}>
@@ -127,6 +132,6 @@ export default function AppRouter() {
           <Route path="/verify-email" element={<VerifyEmail />} />
         </Routes>
       </Suspense>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
