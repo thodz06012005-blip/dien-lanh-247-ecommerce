@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 
 interface PageTransitionProps {
@@ -7,13 +6,8 @@ interface PageTransitionProps {
 
 export default function PageTransition({ children }: PageTransitionProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
-    >
+    <div className="animate-[phase13-fade-up_220ms_ease-out_both] motion-reduce:animate-none">
       {children}
-    </motion.div>
+    </div>
   );
 }
