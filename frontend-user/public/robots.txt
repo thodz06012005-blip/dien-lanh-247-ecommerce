@@ -1,4 +1,16 @@
 User-agent: *
 Allow: /
+Disallow: /account
+Disallow: /orders
+Disallow: /my-services
+Disallow: /cart
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /service-lookup
+Disallow: /quote-confirmation
 
-Sitemap: http://localhost:5173/sitemap.xml
+Sitemap: https://dienlanh247.vn/sitemap.xml
