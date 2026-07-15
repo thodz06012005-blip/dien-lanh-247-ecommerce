@@ -1,17 +1,17 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
-import Articles from '@/pages/Articles';
-import Home from '@/pages/Home';
-import Products from '@/pages/Products';
-import ServiceBooking from '@/pages/ServiceBooking';
-import Services from '@/pages/Services';
 import SeoManager from '@/seo/SeoManager';
 import { useAuthStore } from '@/store/authStore';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1').replace(/\/$/, '');
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
 
+const Home = lazy(() => import('@/pages/Home'));
+const Services = lazy(() => import('@/pages/Services'));
+const Products = lazy(() => import('@/pages/Products'));
+const Articles = lazy(() => import('@/pages/Articles'));
+const ServiceBooking = lazy(() => import('@/pages/ServiceBooking'));
 const About = lazy(() => import('@/pages/About'));
 const Account = lazy(() => import('@/pages/Account'));
 const ArticleDetail = lazy(() => import('@/pages/ArticleDetail'));
@@ -59,14 +59,14 @@ function ScrollToTop() {
 function RouteLoading() {
   return (
     <div
-      className="flex min-h-[360px] items-center justify-center bg-slate-50"
+      className="flex min-h-[430px] items-center justify-center bg-[#061527] text-white"
       role="status"
       aria-live="polite"
       aria-busy="true"
     >
       <div className="text-center">
-        <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-4 border-blue-100 border-t-primary-600 motion-reduce:animate-none" />
-        <p className="mt-4 text-sm font-bold text-slate-600">Đang tải nội dung...</p>
+        <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-4 border-white/20 border-t-cyan-300 motion-reduce:animate-none" />
+        <p className="mt-4 text-sm font-bold text-slate-200">Đang tải nội dung...</p>
       </div>
     </div>
   );
