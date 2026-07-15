@@ -6,6 +6,15 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 import { AuditLogService } from './audit-log.service';
 
+interface AuditIntegrityResponse {
+  success: true;
+  data: {
+    valid: boolean;
+    entriesChecked: number;
+    firstBrokenId?: string;
+  };
+}
+
 @Controller('admin/audit-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPERADMIN)
@@ -13,7 +22,7 @@ export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
   @Get('integrity')
-  integrity() {
+  integrity(): AuditIntegrityResponse {
     return {
       success: true,
       data: this.auditLogService.verifyIntegrity(),
@@ -21,7 +30,7 @@ export class AuditLogController {
   }
 
   @Get()
-  listLogs(@Query() query: AuditLogQueryDto) {
+  listLogs(@Query() query: AuditLogQueryDto): Record<string, unknown> {
     return this.auditLogService.listAuditLogs(query);
   }
 }
