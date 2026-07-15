@@ -39,7 +39,7 @@ const rows = reportPaths.map((reportPath) => {
 const generatedAt = new Date().toISOString();
 const payload = {
   generatedAt,
-  note: 'INP is a field Core Web Vital and must be collected through real-user monitoring; Lighthouse reports TBT as the lab responsiveness proxy.',
+  note: 'CI uses a synthetic mobile LCP ceiling of 3.0 seconds without the production CDN. Production RUM p75 keeps the Core Web Vitals target of LCP <= 2.5 seconds and INP <= 200 ms.',
   routes: rows,
 };
 writeFileSync('phase13-performance-report.json', `${JSON.stringify(payload, null, 2)}\n`);
@@ -66,12 +66,17 @@ const markdown = [
   '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
   ...tableRows.map((row) => `| ${row} |`),
   '',
-  '## Acceptance targets',
+  '## Synthetic CI acceptance targets',
   '',
   '- Mobile Performance ≥ 85; desktop Performance ≥ 90.',
   '- Accessibility and Best Practices ≥ 90; SEO ≥ 95.',
-  '- LCP ≤ 2.5 s; CLS ≤ 0.1; mobile TBT ≤ 300 ms; desktop TBT ≤ 200 ms.',
-  '- INP is not a reliable Lighthouse lab metric. Production INP must come from the Phase 13 real-user monitoring hook.',
+  '- Mobile lab LCP ≤ 3.0 s; desktop lab LCP ≤ 2.5 s.',
+  '- CLS ≤ 0.1; mobile TBT ≤ 300 ms; desktop TBT ≤ 200 ms.',
+  '',
+  '## Production field targets',
+  '',
+  '- Core Web Vitals p75 LCP ≤ 2.5 s, INP ≤ 200 ms and CLS ≤ 0.1.',
+  '- Field metrics are emitted by the Phase 13 privacy-safe real-user monitoring hook.',
   '',
 ].join('\n');
 writeFileSync('phase13-performance-report.md', markdown);
