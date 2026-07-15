@@ -13,35 +13,27 @@ interface BreadcrumbProps {
 
 export default function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <nav className="flex items-center space-x-2 text-3xs md:text-2xs text-slate-400 select-none pb-4">
-      {/* Home link */}
-      <Link to="/" className="flex items-center hover:text-primary-600 transition-colors">
-        <Home className="w-3.5 h-3.5 mr-1" />
+    <nav aria-label="Đường dẫn trang" className="mb-4 inline-flex max-w-full items-center gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-sm text-slate-700 shadow-sm backdrop-blur">
+      <Link to="/" className="flex shrink-0 items-center font-semibold transition-colors hover:text-primary-800">
+        <Home aria-hidden="true" className="mr-1 h-3.5 w-3.5" />
         <span>Trang chủ</span>
       </Link>
-      
+
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         return (
-          <div key={index} className="flex items-center space-x-2">
-            <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+          <div key={`${item.name}-${index}`} className="flex min-w-0 items-center gap-2">
+            <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-500" />
             {isLast || (!item.path && !item.onClick) ? (
-              <span className="font-bold text-slate-700 truncate max-w-[150px] md:max-w-xs">
+              <span aria-current={isLast ? 'page' : undefined} className="max-w-[150px] truncate font-bold text-slate-950 md:max-w-xs">
                 {item.name}
               </span>
             ) : item.path ? (
-              <Link
-                to={item.path}
-                onClick={item.onClick}
-                className="hover:text-primary-600 transition-colors"
-              >
+              <Link to={item.path} onClick={item.onClick} className="font-semibold transition-colors hover:text-primary-800">
                 {item.name}
               </Link>
             ) : (
-              <button
-                onClick={item.onClick}
-                className="hover:text-primary-600 transition-colors cursor-pointer bg-transparent border-0 p-0 text-left font-medium"
-              >
+              <button type="button" onClick={item.onClick} className="cursor-pointer border-0 bg-transparent p-0 text-left font-semibold transition-colors hover:text-primary-800">
                 {item.name}
               </button>
             )}
