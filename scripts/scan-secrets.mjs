@@ -4,6 +4,7 @@ import path from 'node:path';
 
 const MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
 const PLACEHOLDER_PATTERN = /replace|change[_-]?me|placeholder|example|dummy|test[_-]?only|your[_-]/i;
+const GENERIC_SAMPLE_VALUE = /^(?:user|username|password|host|database|secret)$/i;
 const SKIPPED_PATHS = [
   /(^|\/)package-lock\.json$/,
   /(^|\/)node_modules\//,
@@ -39,6 +40,13 @@ function shouldSkip(filePath) {
   return SKIPPED_PATHS.some((pattern) => pattern.test(filePath));
 }
 
+function isPlaceholder(filePath, line, candidate) {
+  if (PLACEHOLDER_PATTERN.test(candidate) || GENERIC_SAMPLE_VALUE.test(candidate)) {
+    return true;
+  }
+  return /\.env(?:\.[^/]+)?\.example$/i.test(filePath) && PLACEHOLDER_PATTERN.test(line);
+}
+
 const findings = [];
 for (const filePath of trackedFiles()) {
   if (shouldSkip(filePath)) continue;
@@ -64,9 +72,7 @@ for (const filePath of trackedFiles()) {
       const match = line.match(pattern.regex);
       if (!match) continue;
       const candidate = match[1] || match[0];
-      if (PLACEHOLDER_PATTERN.test(candidate) || PLACEHOLDER_PATTERN.test(line)) {
-        continue;
-      }
+      if (isPlaceholder(filePath, line, candidate)) continue;
       findings.push({
         file: path.normalize(filePath),
         line: index + 1,
