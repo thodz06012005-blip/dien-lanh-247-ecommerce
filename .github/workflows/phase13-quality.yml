@@ -80,18 +80,29 @@ jobs:
           npm --prefix backend run typecheck
 
       - name: Run inherited customer architecture contracts
-        run: npm --prefix frontend-user run test:architecture
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix frontend-user run test:architecture 2>&1 | tee phase13-customer-contracts.log
 
       - name: Run Phase 13 SEO performance contracts
-        run: node --test tests/architecture/phase13-seo-performance.test.mjs
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/architecture/phase13-seo-performance.test.mjs 2>&1 | tee phase13-seo-contracts.log
 
       - name: Run inherited backend architecture contracts
-        run: npm --prefix backend run test:architecture
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix backend run test:architecture 2>&1 | tee phase13-backend-contracts.log
 
       - name: Build customer and backend
+        shell: bash
         run: |
-          npm --prefix frontend-user run build
-          npm --prefix backend run build
+          set -o pipefail
+          npm --prefix frontend-user run build 2>&1 | tee phase13-customer-build.log
+          npm --prefix backend run build 2>&1 | tee phase13-backend-build.log
 
       - name: Verify bundle and image budgets
         run: node scripts/verify-customer-build-budget.mjs frontend-user/dist | tee phase13-build-budget.log
@@ -102,7 +113,7 @@ jobs:
         with:
           name: phase13-quality-report
           path: |
-            phase13-build-budget.log
+            phase13-*.log
             frontend-user/dist/.vite/manifest.json
             frontend-user/public/sitemap.xml
           if-no-files-found: warn
