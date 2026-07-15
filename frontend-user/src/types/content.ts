@@ -17,7 +17,15 @@ export interface MediaAsset {
   caption?: string;
 }
 
-export interface ManagedService {
+interface EditorialSeoFields {
+  seoTitle?: string;
+  seoDescription?: string;
+  socialImageUrl?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+}
+
+export interface ManagedService extends EditorialSeoFields {
   id: number;
   title: string;
   slug: string;
@@ -34,7 +42,7 @@ export interface ManagedService {
   related?: Array<Pick<ManagedService, 'id' | 'title' | 'slug' | 'excerpt' | 'coverUrl'>>;
 }
 
-export interface ManagedProject {
+export interface ManagedProject extends EditorialSeoFields {
   id: number;
   title: string;
   slug: string;
@@ -51,20 +59,17 @@ export interface ManagedProject {
   album?: MediaAsset[];
 }
 
-export interface ManagedPost {
+export interface ManagedPost extends EditorialSeoFields {
   id: number;
   title: string;
   slug: string;
   excerpt?: string;
   content?: string;
-  publishedAt?: string;
   categoryName?: string;
   categorySlug?: string;
   authorName?: string;
   coverUrl?: string;
   coverAlt?: string;
-  seoTitle?: string;
-  seoDescription?: string;
   tags?: Array<{ id: number; name: string; slug: string }>;
 }
 
