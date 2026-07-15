@@ -26,7 +26,7 @@ function unwrap<T>(payload: unknown): T {
   return payload as T;
 }
 
-async function publicGet<T>(path: string, params?: Record<string, unknown>): Promise<T> {
+async function publicGet<T>(path: string, params?: object): Promise<T> {
   const url = new URL(`${CONTENT_API_BASE_URL}${path}`);
   for (const [key, value] of Object.entries(params || {})) {
     if (value === undefined || value === null || value === '') continue;
