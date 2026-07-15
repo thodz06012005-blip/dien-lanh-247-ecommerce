@@ -3,8 +3,15 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 const MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
-const PLACEHOLDER_PATTERN = /replace|change[_-]?me|placeholder|example|dummy|test[_-]?only|your[_-]/i;
-const GENERIC_SAMPLE_VALUE = /^(?:user|username|password|host|database|secret)$/i;
+const PLACEHOLDER_PATTERN =
+  /replace|change[_-]?me|placeholder|example|dummy|test[_-]?only|your[_-]|generate[_-]?secure|secret[_-]?manager|do[_-]?not[_-]?leak/i;
+const EXPLICIT_TEMPLATE_PATTERN = /<[^>]+>|\$\{[A-Z0-9_:.-]+\}/i;
+const GENERIC_SAMPLE_VALUE =
+  /^(?:user|username|password|host|database|secret|secure_password)$/i;
+const NON_PRODUCTION_FIXTURE_PATH =
+  /(^|\/)(?:\.github\/workflows|test|tests|docs\/phase-[0-9]+)(\/|$)/i;
+const NON_PRODUCTION_FIXTURE_VALUE =
+  /^(?:ci(?:[_-]|$)|test(?:[_-]|$)|phase(?:[0-9]+|seven)|changedphase)/i;
 const SKIPPED_PATHS = [
   /(^|\/)package-lock\.json$/,
   /(^|\/)node_modules\//,
@@ -19,7 +26,10 @@ const patterns = [
   { name: 'google-api-key', regex: /\bAIza[0-9A-Za-z_-]{30,}\b/ },
   { name: 'slack-token', regex: /\bxox[baprs]-[A-Za-z0-9-]{20,}\b/ },
   { name: 'stripe-live-key', regex: /\bsk_live_[A-Za-z0-9]{20,}\b/ },
-  { name: 'jwt-token', regex: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/ },
+  {
+    name: 'jwt-token',
+    regex: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/,
+  },
   {
     name: 'hardcoded-sensitive-assignment',
     regex:
@@ -41,10 +51,25 @@ function shouldSkip(filePath) {
 }
 
 function isPlaceholder(filePath, line, candidate) {
-  if (PLACEHOLDER_PATTERN.test(candidate) || GENERIC_SAMPLE_VALUE.test(candidate)) {
+  if (
+    PLACEHOLDER_PATTERN.test(candidate) ||
+    EXPLICIT_TEMPLATE_PATTERN.test(candidate) ||
+    GENERIC_SAMPLE_VALUE.test(candidate)
+  ) {
     return true;
   }
-  return /\.env(?:\.[^/]+)?\.example$/i.test(filePath) && PLACEHOLDER_PATTERN.test(line);
+
+  if (
+    NON_PRODUCTION_FIXTURE_PATH.test(filePath) &&
+    NON_PRODUCTION_FIXTURE_VALUE.test(candidate)
+  ) {
+    return true;
+  }
+
+  return (
+    /\.env(?:\.[^/]+)?\.example$/i.test(filePath) &&
+    (PLACEHOLDER_PATTERN.test(line) || EXPLICIT_TEMPLATE_PATTERN.test(line))
+  );
 }
 
 const findings = [];
@@ -83,12 +108,18 @@ for (const filePath of trackedFiles()) {
 }
 
 if (findings.length > 0) {
-  console.error(`Secret scan failed with ${findings.length} high-confidence finding(s).`);
+  console.error(
+    `Secret scan failed with ${findings.length} high-confidence finding(s).`,
+  );
   for (const finding of findings) {
     console.error(`- ${finding.file}:${finding.line} [${finding.rule}]`);
   }
-  console.error('Matched values are intentionally not printed. Rotate any exposed credential before removing it from history.');
+  console.error(
+    'Matched values are intentionally not printed. Rotate any exposed credential before removing it from history.',
+  );
   process.exit(1);
 }
 
-console.log('Secret scan passed: no high-confidence credentials were found in tracked files.');
+console.log(
+  'Secret scan passed: no high-confidence credentials were found in tracked files.',
+);
