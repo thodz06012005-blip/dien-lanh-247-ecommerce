@@ -105,7 +105,10 @@ jobs:
           npm --prefix backend run build 2>&1 | tee phase13-backend-build.log
 
       - name: Verify bundle and image budgets
-        run: node scripts/verify-customer-build-budget.mjs frontend-user/dist | tee phase13-build-budget.log
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-customer-build-budget.mjs frontend-user/dist 2>&1 | tee phase13-build-budget.log
 
       - name: Upload Phase 13 quality artifacts
         if: always()
