@@ -7,6 +7,7 @@ import {
   ShoppingBag,
   UserRound,
   Users,
+  Workflow,
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
@@ -33,8 +34,9 @@ export const adminNavigation: AdminNavigationGroup[] = [
     title: 'Điều hành',
     items: [
       { path: '/', label: 'Tổng quan hệ thống', shortLabel: 'Tổng quan', icon: LayoutDashboard, permission: ADMIN_PERMISSIONS.DASHBOARD_VIEW, exact: true, keywords: ['dashboard', 'kpi'] },
+      { path: '/operations', label: 'Trung tâm điều phối', shortLabel: 'Điều phối', icon: Workflow, permission: ADMIN_PERMISSIONS.OPERATIONS_VIEW, keywords: ['sla', 'báo giá', 'bảo hành', 'kỹ thuật viên', 'thiết bị'] },
       { path: '/orders', label: 'Quản lý đơn hàng', shortLabel: 'Đơn hàng', icon: ShoppingBag, permission: ADMIN_PERMISSIONS.ORDERS_VIEW, keywords: ['giao hàng', 'thanh toán'] },
-      { path: '/service-requests', label: 'Yêu cầu sửa chữa', shortLabel: 'Dịch vụ', icon: Wrench, permission: ADMIN_PERMISSIONS.SERVICES_VIEW, keywords: ['điều phối', 'sla'] },
+      { path: '/service-requests', label: 'Yêu cầu sửa chữa', shortLabel: 'Dịch vụ', icon: Wrench, permission: ADMIN_PERMISSIONS.SERVICES_VIEW, keywords: ['yêu cầu', 'trạng thái'] },
     ],
   },
   {
