@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "sitemap:generate": "node scripts/generate-sitemap.mjs",
-    "prebuild": "npm run sitemap:generate",
+    "robots:generate": "node scripts/generate-robots.mjs",
+    "prebuild": "npm run sitemap:generate && npm run robots:generate",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "eslint .",
