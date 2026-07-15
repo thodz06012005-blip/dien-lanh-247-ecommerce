@@ -1,7 +1,7 @@
 const SENSITIVE_KEY_PATTERN =
   /password|passwd|pwd|secret|token|authorization|cookie|session|private.?key|api.?key|card.?number|pan|cvv|cvc|pin|otp/i;
 
-const BEARER_PATTERN = /\bBearer\s+[A-Za-z0-9._~+\/-]+=*/gi;
+const BEARER_PATTERN = /\bBearer\s+[-A-Za-z0-9._~+\x2f]+=*/gi;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g;
 const PRIVATE_KEY_PATTERN = /-----BEGIN(?: [A-Z]+)? PRIVATE KEY-----[\s\S]*?-----END(?: [A-Z]+)? PRIVATE KEY-----/g;
 
@@ -35,13 +35,19 @@ function redactString(value: string) {
   return output.length > 2_000 ? `${output.slice(0, 1_997)}...` : output;
 }
 
-export function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+export function sanitizeForLog(
+  value: unknown,
+  depth = 0,
+  seen = new WeakSet<object>(),
+): unknown {
   if (value === null || value === undefined) return value;
   if (depth > 6) return '[TRUNCATED_DEPTH]';
   if (typeof value === 'string') return redactString(value);
   if (typeof value === 'number' || typeof value === 'boolean') return value;
   if (typeof value === 'bigint') return value.toString();
-  if (typeof value === 'function' || typeof value === 'symbol') return `[${typeof value}]`;
+  if (typeof value === 'function' || typeof value === 'symbol') {
+    return `[${typeof value}]`;
+  }
 
   if (value instanceof Date) return value.toISOString();
   if (value instanceof Error) {
@@ -55,7 +61,9 @@ export function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<obj
   }
 
   if (Array.isArray(value)) {
-    return value.slice(0, 100).map((item) => sanitizeForLog(item, depth + 1, seen));
+    return value
+      .slice(0, 100)
+      .map((item) => sanitizeForLog(item, depth + 1, seen));
   }
 
   if (typeof value === 'object') {
