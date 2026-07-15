@@ -76,6 +76,7 @@ jobs:
           exit 1
 
       - name: Build customer website and generated sitemap
+        shell: bash
         env:
           VITE_APP_NAME: Điện Lạnh 247
           VITE_APP_ENV: test
@@ -88,7 +89,9 @@ jobs:
           VITE_USE_MOCK_API: 'true'
           VITE_USE_MOCK: 'true'
           VITE_ENABLE_QUERY_DEVTOOLS: 'false'
-        run: npm --prefix frontend-user run build
+        run: |
+          set -o pipefail
+          npm --prefix frontend-user run build 2>&1 | tee customer-build.log
 
       - name: Start customer preview
         run: |
@@ -162,6 +165,7 @@ jobs:
             phase13-performance-report.json
             phase13-performance-report.md
             frontend-user/public/sitemap.xml
+            customer-build.log
             customer-preview.log
             mock-api-lighthouse.log
           if-no-files-found: warn
