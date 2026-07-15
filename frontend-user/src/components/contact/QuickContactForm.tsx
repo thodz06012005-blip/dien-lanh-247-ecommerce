@@ -1,147 +1,78 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Send } from 'lucide-react';
-import api from '@/services/api';
-import { services } from '@/data/phase4Content';
-import { Button, Input, Select, Textarea } from '@/design-system';
-import { useToastStore } from '@/store/toastStore';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { ArrowRight, CalendarCheck, PhoneCall, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import type { QuickContactFormCoreProps } from './QuickContactFormCore';
 
-interface ContactFormValues {
-  name: string;
-  phone: string;
-  email: string;
-  service: string;
-  message: string;
-}
-
-interface QuickContactFormProps {
-  compact?: boolean;
-  title?: string;
-  description?: string;
-}
+const QuickContactFormCore = lazy(() => import('./QuickContactFormCore'));
 
 export default function QuickContactForm({
   compact = false,
   title = 'Nhận tư vấn kỹ thuật',
   description = 'Để lại thông tin, đội ngũ Điện Lạnh 247 sẽ liên hệ xác nhận trong thời gian sớm nhất.',
-}: QuickContactFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showSuccess, showError } = useToastStore();
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ContactFormValues>({
-    defaultValues: {
-      name: '',
-      phone: '',
-      email: '',
-      service: '',
-      message: '',
-    },
-  });
+}: QuickContactFormCoreProps) {
+  const markerRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(false);
 
-  const submitForm = async (values: ContactFormValues) => {
-    setIsSubmitting(true);
-    try {
-      await api.post('/contact', {
-        name: values.name.trim(),
-        phone: values.phone.trim(),
-        email: values.email.trim(),
-        subject: values.service ? `Tư vấn dịch vụ: ${values.service}` : 'Yêu cầu tư vấn từ website',
-        message: values.message.trim() || 'Khách hàng muốn được gọi lại để tư vấn.',
-      });
-      showSuccess('Đã ghi nhận yêu cầu. Điện Lạnh 247 sẽ liên hệ với bạn sớm nhất.');
-      reset();
-    } catch {
-      showError('Chưa thể gửi yêu cầu lúc này. Vui lòng gọi hotline để được hỗ trợ ngay.');
-    } finally {
-      setIsSubmitting(false);
+  useEffect(() => {
+    if (compact || active) return;
+    const marker = markerRef.current;
+    if (!marker || typeof IntersectionObserver === 'undefined') {
+      setActive(true);
+      return;
     }
-  };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setActive(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '400px 0px' },
+    );
+    observer.observe(marker);
+    return () => observer.disconnect();
+  }, [active, compact]);
+
+  if (compact && !active) {
+    return (
+      <aside className="rounded-[2rem] border border-white/15 bg-white p-6 text-slate-900 shadow-2xl shadow-slate-950/20 sm:p-7">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-700">Đặt lịch trong 2 phút</p>
+        <h2 className="mt-3 text-2xl font-black tracking-tight">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+        <ul className="mt-6 grid gap-3 text-sm font-bold text-slate-700">
+          <li className="flex items-center gap-3"><CalendarCheck aria-hidden="true" className="h-5 w-5 text-primary-700" /> Chọn dịch vụ và thời gian phù hợp</li>
+          <li className="flex items-center gap-3"><PhoneCall aria-hidden="true" className="h-5 w-5 text-primary-700" /> Nhận xác nhận trước khi kỹ thuật viên đến</li>
+          <li className="flex items-center gap-3"><ShieldCheck aria-hidden="true" className="h-5 w-5 text-primary-700" /> Báo giá và bảo hành rõ ràng</li>
+        </ul>
+        <div className="mt-7 grid gap-3">
+          <button
+            type="button"
+            onClick={() => setActive(true)}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary-700 px-5 text-sm font-black text-white transition hover:bg-primary-800"
+          >
+            Mở biểu mẫu gọi lại <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </button>
+          <Link to="/service-booking" className="text-center text-sm font-black text-primary-700 hover:text-primary-900">
+            Hoặc đặt lịch đầy đủ
+          </Link>
+        </div>
+      </aside>
+    );
+  }
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white p-5 shadow-2xl shadow-slate-950/10 sm:p-7">
-      <div className="mb-6">
-        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary-600">Phản hồi nhanh</p>
-        <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">{title}</h2>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">{description}</p>
-      </div>
-
-      <form onSubmit={handleSubmit(submitForm)} className="grid gap-4" noValidate>
-        <div className={compact ? 'grid gap-4' : 'grid gap-4 sm:grid-cols-2'}>
-          <Input
-            label="Họ và tên"
-            placeholder="Nguyễn Văn A"
-            autoComplete="name"
-            required
-            error={errors.name?.message}
-            {...register('name', { required: 'Vui lòng nhập họ và tên.' })}
-          />
-          <Input
-            label="Số điện thoại"
-            placeholder="09xxxxxxxx"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            required
-            error={errors.phone?.message}
-            {...register('phone', {
-              required: 'Vui lòng nhập số điện thoại.',
-              pattern: {
-                value: /^(0[3|5|7|8|9])[0-9]{8}$/,
-                message: 'Số điện thoại chưa đúng định dạng Việt Nam.',
-              },
-            })}
-          />
-        </div>
-
-        {!compact && (
-          <Input
-            label="Email"
-            placeholder="ban@example.com"
-            type="email"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...register('email', {
-              pattern: {
-                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                message: 'Email chưa đúng định dạng.',
-              },
-            })}
-          />
-        )}
-
-        <Select
-          label="Dịch vụ quan tâm"
-          placeholder="Chọn dịch vụ"
-          options={services.map((service) => ({ value: service.title, label: service.title }))}
-          {...register('service')}
-        />
-
-        <Textarea
-          label="Mô tả nhu cầu"
-          placeholder="Ví dụ: Điều hòa phòng khách không lạnh, cần kiểm tra chiều nay..."
-          rows={compact ? 3 : 4}
-          {...register('message')}
-        />
-
-        <Button
-          type="submit"
-          size="lg"
-          loading={isSubmitting}
-          loadingLabel="Đang gửi yêu cầu"
-          leftIcon={<Send aria-hidden="true" className="h-4 w-4" />}
-          fullWidth
+    <div ref={markerRef} className="min-h-[360px]">
+      {active ? (
+        <Suspense
+          fallback={
+            <div className="h-[360px] animate-pulse rounded-[2rem] border border-slate-200 bg-white/90" role="status" aria-label="Đang tải biểu mẫu liên hệ" />
+          }
         >
-          Gửi yêu cầu tư vấn
-        </Button>
-
-        <p className="text-xs leading-5 text-slate-500">
-          Bằng việc gửi biểu mẫu, bạn đồng ý để Điện Lạnh 247 liên hệ theo thông tin đã cung cấp.
-        </p>
-      </form>
+          <QuickContactFormCore compact={compact} title={title} description={description} />
+        </Suspense>
+      ) : (
+        <div className="h-[360px] rounded-[2rem] border border-white/10 bg-white/10" aria-hidden="true" />
+      )}
     </div>
   );
 }
