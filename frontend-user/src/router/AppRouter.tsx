@@ -1,14 +1,20 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { HashRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
-import Home from '@/pages/Home';
-import api from '@/services/api';
+import SeoManager from '@/seo/SeoManager';
 import { useAuthStore } from '@/store/authStore';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1').replace(/\/$/, '');
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
+
+const Home = lazy(() => import('@/pages/Home'));
+const Services = lazy(() => import('@/pages/Services'));
+const Products = lazy(() => import('@/pages/Products'));
+const Articles = lazy(() => import('@/pages/Articles'));
+const ServiceBooking = lazy(() => import('@/pages/ServiceBooking'));
 const About = lazy(() => import('@/pages/About'));
 const Account = lazy(() => import('@/pages/Account'));
 const ArticleDetail = lazy(() => import('@/pages/ArticleDetail'));
-const Articles = lazy(() => import('@/pages/Articles'));
 const Cart = lazy(() => import('@/pages/Cart'));
 const Checkout = lazy(() => import('@/pages/Checkout'));
 const Contact = lazy(() => import('@/pages/Contact'));
@@ -21,37 +27,55 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const Orders = lazy(() => import('@/pages/Orders'));
 const Policy = lazy(() => import('@/pages/Policy'));
 const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
-const Products = lazy(() => import('@/pages/Products'));
 const ProjectDetail = lazy(() => import('@/pages/ProjectDetail'));
 const Projects = lazy(() => import('@/pages/Projects'));
 const QuoteConfirmation = lazy(() => import('@/pages/QuoteConfirmation'));
 const Register = lazy(() => import('@/pages/Register'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const ServiceBooking = lazy(() => import('@/pages/ServiceBooking'));
 const ServiceBookingSuccess = lazy(() => import('@/pages/ServiceBookingSuccess'));
 const ServiceDetail = lazy(() => import('@/pages/ServiceDetail'));
 const ServiceRequestLookup = lazy(() => import('@/pages/ServiceRequestLookup'));
-const Services = lazy(() => import('@/pages/Services'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+
+function LegacyHashRedirect() {
+  useEffect(() => {
+    const hashPath = window.location.hash.replace(/^#/, '');
+    if (hashPath.startsWith('/')) window.location.replace(hashPath);
+  }, []);
+  return null;
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    window.requestAnimationFrame(() => document.getElementById('main-content')?.focus({ preventScroll: true }));
+    window.requestAnimationFrame(() =>
+      document.getElementById('main-content')?.focus({ preventScroll: true }),
+    );
   }, [pathname]);
   return null;
 }
 
 function RouteLoading() {
   return (
-    <div className="flex min-h-[360px] items-center justify-center bg-slate-50" role="status" aria-live="polite" aria-busy="true">
+    <div
+      className="flex min-h-[430px] items-center justify-center bg-[#061527] text-white"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       <div className="text-center">
-        <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-4 border-blue-100 border-t-primary-600 motion-reduce:animate-none" />
-        <p className="mt-4 text-sm font-bold text-slate-600">Đang tải nội dung...</p>
+        <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-4 border-white/20 border-t-cyan-300 motion-reduce:animate-none" />
+        <p className="mt-4 text-sm font-bold text-slate-200">Đang tải nội dung...</p>
       </div>
     </div>
   );
+}
+
+function extractUser(payload: unknown) {
+  const first = payload as { data?: unknown };
+  const second = first?.data as { data?: unknown } | undefined;
+  return second?.data || first?.data || null;
 }
 
 function AuthBootstrap() {
@@ -59,17 +83,34 @@ function AuthBootstrap() {
   useEffect(() => {
     if (isInitialized) return;
     let active = true;
-    void api.get('/auth/me')
-      .then((response) => {
-        if (active) setUser(response.data?.data ?? null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+    void fetch(`${API_BASE_URL}/auth/me`, {
+      headers: { Accept: 'application/json' },
+      credentials: 'include',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Session bootstrap failed: ${response.status}`);
+        return response.json();
+      })
+      .then((payload) => {
+        if (active) setUser(extractUser(payload) as Parameters<typeof setUser>[0]);
       })
       .catch(() => {
         if (active) clearSession();
       })
       .finally(() => {
+        window.clearTimeout(timeout);
         if (active) setInitialized(true);
       });
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, [clearSession, isInitialized, setInitialized, setUser]);
   return null;
 }
@@ -87,9 +128,11 @@ function ProtectedRoute() {
 
 export default function AppRouter() {
   return (
-    <HashRouter>
+    <BrowserRouter>
+      <LegacyHashRedirect />
       <AuthBootstrap />
       <ScrollToTop />
+      <SeoManager />
       <Suspense fallback={<RouteLoading />}>
         <Routes>
           <Route path="/" element={<MainLayout />}>
@@ -127,6 +170,6 @@ export default function AppRouter() {
           <Route path="/verify-email" element={<VerifyEmail />} />
         </Routes>
       </Suspense>
-    </HashRouter>
+    </BrowserRouter>
   );
 }

@@ -14,14 +14,8 @@
       content="Dịch vụ sửa chữa, vệ sinh, lắp đặt và bảo trì điện lạnh cho gia đình và doanh nghiệp. Báo giá trước, xác nhận lịch và theo dõi bảo hành."
     />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap"
-      rel="stylesheet"
-    />
 
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="vi_VN" />
@@ -35,9 +29,33 @@
       property="og:image"
       content="https://images.unsplash.com/photo-1621905252472-e4b5d9fbe0c5?auto=format&fit=crop&w=1200&q=80"
     />
+
+    <style>
+      :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#0f172a;background:#fff}*{box-sizing:border-box}body{margin:0}.boot-shell{min-height:100vh;background:#fff}.boot-header{height:64px;border-bottom:1px solid #e2e8f0;background:rgba(255,255,255,.98);display:flex;align-items:center}.boot-header-inner,.boot-hero-inner{width:min(100% - 32px,1280px);margin:0 auto}.boot-brand{display:flex;align-items:center;gap:10px;font-weight:900;color:#0f172a}.boot-logo{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#2563eb,#06b6d4);color:#fff}.boot-hero{min-height:430px;padding:72px 0;background:#061527;color:#fff;display:flex;align-items:center}.boot-eyebrow{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.18em;color:#67e8f9}.boot-title{max-width:820px;margin:16px 0 0;font-size:clamp(48px,10vw,72px);line-height:1.02;letter-spacing:-.045em}.boot-description{max-width:680px;margin:20px 0 0;font-size:16px;line-height:1.75;color:#cbd5e1}.boot-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}.boot-action{min-height:48px;padding:0 20px;border-radius:12px;display:inline-flex;align-items:center;font-size:14px;font-weight:900;background:#c2410c;color:#fff}.boot-secondary{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)}@media(min-width:768px){.boot-header{height:76px}.boot-hero{min-height:560px;padding:96px 0}.boot-description{font-size:18px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-shell" aria-hidden="true">
+        <div class="boot-header"><div class="boot-header-inner"><div class="boot-brand"><span class="boot-logo">D</span><span>Điện Lạnh 247</span></div></div></div>
+        <main class="boot-hero">
+          <div class="boot-hero-inner">
+            <div class="boot-eyebrow" id="boot-eyebrow">Dịch vụ kỹ thuật rõ ràng</div>
+            <h1 class="boot-title" id="boot-title">Không gian mát lành, dịch vụ rõ ràng từ đầu.</h1>
+            <p class="boot-description" id="boot-description">Sửa chữa, vệ sinh, lắp đặt và bảo trì điện lạnh với lịch hẹn, báo giá và bảo hành minh bạch.</p>
+            <div class="boot-actions"><span class="boot-action">Đặt lịch kỹ thuật</span><span class="boot-action boot-secondary">Điện Lạnh 247</span></div>
+          </div>
+        </main>
+      </div>
+    </div>
+    <script>
+      (()=>{const path=location.pathname;const routes={
+        '/services':['Dịch vụ điện lạnh','Dịch vụ rõ phạm vi, giá và bảo hành','Khám phá dịch vụ sửa chữa, vệ sinh, lắp đặt và bảo trì thiết bị điện lạnh.'],
+        '/products':['Sản phẩm chính hãng','Sản phẩm điện lạnh phù hợp cho gia đình Việt','Tìm kiếm, lọc và so sánh sản phẩm với giá bán và tình trạng kho rõ ràng.'],
+        '/articles':['Trung tâm kiến thức','Kiến thức điện lạnh dễ hiểu và thực tế','Bài viết có tác giả, lịch xuất bản và hướng dẫn sử dụng thiết bị hiệu quả.'],
+        '/service-booking':['Đặt lịch trong vài phút','Đặt lịch sửa chữa và nhận mã theo dõi','Chọn dịch vụ, thời gian và gửi hình ảnh hiện trạng trong một quy trình rõ ràng.']
+      };const value=routes[path];if(!value)return;document.getElementById('boot-eyebrow').textContent=value[0];document.getElementById('boot-title').textContent=value[1];document.getElementById('boot-description').textContent=value[2]})();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

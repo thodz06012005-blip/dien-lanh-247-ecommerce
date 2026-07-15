@@ -1,4 +1,3 @@
-import axios from 'axios';
 import type {
   ContentDetailResponse,
   ContentListResponse,
@@ -7,18 +6,42 @@ import type {
   ManagedService,
 } from '@/types/content';
 
-const contentApi = axios.create({
-  baseURL: import.meta.env.VITE_CONTENT_API_BASE_URL || 'http://localhost:3000/api/v1',
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000),
-  headers: { Accept: 'application/json' },
-});
+const CONTENT_API_BASE_URL = (
+  import.meta.env.VITE_CONTENT_API_BASE_URL || 'http://localhost:3000/api/v1'
+).replace(/\/$/, '');
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
 
 function unwrap<T>(payload: unknown): T {
-  const value = payload as { data?: unknown };
-  if (value?.data && typeof value.data === 'object' && 'success' in (value.data as object)) {
-    return value.data as T;
+  let value = payload as { data?: unknown };
+  for (let depth = 0; depth < 3; depth += 1) {
+    if (value?.data && typeof value.data === 'object' && 'success' in (value.data as object)) {
+      return value.data as T;
+    }
+    if (value?.data && typeof value.data === 'object') {
+      value = value.data as { data?: unknown };
+      continue;
+    }
+    break;
   }
   return payload as T;
+}
+
+async function publicGet<T>(path: string, params?: object): Promise<T> {
+  const url = new URL(`${CONTENT_API_BASE_URL}${path}`);
+  for (const [key, value] of Object.entries(params || {})) {
+    if (value === undefined || value === null || value === '') continue;
+    url.searchParams.set(key, String(value));
+  }
+
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    credentials: 'omit',
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+  });
+  if (!response.ok) {
+    throw new Error(`Public content request failed: ${response.status}`);
+  }
+  return unwrap<T>(await response.json());
 }
 
 export interface ContentListParams {
@@ -89,44 +112,36 @@ export interface SiteContentBundle {
   posts: ManagedPost[];
 }
 
-export async function getServices(params: ContentListParams = {}) {
-  const response = await contentApi.get('/services', { params });
-  return unwrap<ContentListResponse<ManagedService>>(response.data);
+export function getServices(params: ContentListParams = {}) {
+  return publicGet<ContentListResponse<ManagedService>>('/services', params);
 }
 
-export async function getService(slug: string) {
-  const response = await contentApi.get(`/services/${encodeURIComponent(slug)}`);
-  return unwrap<ContentDetailResponse<ManagedService>>(response.data);
+export function getService(slug: string) {
+  return publicGet<ContentDetailResponse<ManagedService>>(`/services/${encodeURIComponent(slug)}`);
 }
 
-export async function getProjects(params: ContentListParams = {}) {
-  const response = await contentApi.get('/projects', { params });
-  return unwrap<ContentListResponse<ManagedProject>>(response.data);
+export function getProjects(params: ContentListParams = {}) {
+  return publicGet<ContentListResponse<ManagedProject>>('/projects', params);
 }
 
-export async function getProject(slug: string) {
-  const response = await contentApi.get(`/projects/${encodeURIComponent(slug)}`);
-  return unwrap<ContentDetailResponse<ManagedProject>>(response.data);
+export function getProject(slug: string) {
+  return publicGet<ContentDetailResponse<ManagedProject>>(`/projects/${encodeURIComponent(slug)}`);
 }
 
-export async function getPosts(params: ContentListParams = {}) {
-  const response = await contentApi.get('/posts', { params });
-  return unwrap<ContentListResponse<ManagedPost>>(response.data);
+export function getPosts(params: ContentListParams = {}) {
+  return publicGet<ContentListResponse<ManagedPost>>('/posts', params);
 }
 
-export async function getPost(slug: string) {
-  const response = await contentApi.get(`/posts/${encodeURIComponent(slug)}`);
-  return unwrap<ContentDetailResponse<ManagedPost>>(response.data);
+export function getPost(slug: string) {
+  return publicGet<ContentDetailResponse<ManagedPost>>(`/posts/${encodeURIComponent(slug)}`);
 }
 
-export async function getSiteContent(scope: 'home' | 'footer' | 'all' = 'home') {
-  const response = await contentApi.get(`/site-content/${scope}`);
-  return unwrap<{ success: boolean; data: SiteContentBundle }>(response.data);
+export function getSiteContent(scope: 'home' | 'footer' | 'all' = 'home') {
+  return publicGet<{ success: boolean; data: SiteContentBundle }>(`/site-content/${scope}`);
 }
 
-export async function getSiteSection(key: string) {
-  const response = await contentApi.get(`/site-content/section/${encodeURIComponent(key)}`);
-  return unwrap<{ success: boolean; data: SiteSectionContent }>(response.data);
+export function getSiteSection(key: string) {
+  return publicGet<{ success: boolean; data: SiteSectionContent }>(
+    `/site-content/section/${encodeURIComponent(key)}`,
+  );
 }
-
-export default contentApi;

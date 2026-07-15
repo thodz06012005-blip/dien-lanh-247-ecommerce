@@ -1,0 +1,123 @@
+name: Phase 13 SEO Performance Quality
+
+on:
+  push:
+    branches:
+      - 'agent/phase-13-*'
+    paths:
+      - 'frontend-user/**'
+      - 'backend/src/modules/content/**'
+      - 'backend/src/modules/products/**'
+      - 'tests/architecture/phase13-*'
+      - 'scripts/verify-customer-build-budget.mjs'
+      - '.github/workflows/phase13-quality.yml'
+  pull_request:
+    paths:
+      - 'frontend-user/**'
+      - 'backend/src/modules/content/**'
+      - 'backend/src/modules/products/**'
+      - 'tests/architecture/phase13-*'
+      - 'scripts/verify-customer-build-budget.mjs'
+      - '.github/workflows/phase13-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase13-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, Typecheck, Contracts, Build and Budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      DATABASE_URL: mysql://root:password@127.0.0.1:3306/dien_lanh_247
+      VITE_APP_NAME: Điện Lạnh 247
+      VITE_APP_ENV: test
+      VITE_APP_URL: https://dienlanh247.vn
+      VITE_SITE_URL: https://dienlanh247.vn
+      VITE_API_BASE_URL: http://127.0.0.1:3001/api/v1
+      VITE_CONTENT_API_BASE_URL: http://127.0.0.1:3000/api/v1
+      VITE_API_TIMEOUT_MS: '15000'
+      VITE_USE_MOCK_API: 'true'
+      VITE_USE_MOCK: 'true'
+      VITE_ENABLE_QUERY_DEVTOOLS: 'false'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            frontend-user/package-lock.json
+            backend/package-lock.json
+
+      - name: Install customer dependencies
+        run: npm --prefix frontend-user ci
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Generate Prisma Client
+        run: npm --prefix backend run prisma:generate
+
+      - name: Lint customer and backend
+        run: |
+          npm --prefix frontend-user run lint
+          npm --prefix backend run lint
+
+      - name: Typecheck customer and backend
+        run: |
+          npm --prefix frontend-user run typecheck
+          npm --prefix backend run typecheck
+
+      - name: Run inherited customer architecture contracts
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix frontend-user run test:architecture 2>&1 | tee phase13-customer-contracts.log
+
+      - name: Run Phase 13 SEO performance contracts
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/architecture/phase13-seo-performance.test.mjs 2>&1 | tee phase13-seo-contracts.log
+
+      - name: Run inherited backend architecture contracts
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix backend run test:architecture 2>&1 | tee phase13-backend-contracts.log
+
+      - name: Build customer and backend
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix frontend-user run build 2>&1 | tee phase13-customer-build.log
+          npm --prefix backend run build 2>&1 | tee phase13-backend-build.log
+
+      - name: Verify bundle and image budgets
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-customer-build-budget.mjs frontend-user/dist 2>&1 | tee phase13-build-budget.log
+
+      - name: Upload Phase 13 quality artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase13-quality-report
+          path: |
+            phase13-*.log
+            frontend-user/dist/.vite/manifest.json
+            frontend-user/public/sitemap.xml
+          if-no-files-found: warn
+          retention-days: 14

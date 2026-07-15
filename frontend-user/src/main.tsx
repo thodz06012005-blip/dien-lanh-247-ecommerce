@@ -2,8 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '@/App';
 import AppProviders from '@/app/AppProviders';
+import { startWebVitalsMonitoring } from '@/performance/webVitals';
 import '@/index.css';
 import '@/styles/design-system.css';
+import '@/styles/phase13-performance.css';
 
 const rootElement = document.getElementById('root');
 
@@ -18,3 +20,5 @@ createRoot(rootElement).render(
     </AppProviders>
   </StrictMode>,
 );
+
+startWebVitalsMonitoring();

@@ -30,21 +30,26 @@ test('Phase 4 customer website files exist', () => {
 
 test('customer router registers static list, detail, policy and fallback routes', () => {
   const router = read('src/router/AppRouter.tsx');
-  for (const route of [
-    '/services',
-    '/projects',
-    '/projects/:slug',
-    '/articles',
-    '/articles/:slug',
-    '/about',
-    '/contact',
-    '/policy/warranty',
-    '/policy/privacy',
-    '/policy/terms',
+  assert.match(router, /BrowserRouter/);
+  for (const routePath of [
+    'services',
+    'services/:slug',
+    'projects',
+    'projects/:slug',
+    'articles',
+    'articles/:slug',
+    'about',
+    'contact',
+    'policy/:slug',
   ]) {
-    assert.match(router, new RegExp(route.replaceAll('/', '\\/')));
+    assert.match(router, new RegExp(`path=["']${routePath.replace('/', '\\/')}["']`));
   }
-  assert.match(router, /path="\*"/);
+  assert.match(router, /path=["']\*["']/);
+
+  const seo = read('src/seo/SeoManager.tsx');
+  for (const publicPolicy of ['/policy/warranty', '/policy/privacy', '/policy/terms']) {
+    assert.match(seo, new RegExp(publicPolicy.replaceAll('/', '\\/')));
+  }
 });
 
 test('header and footer contain only intentional customer navigation targets', () => {
@@ -86,7 +91,11 @@ test('homepage includes all required business sections and contact form', () => 
     assert.match(home, new RegExp(marker), `Homepage missing section: ${marker}`);
   }
   assert.match(home, /QuickContactForm/);
-  assert.match(home, /CmsManagedHomepage|Khách hàng chia sẻ/, 'Homepage missing CMS-managed testimonial section');
+  assert.match(
+    home,
+    /CmsManagedHomepage|Khách hàng chia sẻ/,
+    'Homepage missing CMS-managed testimonial section',
+  );
 });
 
 test('document metadata avoids development-only canonical values', () => {

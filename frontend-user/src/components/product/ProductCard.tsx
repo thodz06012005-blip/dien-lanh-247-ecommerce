@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ShoppingCart, Star, Flame, Sparkles, BadgePercent } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { useToastStore } from '../../store/toastStore';
@@ -22,9 +21,9 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? Math.round(((product.basePrice - product.salePrice!) / product.basePrice) * 100)
     : 0;
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleAddToCart = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     addItem(product, 1);
     showSuccess(`Đã thêm "${product.name}" vào giỏ hàng!`);
   };
@@ -34,42 +33,39 @@ export default function ProductCard({ product }: ProductCardProps) {
   const reviewCount = product.reviewCount !== undefined ? product.reviewCount : 15;
   const brand = product.brandId || 'Điện lạnh';
 
-  // Determine primary badge
   const primaryBadge = product.isBestSeller
-    ? { label: 'Bán chạy', icon: <Flame className="w-2.5 h-2.5" />, cls: 'bg-gradient-to-r from-orange-500 to-red-500 shadow-orange-500/30' }
+    ? {
+        label: 'Bán chạy',
+        icon: <Flame className="h-2.5 w-2.5" />,
+        cls: 'bg-gradient-to-r from-orange-700 to-red-600 shadow-orange-500/30',
+      }
     : product.isNewArrival
-    ? { label: 'Mới về', icon: <Sparkles className="w-2.5 h-2.5" />, cls: 'bg-gradient-to-r from-blue-600 to-cyan-500 shadow-blue-500/30' }
-    : null;
+      ? {
+          label: 'Mới về',
+          icon: <Sparkles className="h-2.5 w-2.5" />,
+          cls: 'bg-gradient-to-r from-blue-700 to-cyan-600 shadow-blue-500/30',
+        }
+      : null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.35 }}
-      className="product-card-premium flex flex-col h-full group relative hover:border-blue-200/80 hover:shadow-xl hover:shadow-blue-500/4"
-    >
-      {/* ── Image Zone ──────────────────────────────────────────── */}
+    <article className="product-card-premium group relative flex h-full flex-col transition duration-300 hover:-translate-y-1 hover:border-blue-200/80 hover:shadow-xl hover:shadow-blue-500/5">
       <Link
         to={`/products/${product.slug}`}
-        className="relative block overflow-hidden flex-shrink-0 rounded-t-[1.5rem]"
-        style={{ height: '220px' }}
+        className="relative block h-[220px] flex-shrink-0 overflow-hidden rounded-t-[1.5rem]"
       >
-        {/* Product stage background */}
-        <div className="absolute inset-0 product-stage transition-opacity duration-300 group-hover:opacity-90" />
-
+        <div className="product-stage absolute inset-0 transition-opacity duration-300 group-hover:opacity-90" />
         <ImageWithFallback
           src={imageUrl}
           alt={product.name}
-          className="relative z-10 w-full h-full object-contain p-6 transition-transform duration-500 ease-out group-hover:scale-[1.08]"
+          width={440}
+          height={440}
+          className="relative z-10 h-full w-full object-contain p-6 transition-transform duration-500 ease-out group-hover:scale-[1.06]"
           loading="lazy"
+          decoding="async"
         />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-12 bg-gradient-to-t from-white/60 to-transparent" />
 
-        {/* Soft bottom fade */}
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white/60 to-transparent z-20 pointer-events-none" />
-
-        {/* Badge stack */}
-        <div className="absolute top-3.5 left-3.5 z-30 flex flex-col gap-1.5 pointer-events-none">
+        <div className="pointer-events-none absolute left-3.5 top-3.5 z-30 flex flex-col gap-1.5">
           {primaryBadge && (
             <span className={`sale-badge ${primaryBadge.cls} flex items-center gap-1 shadow-lg`}>
               {primaryBadge.icon}
@@ -77,68 +73,64 @@ export default function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
           {hasDiscount && (
-            <span className="sale-badge flex items-center gap-1 shadow-lg bg-gradient-to-r from-red-500 to-pink-500">
-              <BadgePercent className="w-2.5 h-2.5" />
+            <span className="sale-badge flex items-center gap-1 bg-gradient-to-r from-red-600 to-pink-600 shadow-lg">
+              <BadgePercent className="h-2.5 w-2.5" />
               Giảm {discountPercent}%
             </span>
           )}
           {!product.inStock && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-600/90 text-white text-[0.6rem] font-bold uppercase tracking-wide">
+            <span className="inline-flex items-center rounded-md bg-slate-700/95 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-white">
               Tạm hết hàng
             </span>
           )}
         </div>
-
-        {/* Quick-add hover overlay */}
-        <div className="absolute inset-0 z-20 bg-blue-950/0 group-hover:bg-blue-950/4 transition-colors duration-300 pointer-events-none" />
+        <div className="pointer-events-none absolute inset-0 z-20 bg-blue-950/0 transition-colors duration-300 group-hover:bg-blue-950/5" />
       </Link>
 
-      {/* ── Info Zone ──────────────────────────────────────────── */}
-      <div className="p-5 flex flex-col flex-grow">
-        {/* Brand */}
-        <span className="text-[0.62rem] font-black text-blue-600/80 uppercase tracking-widest mb-1.5 leading-none">
+      <div className="flex flex-grow flex-col p-5">
+        <span className="mb-1.5 text-[0.62rem] font-black uppercase leading-none tracking-widest text-blue-700">
           {brand}
         </span>
 
-        {/* Product name */}
-        <Link to={`/products/${product.slug}`} className="block mb-2.5">
+        <Link to={`/products/${product.slug}`} className="mb-2.5 block">
           <h3
-            className="text-[11.5px] font-bold text-slate-800 group-hover:text-blue-600 transition-colors leading-snug line-clamp-2"
+            className="line-clamp-2 min-h-[2.4rem] text-[11.5px] font-bold leading-snug text-slate-800 transition-colors group-hover:text-blue-700"
             title={product.name}
-            style={{ minHeight: '2.4rem' }}
           >
             {product.name}
           </h3>
         </Link>
 
-        {/* Rating */}
-        <div className="flex items-center gap-1.5 mb-4">
-          <div className="flex">
-            {[...Array(5)].map((_, i) => (
+        <div className="mb-4 flex items-center gap-1.5">
+          <div role="img" aria-label={`${rating.toFixed(1)} trên 5 sao`} className="flex">
+            {[...Array(5)].map((_, index) => (
               <Star
-                key={i}
-                className={`w-3 h-3 ${
-                  i < Math.floor(rating)
+                key={index}
+                aria-hidden="true"
+                className={`h-3 w-3 ${
+                  index < Math.floor(rating)
                     ? 'fill-amber-400 text-amber-400'
-                    : 'text-slate-200 fill-slate-200'
+                    : 'fill-slate-200 text-slate-200'
                 }`}
               />
             ))}
           </div>
-          <span className="text-[9px] font-bold text-slate-400">
+          <span className="text-[10px] font-bold text-slate-500">
             {rating.toFixed(1)} ({reviewCount} đánh giá)
           </span>
         </div>
 
-        {/* Price + Cart */}
-        <div className="mt-auto pt-3.5 border-t border-slate-100 flex items-end justify-between gap-3">
-          <div className="flex flex-col min-w-0">
+        <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-100 pt-3.5">
+          <div className="flex min-w-0 flex-col">
             {hasDiscount && (
-              <span className="text-[10px] text-slate-400 line-through font-medium leading-none mb-1">
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.basePrice)}
+              <span className="mb-1 text-[10px] font-medium leading-none text-slate-500 line-through">
+                {new Intl.NumberFormat('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND',
+                }).format(product.basePrice)}
               </span>
             )}
-            <span className="text-sm font-black leading-none bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-orange-700 to-red-600 bg-clip-text text-sm font-black leading-none text-transparent">
               {new Intl.NumberFormat('vi-VN', {
                 style: 'currency',
                 currency: 'VND',
@@ -148,23 +140,16 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
 
           <button
+            type="button"
             onClick={handleAddToCart}
             disabled={!product.inStock}
-            title="Thêm vào giỏ hàng"
-            className="
-              w-9 h-9 rounded-xl shrink-0
-              flex items-center justify-center
-              transition-all duration-250 cursor-pointer
-              bg-slate-100 text-slate-500
-              hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-500 hover:text-white
-              hover:scale-108 hover:shadow-md hover:shadow-blue-500/20
-              disabled:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none
-            "
+            aria-label={`Thêm ${product.name} vào giỏ hàng`}
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition duration-200 hover:scale-105 hover:bg-gradient-to-r hover:from-blue-700 hover:to-cyan-600 hover:text-white hover:shadow-md hover:shadow-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-300 disabled:shadow-none"
           >
-            <ShoppingCart className="w-4 h-4" />
+            <ShoppingCart aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
       </div>
-    </motion.div>
+    </article>
   );
 }
