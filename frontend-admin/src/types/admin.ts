@@ -10,6 +10,8 @@ export type AdminPermission =
   | 'services.manage'
   | 'technicians.view'
   | 'technicians.manage'
+  | 'operations.view'
+  | 'operations.manage'
   | 'content.view'
   | 'content.manage'
   | 'settings.view'

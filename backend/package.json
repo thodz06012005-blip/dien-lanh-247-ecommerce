@@ -34,11 +34,12 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:migrate:status": "prisma migrate status",
     "prisma:reset": "prisma migrate reset --force",
-    "prisma:seed": "npm run prisma:seed:core && npm run prisma:seed:content && npm run prisma:seed:service-workflow && npm run prisma:seed:editorial",
+    "prisma:seed": "npm run prisma:seed:core && npm run prisma:seed:content && npm run prisma:seed:service-workflow && npm run prisma:seed:editorial && npm run prisma:seed:operations",
     "prisma:seed:core": "ts-node prisma/seed.ts",
     "prisma:seed:content": "ts-node prisma/seed-content.ts",
     "prisma:seed:service-workflow": "ts-node prisma/seed-service-request-workflow.ts",
     "prisma:seed:editorial": "ts-node prisma/seed-editorial-cms.ts",
+    "prisma:seed:operations": "ts-node prisma/seed-operations-dispatch.ts",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

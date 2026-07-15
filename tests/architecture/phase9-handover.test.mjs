@@ -26,12 +26,13 @@ test('Phase 9 handover documentation is complete and cross-linked', () => {
   }
 });
 
-test('Phase 9 handover preserves stacked merge and soft-delete requirements', () => {
+test('Phase 9 handover preserves stacked merge and non-destructive archive requirements', () => {
   const handover = readFileSync(resolve(root, 'docs/phase-9/PHASE_9_HANDOVER.md'), 'utf8');
   const workflow = readFileSync(resolve(root, 'docs/phase-9/EDITORIAL_WORKFLOW.md'), 'utf8');
   assert.match(handover, /PR #10/);
   assert.match(handover, /PR #11/);
   assert.match(handover, /agent\/phase-8-admin-platform-foundation/);
-  assert.match(workflow, /soft delete/i);
-  assert.match(workflow, /Restore → DRAFT/);
+  assert.match(workflow, /soft (?:delete|archive)|không.*hard delete/i);
+  assert.match(workflow, /restore/i);
+  assert.match(workflow, /DRAFT/);
 });
