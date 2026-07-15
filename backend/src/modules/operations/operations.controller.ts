@@ -40,6 +40,8 @@ interface CurrentAdmin {
   name?: string;
 }
 
+type OperationsResponse = Record<string, unknown>;
+
 @Controller()
 export class OperationsController {
   constructor(private readonly operations: OperationsService) {}
@@ -121,24 +123,24 @@ export class OperationsController {
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Permissions(ADMIN_PERMISSIONS.OPERATIONS_VIEW)
-  workspace(@Param('id') id: string) {
-    return this.operations.workspace(id);
+  async workspace(@Param('id') id: string): Promise<OperationsResponse> {
+    return await this.operations.workspace(id);
   }
 
   @Post('admin/operations/requests/:id/dispatch')
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Permissions(ADMIN_PERMISSIONS.OPERATIONS_MANAGE)
-  dispatch(@Param('id') id: string, @Body() dto: DispatchDto, @CurrentUser() user: CurrentAdmin) {
-    return this.operations.dispatch(id, dto, this.actor(user));
+  async dispatch(@Param('id') id: string, @Body() dto: DispatchDto, @CurrentUser() user: CurrentAdmin): Promise<OperationsResponse> {
+    return await this.operations.dispatch(id, dto, this.actor(user));
   }
 
   @Post('admin/operations/requests/:id/reschedule')
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
   @Permissions(ADMIN_PERMISSIONS.OPERATIONS_MANAGE)
-  reschedule(@Param('id') id: string, @Body() dto: RescheduleDto, @CurrentUser() user: CurrentAdmin) {
-    return this.operations.reschedule(id, dto, this.actor(user));
+  async reschedule(@Param('id') id: string, @Body() dto: RescheduleDto, @CurrentUser() user: CurrentAdmin): Promise<OperationsResponse> {
+    return await this.operations.reschedule(id, dto, this.actor(user));
   }
 
   @Post('admin/operations/requests/:id/notes')
