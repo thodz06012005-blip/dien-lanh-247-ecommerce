@@ -12,6 +12,7 @@ export default defineConfig({
     },
   },
   build: {
+    manifest: true,
     chunkSizeWarningLimit: 350,
   },
   server: {
