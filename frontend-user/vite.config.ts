@@ -10,11 +10,8 @@ function vendorChunk(id: string) {
   }
   if (id.includes('node_modules/@tanstack/')) return 'vendor-query';
   if (id.includes('node_modules/lucide-react/')) return 'vendor-icons';
-  if (id.includes('node_modules/framer-motion/')) return 'vendor-motion';
-  if (id.includes('node_modules/axios/')) return 'vendor-http';
-  if (/node_modules\/(?:react-hook-form|@hookform|zod)\//.test(id)) return 'vendor-forms';
   if (id.includes('node_modules/zustand/')) return 'vendor-state';
-  return 'vendor-misc';
+  return undefined;
 }
 
 export default defineConfig({
