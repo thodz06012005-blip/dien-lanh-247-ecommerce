@@ -1,0 +1,129 @@
+name: Phase 10 Operations Quality
+
+on:
+  pull_request:
+    branches:
+      - main
+      - agent/phase-9-editorial-cms
+    paths:
+      - 'backend/prisma/**'
+      - 'backend/src/modules/operations/**'
+      - 'backend/src/common/auth/admin-permissions.ts'
+      - 'backend/src/app.module.ts'
+      - 'backend/package.json'
+      - 'frontend-admin/src/**'
+      - 'frontend-user/src/**'
+      - 'tests/architecture/phase10-operations.test.mjs'
+      - '.github/workflows/phase10-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase10-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, Typecheck, Architecture and Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/ecommerce
+      JWT_ACCESS_SECRET: phase10_quality_access_secret_more_than_32_characters
+      JWT_REFRESH_SECRET: phase10_quality_refresh_secret_more_than_32_characters
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      COOKIE_SECURE: false
+      ENABLE_DEV_ENDPOINTS: false
+      ENABLE_DEMO_ACCOUNTS: false
+      MEDIA_STORAGE_DRIVER: local
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend-user/package-lock.json
+            frontend-admin/package-lock.json
+            backend/package-lock.json
+            mock-api/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix frontend-user ci
+          npm --prefix frontend-admin ci
+          npm --prefix backend ci
+          npm --prefix mock-api ci
+
+      - name: Generate Prisma Client
+        run: npm --prefix backend run prisma:generate
+
+      - name: Run lint with diagnostics
+        id: lint
+        shell: bash
+        run: |
+          set +e
+          npm run lint > phase10-lint.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run typecheck with diagnostics
+        id: typecheck
+        shell: bash
+        run: |
+          set +e
+          npm run typecheck > phase10-typecheck.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run architecture contracts
+        id: architecture
+        shell: bash
+        run: |
+          set +e
+          npm run test:architecture > phase10-architecture.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Build all applications
+        id: build
+        shell: bash
+        run: |
+          set +e
+          npm run build:all > phase10-build.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload quality diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase10-quality-diagnostics
+          path: |
+            phase10-lint.log
+            phase10-typecheck.log
+            phase10-architecture.log
+            phase10-build.log
+          retention-days: 7
+
+      - name: Fail when quality checks fail
+        if: steps.lint.outputs.exit_code != '0' || steps.typecheck.outputs.exit_code != '0' || steps.architecture.outputs.exit_code != '0' || steps.build.outputs.exit_code != '0'
+        run: |
+          cat phase10-lint.log
+          cat phase10-typecheck.log
+          cat phase10-architecture.log
+          cat phase10-build.log
+          exit 1
