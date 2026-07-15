@@ -9,8 +9,10 @@ import { HttpErrorFilter } from './common/filters/http-exception.filter';
 import { requestContextMiddleware } from './common/middleware/request-context.middleware';
 import {
   contentTypeGuardMiddleware,
-  securityHeadersMiddleware,
+  helmetSecurityMiddleware,
 } from './common/middleware/security.middleware';
+import { createValidationException } from './common/validation/validation-exception.factory';
+import { AuditLogService } from './modules/audit/audit-log.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -18,47 +20,71 @@ async function bootstrap() {
     bufferLogs: true,
   });
   const config = app.get(ConfigService);
+  const auditLogService = app.get(AuditLogService);
 
   const host = config.get<string>('HOST', '0.0.0.0');
   const port = config.get<number>('PORT', 3000);
   const apiPrefix = config.get<string>('API_PREFIX', 'api/v1');
   const trustProxy = config.get<boolean>('TRUST_PROXY', false);
   const jsonBodyLimit = config.get<string>('JSON_BODY_LIMIT', '1mb');
-  const urlencodedBodyLimit = config.get<string>('URLENCODED_BODY_LIMIT', '100kb');
-  const mediaStoragePath = config.get<string>('MEDIA_STORAGE_PATH') || join(process.cwd(), 'storage');
+  const urlencodedBodyLimit = config.get<string>(
+    'URLENCODED_BODY_LIMIT',
+    '100kb',
+  );
+  const mediaStoragePath =
+    config.get<string>('MEDIA_STORAGE_PATH') || join(process.cwd(), 'storage');
 
-  if (apiPrefix) {
-    app.setGlobalPrefix(apiPrefix);
-  }
+  if (apiPrefix) app.setGlobalPrefix(apiPrefix);
 
-  if (trustProxy) {
-    const expressApplication = app.getHttpAdapter().getInstance() as {
-      set: (setting: string, value: unknown) => void;
-    };
-    expressApplication.set('trust proxy', 1);
-  }
+  const expressApplication = app.getHttpAdapter().getInstance() as {
+    set: (setting: string, value: unknown) => void;
+    disable: (setting: string) => void;
+  };
+  expressApplication.disable('x-powered-by');
+  if (trustProxy) expressApplication.set('trust proxy', 1);
 
   app.use(requestContextMiddleware);
-  app.use(securityHeadersMiddleware);
+  app.use(helmetSecurityMiddleware);
   app.use(cookieParser());
-  app.use('/uploads', serveStatic(mediaStoragePath, {
-    fallthrough: false,
-    immutable: true,
-    maxAge: '7d',
-    index: false,
-  }));
+  app.use(
+    '/uploads',
+    serveStatic(mediaStoragePath, {
+      fallthrough: false,
+      immutable: true,
+      maxAge: '7d',
+      index: false,
+      dotfiles: 'deny',
+      redirect: false,
+      setHeaders: (response) => {
+        response.setHeader('X-Content-Type-Options', 'nosniff');
+        response.setHeader('Content-Disposition', 'inline');
+      },
+    }),
+  );
   app.use(contentTypeGuardMiddleware);
-  app.use(json({ limit: jsonBodyLimit }));
-  app.use(urlencoded({ extended: false, limit: urlencodedBodyLimit }));
+  app.use(json({ limit: jsonBodyLimit, strict: true }));
+  app.use(
+    urlencoded({
+      extended: false,
+      limit: urlencodedBodyLimit,
+      parameterLimit: 100,
+    }),
+  );
 
-  const configuredOrigins = config.get<string>('CORS_ORIGINS', '');
-  const corsOrigins = configuredOrigins
+  const corsOrigins = config
+    .get<string>('CORS_ORIGINS', '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
   app.enableCors({
-    origin: corsOrigins,
+    origin(origin, callback) {
+      if (!origin || corsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
@@ -70,19 +96,21 @@ async function bootstrap() {
       'X-Request-Id',
       'X-Requested-With',
     ],
-    exposedHeaders: ['X-Request-Id'],
+    exposedHeaders: ['Retry-After', 'X-Request-Id'],
+    maxAge: 600,
+    optionsSuccessStatus: 204,
   });
 
-  app.useGlobalFilters(new HttpErrorFilter());
+  app.useGlobalFilters(new HttpErrorFilter(auditLogService));
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
+      transformOptions: { enableImplicitConversion: true },
       stopAtFirstError: false,
+      validationError: { target: false, value: false },
+      exceptionFactory: createValidationException,
     }),
   );
   app.enableShutdownHooks();
@@ -92,6 +120,9 @@ async function bootstrap() {
 }
 
 void bootstrap().catch((error: unknown) => {
-  console.error('Failed to start Điện Lạnh 247 API', error);
+  console.error('Failed to start Điện Lạnh 247 API', {
+    name: error instanceof Error ? error.name : 'UnknownError',
+    message: error instanceof Error ? error.message : 'Startup failed',
+  });
   process.exitCode = 1;
 });
