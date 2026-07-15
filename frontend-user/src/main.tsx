@@ -5,6 +5,7 @@ import AppProviders from '@/app/AppProviders';
 import { startWebVitalsMonitoring } from '@/performance/webVitals';
 import '@/index.css';
 import '@/styles/design-system.css';
+import '@/styles/phase13-performance.css';
 
 const rootElement = document.getElementById('root');
 
