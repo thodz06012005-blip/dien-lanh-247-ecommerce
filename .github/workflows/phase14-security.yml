@@ -1,0 +1,114 @@
+name: Phase 14 Security Hardening
+
+on:
+  push:
+    branches:
+      - 'agent/phase-14-*'
+    paths:
+      - 'backend/**'
+      - 'scripts/scan-secrets.mjs'
+      - 'scripts/backup-mysql.mjs'
+      - 'tests/architecture/phase14-*'
+      - 'docs/phase-14/**'
+      - '.github/workflows/phase14-security.yml'
+      - 'package.json'
+      - '.gitignore'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'scripts/scan-secrets.mjs'
+      - 'scripts/backup-mysql.mjs'
+      - 'tests/architecture/phase14-*'
+      - 'docs/phase-14/**'
+      - '.github/workflows/phase14-security.yml'
+      - 'package.json'
+      - '.gitignore'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase14-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: Validate, RBAC, Upload, Audit and Secret Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://root:password@127.0.0.1:3306/dien_lanh_247
+      JWT_ACCESS_SECRET: test_only_phase14_access_secret_at_least_32_characters
+      JWT_REFRESH_SECRET: test_only_phase14_refresh_secret_at_least_32_characters
+      AUDIT_LOG_HASH_SALT: test_only_phase14_audit_salt_at_least_32_characters
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      COOKIE_SECURE: 'false'
+      COOKIE_SAME_SITE: lax
+      ENABLE_DEV_ENDPOINTS: 'false'
+      ENABLE_DEMO_ACCOUNTS: 'false'
+      AUDIT_LOG_PATH: var/audit/phase14-ci-audit.jsonl
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Generate Prisma Client
+        run: npm --prefix backend run prisma:generate
+
+      - name: Lint and typecheck backend
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix backend run lint 2>&1 | tee phase14-backend-lint.log
+          npm --prefix backend run typecheck 2>&1 | tee phase14-backend-typecheck.log
+
+      - name: Run Phase 14 security contracts
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/architecture/phase14-security-hardening.test.mjs 2>&1 | tee phase14-contracts.log
+
+      - name: Run inherited backend architecture contracts
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix backend run test:architecture 2>&1 | tee phase14-backend-architecture.log
+
+      - name: Build backend
+        shell: bash
+        run: |
+          set -o pipefail
+          npm --prefix backend run build 2>&1 | tee phase14-backend-build.log
+
+      - name: Scan tracked repository for secrets
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run security:scan 2>&1 | tee phase14-secret-scan.log
+
+      - name: Validate backup utility syntax
+        run: node --check scripts/backup-mysql.mjs
+
+      - name: Upload Phase 14 security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase14-security-report
+          path: |
+            phase14-*.log
+            docs/phase-14/
+          if-no-files-found: warn
+          retention-days: 30
