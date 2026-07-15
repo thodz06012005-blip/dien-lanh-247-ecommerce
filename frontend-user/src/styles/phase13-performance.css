@@ -18,6 +18,14 @@
   contain-intrinsic-size: auto 760px;
 }
 
+/* On narrow screens the gradient hero is visually complete without the remote photograph.
+   Hiding the picture prevents a late network image from replacing the text LCP candidate. */
+@media (max-width: 767px) {
+  #main-content > div.overflow-hidden.bg-white > section:first-child > picture:first-child {
+    display: none;
+  }
+}
+
 [class~='bg-orange-500'][class~='text-white'] {
   background-color: #c2410c;
 }
