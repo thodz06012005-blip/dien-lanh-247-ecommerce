@@ -11,7 +11,8 @@ const GENERIC_SAMPLE_VALUE =
 const NON_PRODUCTION_FIXTURE_PATH =
   /(^|\/)(?:\.github\/workflows|test|tests|docs\/phase-[0-9]+)(\/|$)/i;
 const NON_PRODUCTION_FIXTURE_VALUE =
-  /^(?:ci(?:[_-]|$)|test(?:[_-]|$)|phase(?:[0-9]+|seven)|changedphase)/i;
+  /^(?:ci(?:[_-]|$)|test(?:[_-]|$)|phase(?:[0-9]+|seven)|changedphase|otheraccount|wrongpassword)/i;
+const LOCAL_DATABASE_TARGET = /@(127\.0\.0\.1|localhost)(?::[0-9]+)?\//i;
 const SKIPPED_PATHS = [
   /(^|\/)package-lock\.json$/,
   /(^|\/)node_modules\//,
@@ -50,7 +51,7 @@ function shouldSkip(filePath) {
   return SKIPPED_PATHS.some((pattern) => pattern.test(filePath));
 }
 
-function isPlaceholder(filePath, line, candidate) {
+function isPlaceholder(filePath, line, candidate, ruleName) {
   if (
     PLACEHOLDER_PATTERN.test(candidate) ||
     EXPLICIT_TEMPLATE_PATTERN.test(candidate) ||
@@ -59,11 +60,14 @@ function isPlaceholder(filePath, line, candidate) {
     return true;
   }
 
-  if (
-    NON_PRODUCTION_FIXTURE_PATH.test(filePath) &&
-    NON_PRODUCTION_FIXTURE_VALUE.test(candidate)
-  ) {
-    return true;
+  if (NON_PRODUCTION_FIXTURE_PATH.test(filePath)) {
+    if (NON_PRODUCTION_FIXTURE_VALUE.test(candidate)) return true;
+    if (
+      ruleName === 'credentialed-database-url' &&
+      LOCAL_DATABASE_TARGET.test(line)
+    ) {
+      return true;
+    }
   }
 
   return (
@@ -97,7 +101,7 @@ for (const filePath of trackedFiles()) {
       const match = line.match(pattern.regex);
       if (!match) continue;
       const candidate = match[1] || match[0];
-      if (isPlaceholder(filePath, line, candidate)) continue;
+      if (isPlaceholder(filePath, line, candidate, pattern.name)) continue;
       findings.push({
         file: path.normalize(filePath),
         line: index + 1,
