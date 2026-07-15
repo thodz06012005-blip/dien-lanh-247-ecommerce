@@ -24,6 +24,7 @@ const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
 const Products = lazy(() => import('@/pages/Products'));
 const ProjectDetail = lazy(() => import('@/pages/ProjectDetail'));
 const Projects = lazy(() => import('@/pages/Projects'));
+const QuoteConfirmation = lazy(() => import('@/pages/QuoteConfirmation'));
 const Register = lazy(() => import('@/pages/Register'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const ServiceBooking = lazy(() => import('@/pages/ServiceBooking'));
@@ -44,12 +45,7 @@ function ScrollToTop() {
 
 function RouteLoading() {
   return (
-    <div
-      className="flex min-h-[360px] items-center justify-center bg-slate-50"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-    >
+    <div className="flex min-h-[360px] items-center justify-center bg-slate-50" role="status" aria-live="polite" aria-busy="true">
       <div className="text-center">
         <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-4 border-blue-100 border-t-primary-600 motion-reduce:animate-none" />
         <p className="mt-4 text-sm font-bold text-slate-600">Đang tải nội dung...</p>
@@ -114,6 +110,7 @@ export default function AppRouter() {
             <Route path="service-booking" element={<ServiceBooking />} />
             <Route path="service-booking/success" element={<ServiceBookingSuccess />} />
             <Route path="service-lookup" element={<ServiceRequestLookup />} />
+            <Route path="quote-confirmation" element={<QuoteConfirmation />} />
             <Route path="design-system" element={<DesignSystem />} />
             <Route element={<ProtectedRoute />}>
               <Route path="account" element={<Account />} />
