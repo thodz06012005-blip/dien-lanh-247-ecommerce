@@ -6,39 +6,35 @@ Tài liệu này hướng dẫn chi tiết quy trình chuẩn bị, cấu hình 
 
 ## 1. Kiến Trúc Môi Trường Staging
 
-Hệ thống Staging là bản sao chính xác của hệ thống Production nhưng chạy trên các tài nguyên và cơ sở dữ liệu tách biệt để phục vụ việc kiểm thử tích hợp (UAT) trước khi go-live:
-1. **Frontend User Staging:** Host độc lập (ví dụ: `https://staging.dienlanh247.vn`).
-2. **Frontend Admin Staging:** Host độc lập (ví dụ: `https://staging-admin.dienlanh247.vn`).
-3. **Backend Staging:** Chạy ứng dụng NestJS trên môi trường Cloud (ví dụ: `https://staging-api.dienlanh247.vn`).
-4. **Database Staging:** Cơ sở dữ liệu PostgreSQL độc lập (ví dụ chạy trên AWS RDS hoặc Docker Container riêng biệt). **Nghiêm cấm chia sẻ hoặc kết nối với database Production chính thức.**
+Hệ thống Staging là bản sao gần tương đương Production nhưng chạy trên tài nguyên và cơ sở dữ liệu tách biệt để phục vụ kiểm thử tích hợp trước go-live:
+1. **Frontend User Staging:** Host độc lập, ví dụ `https://staging.dienlanh247.vn`.
+2. **Frontend Admin Staging:** Host độc lập, ví dụ `https://staging-admin.dienlanh247.vn`.
+3. **Backend Staging:** NestJS trên host riêng, ví dụ `https://staging-api.dienlanh247.vn`.
+4. **Database Staging:** MySQL/MariaDB độc lập. **Nghiêm cấm chia sẻ hoặc kết nối với database Production chính thức.**
 
 ---
 
-## 2. Biến Môi Trường Staging (Staging Environment Variables)
+## 2. Biến Môi Trường Staging
 
-Bắt buộc cấu hình các tham số môi trường sau trên Host Staging (qua giao diện console dịch vụ cloud hoặc tệp `.env` được bảo mật):
+Bắt buộc inject tham số qua secret manager hoặc protected environment của nền tảng triển khai. Không commit tệp `.env` staging có giá trị thật.
 
 ### Backend Staging Configuration
 ```ini
-# Chế độ vận hành
-NODE_ENV=production
+NODE_ENV=staging
 
-# Kết nối cơ sở dữ liệu staging (Không sử dụng database production)
-DATABASE_URL="postgresql://staging_user:staging_secure_pass@staging-db-host:5432/staging_db?schema=public"
+# Tham chiếu secret manager; không copy nguyên văn làm secret.
+DATABASE_URL="${SECRET_MANAGER_STAGING_DATABASE_URL}"
+JWT_ACCESS_SECRET="${SECRET_MANAGER_STAGING_JWT_ACCESS_SECRET}"
+JWT_REFRESH_SECRET="${SECRET_MANAGER_STAGING_JWT_REFRESH_SECRET}"
+AUDIT_LOG_HASH_SALT="${SECRET_MANAGER_STAGING_AUDIT_LOG_HASH_SALT}"
+ADMIN_SEED_PASSWORD="${SECRET_MANAGER_STAGING_ADMIN_SEED_PASSWORD}"
 
-# Khóa bí mật JWT cho staging (Khác với dev và production)
-JWT_ACCESS_SECRET="strong_staging_jwt_access_secret_key_32_characters"
-JWT_REFRESH_SECRET="strong_staging_jwt_refresh_secret_key_32_characters"
-
-# URL giao diện phục vụ cookie và CORS
 FRONTEND_USER_URL="https://staging.dienlanh247.vn"
 FRONTEND_ADMIN_URL="https://staging-admin.dienlanh247.vn"
+CORS_ORIGINS="https://staging.dienlanh247.vn,https://staging-admin.dienlanh247.vn"
 
-# Danh sách CORS được phép
-CORS_ALLOWED_ORIGINS="https://staging.dienlanh247.vn,https://staging-admin.dienlanh247.vn"
-
-# Cấu hình an toàn cookie & tắt endpoint phát triển
 COOKIE_SECURE=true
+COOKIE_SAME_SITE=strict
 ENABLE_DEV_ENDPOINTS=false
 ENABLE_DEMO_ACCOUNTS=false
 ```
@@ -47,43 +43,52 @@ ENABLE_DEMO_ACCOUNTS=false
 
 ## 3. Quy Trình Triển Khai Cơ Sở Dữ Liệu Staging
 
-Để chuẩn bị và cập nhật schema cơ sở dữ liệu trên môi trường Staging:
-- [ ] **Tạo Database Staging:** Khởi tạo instance database riêng biệt, không trùng tài khoản với database dev.
-- [ ] **Chạy Migration:** Thực hiện di chuyển schema từ repo bằng lệnh:
+- [ ] **Tạo Database Staging:** Khởi tạo instance riêng biệt, không dùng chung credential với dev hoặc production.
+- [ ] **Tạo backup trước migration:** Chạy `npm run backup:mysql` và xác minh SHA-256.
+- [ ] **Chạy Migration:**
   ```bash
   npx prisma migrate deploy
   ```
-  *Lưu ý: Không dùng `npx prisma migrate dev` hay `npx prisma db push` trên staging để giữ tính nhất quán của lịch sử migration.*
-- [ ] **Seed Dữ Liệu Staging:** Nếu cần tạo tài khoản admin/dữ liệu mẫu ban đầu, chạy:
+  Không dùng `npx prisma migrate dev` hoặc `npx prisma db push` trên staging.
+- [ ] **Seed Dữ Liệu Staging:** Khi thực sự cần:
   ```bash
   npx prisma db seed
   ```
-  *Yêu cầu:* Đảm bảo đặt mật khẩu admin seed mạnh (qua biến môi trường `ADMIN_SEED_PASSWORD`), không dùng mật khẩu mặc định yếu.
+  `ADMIN_SEED_PASSWORD` phải được inject từ secret manager và thu hồi sau khi seed nếu không còn cần.
 
 ---
 
-## 4. Kịch Bản Nghiệm Thu & Kiểm Thử Staging (Smoke Test Checklist)
-
-Sau khi deploy thành công các module lên Staging, kiểm thử viên (QA) thực hiện kiểm duyệt theo các bước sau:
+## 4. Kịch Bản Nghiệm Thu & Kiểm Thử Staging
 
 ### Giao diện & Kết nối API
-- [ ] **Frontend User mở được:** Truy cập trang chủ staging, kiểm tra tải danh mục sản phẩm.
-- [ ] **Frontend Admin mở được:** Truy cập trang đăng nhập portal admin staging.
-- [ ] **Backend Healthcheck OK:** Truy cập `https://staging-api.dienlanh247.vn/api/v1/health` trả về trạng thái hoạt động bình thường (`200 OK`).
+- [ ] Frontend User mở được và tải danh mục sản phẩm.
+- [ ] Frontend Admin mở được trang đăng nhập.
+- [ ] `https://staging-api.dienlanh247.vn/api/v1/health` trả `200 OK`.
 
 ### Xác thực & Bảo mật
-- [ ] **Admin đăng nhập thành công (Login OK):** Đăng nhập với tài khoản có quyền.
-- [ ] **Cookie HttpOnly hoạt động:** Kiểm tra Application Storage trên DevTools trình duyệt, xác nhận `accessToken` được lưu trong cookie dưới dạng **HttpOnly, Secure, SameSite=Strict**. Không có token nào lưu trong `localStorage`.
-- [ ] **Bảo vệ CORS:** Kiểm tra xem frontend-admin có gọi API thành công hay không. Thử gọi API từ một domain không nằm trong whitelist CORS để đảm bảo request bị block.
-- [ ] **RBAC (Phân quyền):** Đăng nhập tài khoản quyền `staff` và kiểm duyệt xem có bị chặn truy cập API logs hoặc thay đổi sản phẩm không.
+- [ ] Admin đăng nhập thành công bằng tài khoản staging riêng.
+- [ ] Cookie là **HttpOnly, Secure, SameSite=Strict**; không có token trong `localStorage`.
+- [ ] Domain ngoài `CORS_ORIGINS` không nhận CORS permission.
+- [ ] STAFF bị chặn API audit, settings manage và product mutation.
+- [ ] Login sai quá ngưỡng trả 429 hoặc trạng thái khóa tạm cùng `Retry-After`.
+- [ ] Refresh token cũ bị từ chối sau rotation; phát hiện reuse thu hồi token family.
+
+### Upload
+- [ ] JPEG, PNG, WebP hợp lệ được nhận.
+- [ ] Tệp đổi đuôi, MIME giả, SVG, HTML, script và executable bị từ chối.
+- [ ] Tệp trên 5 MB hoặc hơn 5 tệp/lần bị từ chối.
 
 ### Nghiệp vụ Hệ thống
-- [ ] **Quản lý Sản phẩm (Products list/soft delete):** Kiểm tra thêm mới, cập nhật sản phẩm. Thử thực hiện xóa sản phẩm, xác nhận trạng thái được cập nhật thành `inactive` (xóa mềm), và sản phẩm đó biến mất khỏi danh sách của trang User.
-- [ ] **Quy trình đặt đơn hàng (Orders flow):** Khách hàng đặt mua sản phẩm, thanh toán. Admin nhận thông tin đơn hàng trên Dashboard.
-- [ ] **Quy trình sửa chữa (Service Requests):** Khách hàng tạo yêu cầu sửa chữa. Admin xác nhận, phân phối công việc cho kỹ thuật viên staging.
-- [ ] **Xóa kỹ thuật viên:** Xác nhận không thể xóa kỹ thuật viên khi đang có lịch active.
+- [ ] Thêm và cập nhật sản phẩm hoạt động bình thường.
+- [ ] Product delete cần confirmation và chuyển `isActive=false`.
+- [ ] Order flow không thay đổi sau hardening.
+- [ ] Service request flow và phân công kỹ thuật viên không thay đổi.
+- [ ] Không thể xóa kỹ thuật viên khi đang có lịch active.
 
 ### Hardening & Vận hành
-- [ ] **Nhật ký Audit Logs:** Vào mục lịch sử hoạt động của Superadmin, xác nhận các hành động đăng nhập, sửa thợ, đặt hàng đã ghi lại đầy đủ và không bị lộ mật khẩu/cookie trong metadata.
-- [ ] **Security Headers:** Sử dụng công cụ (như DevTools Network hoặc Web Security Scanner) để kiểm tra các response headers từ Staging API chứa đầy đủ `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, và `Content-Security-Policy`.
-- [ ] **Backup:** Thực hiện kiểm tra tính toàn vẹn của tệp backup database staging.
+- [ ] Audit log ghi login failure, RBAC denied, rate limit và thao tác nguy hiểm.
+- [ ] `GET /api/v1/admin/audit-logs/integrity` trả `valid=true` cho SUPERADMIN.
+- [ ] Audit metadata không chứa password, token, cookie, authorization hoặc dữ liệu thẻ.
+- [ ] Response API có CSP, HSTS trên HTTPS, `nosniff`, frame denial, COOP, CORP và Permissions Policy.
+- [ ] `npm run security:scan` PASS.
+- [ ] Backup staging có gzip, SHA-256 và restore drill thành công.
