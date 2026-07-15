@@ -2,15 +2,20 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { loadEnv } from 'vite';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const publicDirectory = path.resolve(directory, '..', 'public');
+const projectDirectory = path.resolve(directory, '..');
+const publicDirectory = path.join(projectDirectory, 'public');
 const outputPath = path.join(publicDirectory, 'sitemap.xml');
-const siteUrl = (process.env.VITE_SITE_URL || process.env.SITE_URL || 'https://dienlanh247.vn').replace(/\/$/, '');
+const mode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+const fileEnvironment = loadEnv(mode, projectDirectory, '');
+const environment = { ...fileEnvironment, ...process.env };
+const siteUrl = (environment.VITE_SITE_URL || environment.SITE_URL || 'https://dienlanh247.vn').replace(/\/$/, '');
 const apiUrl = (
-  process.env.SITEMAP_API_URL ||
-  process.env.VITE_CONTENT_API_BASE_URL ||
-  process.env.VITE_API_BASE_URL ||
+  environment.SITEMAP_API_URL ||
+  environment.VITE_CONTENT_API_BASE_URL ||
+  environment.VITE_API_BASE_URL ||
   ''
 ).replace(/\/$/, '');
 
@@ -76,7 +81,10 @@ async function fetchAll(source) {
     const payload = await fetchPage(source.endpoint, page);
     const rows = Array.isArray(payload?.data) ? payload.data : [];
     records.push(...rows);
-    totalPages = Math.min(100, Math.max(1, Number(payload?.meta?.totalPages || payload?.pagination?.totalPages || 1)));
+    totalPages = Math.min(
+      100,
+      Math.max(1, Number(payload?.meta?.totalPages || payload?.pagination?.totalPages || 1)),
+    );
     page += 1;
   } while (page <= totalPages);
   return records;
@@ -111,7 +119,10 @@ async function buildEntries() {
       }
       console.log(`[sitemap] Added ${records.length} records from ${source.endpoint}.`);
     } catch (error) {
-      console.warn(`[sitemap] Could not load ${source.endpoint}; keeping safe static sitemap.`, error instanceof Error ? error.message : error);
+      console.warn(
+        `[sitemap] Could not load ${source.endpoint}; keeping safe static sitemap.`,
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 
