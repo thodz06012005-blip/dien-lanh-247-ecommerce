@@ -26,6 +26,10 @@ yarn-error.log*
 pnpm-debug.log*
 *.pid
 *.pid.lock
+var/audit/
+var/backups/
+backend/var/audit/
+backend/var/backups/
 
 # IDE and operating system files
 .DS_Store
@@ -45,6 +49,8 @@ scratch/
 mock-api/backups/
 backups/
 *.sql
+*.sql.gz
+*.sha256
 *.bak
 *.db
 *.db-journal
