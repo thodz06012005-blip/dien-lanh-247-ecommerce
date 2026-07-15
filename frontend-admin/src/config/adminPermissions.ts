@@ -12,6 +12,8 @@ export const ADMIN_PERMISSIONS = {
   SERVICES_MANAGE: 'services.manage',
   TECHNICIANS_VIEW: 'technicians.view',
   TECHNICIANS_MANAGE: 'technicians.manage',
+  OPERATIONS_VIEW: 'operations.view',
+  OPERATIONS_MANAGE: 'operations.manage',
   CONTENT_VIEW: 'content.view',
   CONTENT_MANAGE: 'content.manage',
   SETTINGS_VIEW: 'settings.view',
