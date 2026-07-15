@@ -19,6 +19,7 @@ import { ContactModule } from './modules/contact/contact.module';
 import { ContentModule } from './modules/content/content.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OperationsModule } from './modules/operations/operations.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { ProductsModule } from './modules/products/products.module';
@@ -62,6 +63,7 @@ import { UsersModule } from './modules/users/users.module';
     DashboardModule,
     CustomersModule,
     OperationsModule,
+    NotificationsModule,
     AuditLogModule,
   ],
   controllers: [AppController],
