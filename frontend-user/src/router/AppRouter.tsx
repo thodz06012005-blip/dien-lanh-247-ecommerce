@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
-import Home from '@/pages/Home';
 import SeoManager from '@/seo/SeoManager';
-import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1').replace(/\/$/, '');
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
+
+const Home = lazy(() => import('@/pages/Home'));
 const About = lazy(() => import('@/pages/About'));
 const Account = lazy(() => import('@/pages/Account'));
 const ArticleDetail = lazy(() => import('@/pages/ArticleDetail'));
@@ -47,14 +49,21 @@ function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    window.requestAnimationFrame(() => document.getElementById('main-content')?.focus({ preventScroll: true }));
+    window.requestAnimationFrame(() =>
+      document.getElementById('main-content')?.focus({ preventScroll: true }),
+    );
   }, [pathname]);
   return null;
 }
 
 function RouteLoading() {
   return (
-    <div className="flex min-h-[360px] items-center justify-center bg-slate-50" role="status" aria-live="polite" aria-busy="true">
+    <div
+      className="flex min-h-[360px] items-center justify-center bg-slate-50"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       <div className="text-center">
         <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-4 border-blue-100 border-t-primary-600 motion-reduce:animate-none" />
         <p className="mt-4 text-sm font-bold text-slate-600">Đang tải nội dung...</p>
@@ -63,16 +72,45 @@ function RouteLoading() {
   );
 }
 
+function extractUser(payload: unknown) {
+  const first = payload as { data?: unknown };
+  const second = first?.data as { data?: unknown } | undefined;
+  return second?.data || first?.data || null;
+}
+
 function AuthBootstrap() {
   const { isInitialized, setUser, clearSession, setInitialized } = useAuthStore();
   useEffect(() => {
     if (isInitialized) return;
     let active = true;
-    void api.get('/auth/me')
-      .then((response) => { if (active) setUser(response.data?.data ?? null); })
-      .catch(() => { if (active) clearSession(); })
-      .finally(() => { if (active) setInitialized(true); });
-    return () => { active = false; };
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+    void fetch(`${API_BASE_URL}/auth/me`, {
+      headers: { Accept: 'application/json' },
+      credentials: 'include',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Session bootstrap failed: ${response.status}`);
+        return response.json();
+      })
+      .then((payload) => {
+        if (active) setUser(extractUser(payload) as Parameters<typeof setUser>[0]);
+      })
+      .catch(() => {
+        if (active) clearSession();
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
+        if (active) setInitialized(true);
+      });
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, [clearSession, isInitialized, setInitialized, setUser]);
   return null;
 }
