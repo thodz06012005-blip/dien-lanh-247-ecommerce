@@ -122,15 +122,11 @@ test('Phase 14 audit logs are redacted persistent and tamper evident', () => {
   ]) {
     assert.match(audit, new RegExp(marker));
   }
-  for (const marker of [
-    'authorization',
-    'private.?key',
-    'card.?number',
-    'REDACTED_PAYMENT_CARD',
-    'REDACTED_JWT',
-  ]) {
-    assert.match(redaction, new RegExp(marker, 'i'));
-  }
+  assert.match(redaction, /authorization/i);
+  assert.match(redaction, /private\.\?key/i);
+  assert.match(redaction, /luhnCheck/);
+  assert.match(redaction, /REDACTED_PAYMENT_CARD/);
+  assert.match(redaction, /REDACTED_JWT/);
 });
 
 test('Phase 14 keeps destructive operations recoverable and confirmed', () => {
