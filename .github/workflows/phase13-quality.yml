@@ -79,11 +79,14 @@ jobs:
           npm --prefix frontend-user run typecheck
           npm --prefix backend run typecheck
 
-      - name: Run Phase 13 architecture contracts
-        run: |
-          npm --prefix frontend-user run test:architecture
-          node --test tests/architecture/phase13-seo-performance.test.mjs
-          npm --prefix backend run test:architecture
+      - name: Run inherited customer architecture contracts
+        run: npm --prefix frontend-user run test:architecture
+
+      - name: Run Phase 13 SEO performance contracts
+        run: node --test tests/architecture/phase13-seo-performance.test.mjs
+
+      - name: Run inherited backend architecture contracts
+        run: npm --prefix backend run test:architecture
 
       - name: Build customer and backend
         run: |
