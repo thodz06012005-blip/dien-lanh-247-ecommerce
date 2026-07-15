@@ -3,7 +3,13 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-function vendorChunk(id: string) {
+function applicationChunk(id: string) {
+  if (id.includes('/src/pages/Home.tsx')) return 'route-home';
+  if (id.includes('/src/pages/Services.tsx')) return 'route-services';
+  if (id.includes('/src/pages/Products.tsx')) return 'route-products';
+  if (id.includes('/src/pages/Articles.tsx')) return 'route-articles';
+  if (id.includes('/src/pages/ServiceBooking.tsx')) return 'route-booking';
+  if (id.includes('/src/components/product/')) return 'feature-products';
   if (!id.includes('node_modules')) return undefined;
   if (/node_modules\/(?:react|react-dom|react-router|react-router-dom)\//.test(id)) {
     return 'vendor-react';
@@ -27,7 +33,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 350,
     rolldownOptions: {
       output: {
-        manualChunks: vendorChunk,
+        manualChunks: applicationChunk,
       },
     },
   },
