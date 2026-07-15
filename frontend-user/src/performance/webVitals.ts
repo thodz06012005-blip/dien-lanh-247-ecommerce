@@ -19,6 +19,10 @@ interface InteractionEntry extends PerformanceEntry {
   interactionId?: number;
 }
 
+interface EventObserverOptions extends PerformanceObserverInit {
+  durationThreshold?: number;
+}
+
 const thresholds: Record<WebVitalName, [number, number]> = {
   LCP: [2_500, 4_000],
   CLS: [0.1, 0.25],
@@ -33,7 +37,9 @@ function rating(name: WebVitalName, value: number): WebVitalMetric['rating'] {
 }
 
 function navigationType() {
-  const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+  const navigation = performance.getEntriesByType('navigation')[0] as
+    | PerformanceNavigationTiming
+    | undefined;
   return navigation?.type;
 }
 
@@ -100,7 +106,12 @@ export function startWebVitalsMonitoring() {
         interactionDurations.set(entry.interactionId, Math.max(previous, entry.duration));
       }
     });
-    observer.observe({ type: 'event', buffered: true, durationThreshold: 40 });
+    const options: EventObserverOptions = {
+      type: 'event',
+      buffered: true,
+      durationThreshold: 40,
+    };
+    observer.observe(options);
   }
 
   let reported = false;
@@ -116,8 +127,12 @@ export function startWebVitalsMonitoring() {
     }
   };
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') report();
-  }, { once: true });
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.visibilityState === 'hidden') report();
+    },
+    { once: true },
+  );
   window.addEventListener('pagehide', report, { once: true });
 }
