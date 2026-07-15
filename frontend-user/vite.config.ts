@@ -3,6 +3,20 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+function vendorChunk(id: string) {
+  if (!id.includes('node_modules')) return undefined;
+  if (/node_modules\/(?:react|react-dom|react-router|react-router-dom)\//.test(id)) {
+    return 'vendor-react';
+  }
+  if (id.includes('node_modules/@tanstack/')) return 'vendor-query';
+  if (id.includes('node_modules/lucide-react/')) return 'vendor-icons';
+  if (id.includes('node_modules/framer-motion/')) return 'vendor-motion';
+  if (id.includes('node_modules/axios/')) return 'vendor-http';
+  if (/node_modules\/(?:react-hook-form|@hookform|zod)\//.test(id)) return 'vendor-forms';
+  if (id.includes('node_modules/zustand/')) return 'vendor-state';
+  return 'vendor-misc';
+}
+
 export default defineConfig({
   base: '/',
   plugins: [react(), tailwindcss()],
@@ -14,6 +28,11 @@ export default defineConfig({
   build: {
     manifest: true,
     chunkSizeWarningLimit: 350,
+    rolldownOptions: {
+      output: {
+        manualChunks: vendorChunk,
+      },
+    },
   },
   server: {
     port: 5173,
