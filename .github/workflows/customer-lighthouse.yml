@@ -57,6 +57,7 @@ jobs:
           PORT: '3001'
           ENABLE_DEV_ENDPOINTS: 'true'
           ENABLE_DEMO_ACCOUNTS: 'true'
+          CORS_ORIGINS: http://127.0.0.1:4173,http://localhost:4173
         run: |
           node mock-api/server.js > mock-api-lighthouse.log 2>&1 &
           echo $! > mock-api-lighthouse.pid
@@ -115,7 +116,8 @@ jobs:
       - name: Run Phase 13 Lighthouse route matrix
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          failures=0
 
           audit_route() {
             local label="$1"
@@ -127,14 +129,21 @@ jobs:
             fi
 
             echo "Auditing $label ($profile): $route"
-            npx --yes lighthouse@13.0.0 "http://127.0.0.1:4173${route}" \
+            if ! npx --yes lighthouse@13.0.0 "http://127.0.0.1:4173${route}" \
               --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
               --only-categories=performance,accessibility,best-practices,seo \
               "${preset_args[@]}" \
               --output=json \
               --output-path="lighthouse-${label}-${profile}.json" \
-              --quiet
-            node scripts/verify-lighthouse.mjs "lighthouse-${label}-${profile}.json" "--profile=${profile}"
+              --quiet; then
+              echo "Lighthouse execution failed for ${label}-${profile}."
+              failures=$((failures + 1))
+              return
+            fi
+
+            if ! node scripts/verify-lighthouse.mjs "lighthouse-${label}-${profile}.json" "--profile=${profile}"; then
+              failures=$((failures + 1))
+            fi
           }
 
           audit_route home / mobile
@@ -143,6 +152,11 @@ jobs:
           audit_route articles /articles mobile
           audit_route booking /service-booking mobile
           audit_route home / desktop
+
+          if [ "$failures" -gt 0 ]; then
+            echo "$failures Lighthouse route profile(s) did not meet Phase 13 acceptance."
+            exit 1
+          fi
 
       - name: Create performance report
         if: always()
