@@ -1,0 +1,58 @@
+import { expect, test } from '@playwright/test';
+
+const userBase = (process.env.PHASE15_USER_URL || 'http://127.0.0.1:5173').replace(/\/$/, '');
+const adminBase = (process.env.PHASE15_ADMIN_URL || 'http://127.0.0.1:5174').replace(/\/$/, '');
+
+const customerPages = [
+  ['home', '/'],
+  ['services', '/services'],
+  ['products', '/products'],
+  ['service-booking', '/service-booking'],
+  ['login', '/login'],
+];
+
+async function verifyResponsivePage(page, url, testInfo, label) {
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+
+  const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
+  expect(response?.status(), `${label} must load`).toBeLessThan(400);
+  await expect(page.locator('body')).toBeVisible();
+  await page.waitForTimeout(700);
+
+  const viewport = page.viewportSize();
+  expect(viewport?.width).toBeGreaterThan(300);
+  const layout = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    bodyText: document.body.innerText.trim().length,
+    title: document.title,
+  }));
+
+  expect(layout.bodyText, `${label} must render meaningful content`).toBeGreaterThan(40);
+  expect(layout.title, `${label} must set a document title`).not.toBe('');
+  expect(
+    layout.scrollWidth,
+    `${label} must not cause horizontal overflow`,
+  ).toBeLessThanOrEqual(layout.clientWidth + 2);
+  expect(pageErrors, `${label} must not throw runtime errors`).toEqual([]);
+
+  await page.screenshot({
+    path: testInfo.outputPath(`${label}.png`),
+    fullPage: true,
+  });
+}
+
+test.describe('customer portal responsive acceptance', () => {
+  for (const [name, path] of customerPages) {
+    test(`${name} remains usable`, async ({ page }, testInfo) => {
+      await verifyResponsivePage(page, `${userBase}${path}`, testInfo, `customer-${name}`);
+    });
+  }
+});
+
+test('admin login remains usable', async ({ page }, testInfo) => {
+  await verifyResponsivePage(page, `${adminBase}/login`, testInfo, 'admin-login');
+  await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
+  await expect(page.locator('input[type="password"]').first()).toBeVisible();
+});
