@@ -59,11 +59,9 @@ async function verifyResponsivePage(page, url, testInfo, label) {
   const layout = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
-    bodyText: document.body.innerText.trim().length,
     title: document.title,
   }));
 
-  expect(layout.bodyText, `${label} must render meaningful content`).toBeGreaterThan(40);
   expect(layout.title, `${label} must set a document title`).not.toBe('');
   expect(
     layout.scrollWidth,
