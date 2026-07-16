@@ -7,9 +7,7 @@ import {
   MapPin,
   RotateCcw,
   ShieldCheck,
-  ShoppingCart,
   Sparkles,
-  Star,
   Wrench,
 } from 'lucide-react';
 import ServiceCard from '@/components/cards/ServiceCard';
