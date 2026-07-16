@@ -11,9 +11,38 @@ const customerPages = [
   ['login', '/login'],
 ];
 
+async function installMockApiBridge(page, pageUrl) {
+  const pageOrigin = new URL(pageUrl).origin;
+  await page.route(/http:\/\/(?:127\.0\.0\.1|localhost):3001\/.*/, async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          'access-control-allow-origin': pageOrigin,
+          'access-control-allow-credentials': 'true',
+          'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+          'access-control-allow-headers': 'Content-Type,Accept,Authorization,X-Requested-With,Cookie',
+        },
+      });
+      return;
+    }
+
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      headers: {
+        ...response.headers(),
+        'access-control-allow-origin': pageOrigin,
+        'access-control-allow-credentials': 'true',
+      },
+    });
+  });
+}
+
 async function verifyResponsivePage(page, url, testInfo, label) {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  await installMockApiBridge(page, url);
 
   const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
   expect(response?.status(), `${label} must load`).toBeLessThan(400);
