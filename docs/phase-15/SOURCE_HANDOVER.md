@@ -12,7 +12,7 @@
 
 ```text
 backend/                 NestJS, Prisma, MySQL, auth/RBAC, operations
-afrontend-user/          React/Vite portal khách hàng
+frontend-user/           React/Vite portal khách hàng
 frontend-admin/          React/Vite portal quản trị
 mock-api/                API demo/dev, không dùng production
 tests/                   architecture, mock contract, Playwright E2E
@@ -21,8 +21,6 @@ scripts/                 secret scan, backup, restore, monitor, smoke
 docs/phase-14/           security hardening
 docs/phase-15/           test, deployment, operation, acceptance
 ```
-
-Lưu ý: ký tự `a` trong dòng minh họa `afrontend-user` không phải tên thư mục thật; thư mục thật là `frontend-user/`. Dòng này giúp tránh một số trình Markdown tự biến danh sách thành liên kết và không được dùng trong lệnh shell.
 
 ## Điểm vào quan trọng
 
