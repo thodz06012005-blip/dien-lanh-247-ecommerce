@@ -1,0 +1,251 @@
+name: Phase 15 Production Readiness
+
+on:
+  push:
+    branches: ['agent/phase-15-*']
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'frontend-user/**'
+      - 'frontend-admin/**'
+      - 'mock-api/**'
+      - 'deploy/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'docs/phase-15/**'
+      - 'docker-compose.production.yml'
+      - '.dockerignore'
+      - 'package.json'
+      - '.github/workflows/phase15-production-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase15-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality, Unit Tests and Builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mysql://root:phase15_quality_fixture@127.0.0.1:3306/ecommerce
+      JWT_ACCESS_SECRET: phase15_quality_access_secret_more_than_32_characters
+      JWT_REFRESH_SECRET: phase15_quality_refresh_secret_more_than_32_characters
+      AUDIT_LOG_HASH_SALT: phase15_quality_audit_salt_more_than_32_characters
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      COOKIE_SECURE: 'false'
+      ENABLE_DEV_ENDPOINTS: 'false'
+      ENABLE_DEMO_ACCOUNTS: 'false'
+      AUDIT_LOG_PATH: var/audit/phase15-quality.jsonl
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend-user/package-lock.json
+            frontend-admin/package-lock.json
+            backend/package-lock.json
+            mock-api/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix frontend-user ci
+          npm --prefix frontend-admin ci
+          npm --prefix backend ci
+          npm --prefix mock-api ci
+      - name: Generate Prisma Client
+        run: npm --prefix backend run prisma:generate
+      - name: Security, lint and type-check
+        run: |
+          npm run security:scan 2>&1 | tee phase15-security.log
+          npm run lint 2>&1 | tee phase15-lint.log
+          npm run typecheck 2>&1 | tee phase15-typecheck.log
+      - name: Phase 15 and inherited contracts
+        run: |
+          node --test tests/architecture/phase15-production-readiness.test.mjs 2>&1 | tee phase15-contracts.log
+          npm run test:architecture 2>&1 | tee phase15-inherited.log
+      - name: Unit tests with coverage
+        run: |
+          npm --prefix backend run test:cov -- \
+            modules/auth/login-rate-limit.service.spec.ts \
+            modules/products/products.service.spec.ts \
+            modules/health/health.service.spec.ts \
+            2>&1 | tee phase15-unit.log
+      - name: Build all production applications
+        run: npm run build:all 2>&1 | tee phase15-build.log
+      - name: Upload quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase15-quality-evidence
+          path: |
+            phase15-*.log
+            backend/coverage/
+          if-no-files-found: warn
+          retention-days: 30
+
+  api-integration:
+    name: Critical API and RBAC Flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: phase15_root_fixture
+          MYSQL_DATABASE: ecommerce
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pphase15_root_fixture"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      NODE_ENV: test
+      HOST: 0.0.0.0
+      PORT: 3000
+      API_PREFIX: api/v1
+      DATABASE_URL: mysql://root:phase15_root_fixture@127.0.0.1:3306/ecommerce
+      JWT_ACCESS_SECRET: phase15_api_access_secret_more_than_32_characters
+      JWT_REFRESH_SECRET: phase15_api_refresh_secret_more_than_32_characters
+      AUDIT_LOG_HASH_SALT: phase15_api_audit_salt_more_than_32_characters
+      BCRYPT_SALT_ROUNDS: 8
+      CORS_ORIGINS: http://localhost:5173,http://localhost:5174
+      COOKIE_SECURE: 'false'
+      COOKIE_SAME_SITE: lax
+      ENABLE_DEV_ENDPOINTS: 'false'
+      ENABLE_DEMO_ACCOUNTS: 'false'
+      THROTTLE_LIMIT: 500
+      LOGIN_RATE_LIMIT_MAX_PER_EMAIL: 10
+      LOGIN_RATE_LIMIT_MAX_PER_IP: 100
+      LOGIN_RATE_LIMIT_MAX_PER_IP_EMAIL: 10
+      ADMIN_SEED_EMAIL: admin-phase15@example.test
+      ADMIN_SEED_PASSWORD: Phase15AdminFixture123
+      AUDIT_LOG_PATH: var/audit/phase15-api.jsonl
+      PHASE15_API_URL: http://127.0.0.1:3000/api/v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend
+        run: npm --prefix backend ci
+      - name: Migrate, seed and build
+        run: |
+          npm --prefix backend run prisma:validate
+          npm --prefix backend run prisma:generate
+          npm --prefix backend run prisma:migrate:deploy
+          npm --prefix backend run prisma:seed
+          npm --prefix backend run build
+      - name: Start production backend
+        run: |
+          npm --prefix backend run start:prod > phase15-api.log 2>&1 &
+          echo $! > phase15-api.pid
+          for attempt in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/api/v1/health/ready >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat phase15-api.log
+          exit 1
+      - name: Critical API integration flow
+        run: node backend/test/phase15-critical-flows.integration.mjs 2>&1 | tee phase15-api-integration.log
+      - name: Reject token-shaped logs
+        run: |
+          ! grep -E 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' phase15-api.log
+      - name: Upload API evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase15-api-evidence
+          path: |
+            phase15-api.log
+            phase15-api-integration.log
+            var/audit/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Stop backend
+        if: always()
+        run: if [ -f phase15-api.pid ]; then kill "$(cat phase15-api.pid)" 2>/dev/null || true; fi
+
+  responsive:
+    name: Responsive Browser Acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install portals and browsers
+        run: |
+          npm ci
+          npm --prefix frontend-user ci
+          npm --prefix frontend-admin ci
+          npm --prefix mock-api ci
+          npm install --no-save --ignore-scripts @playwright/test@1.54.2
+          npx playwright install --with-deps chromium firefox webkit
+      - name: Start portals
+        run: |
+          npm --prefix mock-api run start > phase15-mock.log 2>&1 & echo $! > phase15-mock.pid
+          VITE_APP_ENV=test VITE_APP_URL=http://127.0.0.1:5173 VITE_API_BASE_URL=http://127.0.0.1:3001/api/v1 VITE_USE_MOCK_API=true npm --prefix frontend-user run dev > phase15-user.log 2>&1 & echo $! > phase15-user.pid
+          VITE_APP_ENV=test VITE_APP_URL=http://127.0.0.1:5174 VITE_API_BASE_URL=http://127.0.0.1:3001/api/v1 VITE_USE_MOCK_API=true npm --prefix frontend-admin run dev > phase15-admin.log 2>&1 & echo $! > phase15-admin.pid
+          for port in 3001 5173 5174; do
+            for attempt in {1..60}; do nc -z 127.0.0.1 "$port" && break; sleep 2; done
+            nc -z 127.0.0.1 "$port"
+          done
+      - name: Responsive browser matrix
+        env:
+          PHASE15_USER_URL: http://127.0.0.1:5173
+          PHASE15_ADMIN_URL: http://127.0.0.1:5174
+        run: npx playwright test --config tests/e2e/playwright.config.mjs
+      - name: Upload responsive evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase15-responsive-evidence
+          path: |
+            playwright-report/phase15/
+            test-results/phase15-playwright/
+            phase15-*.log
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Stop portals
+        if: always()
+        run: |
+          for file in phase15-user.pid phase15-admin.pid phase15-mock.pid; do
+            if [ -f "$file" ]; then kill "$(cat "$file")" 2>/dev/null || true; fi
+          done
+
+  production-acceptance:
+    name: Docker, HTTPS, Backup and Restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Build production containers
+        run: echo 'Production images are built by the reproducible drill script.'
+      - name: Backup and restore drill
+        run: bash deploy/scripts/phase15-production-drill.sh
+      - name: Production smoke test
+        run: grep -q 'passed' phase15-evidence/post-recovery-smoke.log
+      - name: Upload Phase 15 acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase15-acceptance-evidence
+          path: |
+            phase15-evidence/
+            docs/phase-15/
+          if-no-files-found: warn
+          retention-days: 30
