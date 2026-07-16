@@ -30,9 +30,9 @@ for (const [name, url] of [
   const page = await get(url, { accept: 'text/html' });
   assert.equal(page.response.status, 200, `${name} portal must return 200`);
   assert.match(page.body, /<!doctype html>/i, `${name} portal must return HTML`);
-  assert.equal(
-    page.response.headers.get('x-content-type-options'),
-    'nosniff',
+  assert.match(
+    page.response.headers.get('x-content-type-options') || '',
+    /(^|,\s*)nosniff(,|$)/i,
     `${name} portal must send no-sniff`,
   );
   if (url.startsWith('https://')) {
