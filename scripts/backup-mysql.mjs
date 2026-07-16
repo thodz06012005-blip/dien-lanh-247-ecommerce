@@ -87,7 +87,7 @@ const result = spawnSync(
     '--events',
     '--hex-blob',
     '--default-character-set=utf8mb4',
-    '--databases',
+    '--no-tablespaces',
     databaseName,
   ],
   {

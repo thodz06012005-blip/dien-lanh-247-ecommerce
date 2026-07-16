@@ -1,0 +1,125 @@
+name: dien-lanh-247
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    env_file: ./deploy/env/database.env
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+07:00
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'MYSQL_PWD="$${MYSQL_PASSWORD}" mysqladmin ping --silent -h 127.0.0.1 -u"$${MYSQL_USER}"']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks: [private]
+    security_opt: ['no-new-privileges:true']
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: dien-lanh-247/backend:${APP_VERSION:-latest}
+    restart: unless-stopped
+    env_file: ./deploy/env/backend.env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      API_PREFIX: api/v1
+      APP_VERSION: ${APP_VERSION:-local}
+      CORS_ORIGINS: https://${USER_DOMAIN},https://${ADMIN_DOMAIN}
+      FRONTEND_USER_URL: https://${USER_DOMAIN}
+      FRONTEND_ADMIN_URL: https://${ADMIN_DOMAIN}
+      COOKIE_SECURE: 'true'
+      COOKIE_SAME_SITE: strict
+      TRUST_PROXY: 'true'
+      SWAGGER_ENABLED: 'false'
+      ENABLE_DEV_ENDPOINTS: 'false'
+      ENABLE_DEMO_ACCOUNTS: 'false'
+      AUDIT_LOG_PATH: /app/var/audit/security-audit.jsonl
+      BACKUP_DIRECTORY: /app/var/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - audit_data:/app/var/audit
+      - backup_data:/app/var/backups
+      - media_data:/app/storage
+    networks: [private]
+    security_opt: ['no-new-privileges:true']
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+
+  frontend-user:
+    build:
+      context: .
+      dockerfile: frontend-user/Dockerfile
+      args:
+        VITE_APP_ENV: production
+        VITE_APP_URL: https://${USER_DOMAIN}
+        VITE_API_BASE_URL: https://${USER_DOMAIN}/api/v1
+        VITE_USE_MOCK_API: 'false'
+    image: dien-lanh-247/frontend-user:${APP_VERSION:-latest}
+    restart: unless-stopped
+    networks: [private]
+    security_opt: ['no-new-privileges:true']
+
+  frontend-admin:
+    build:
+      context: .
+      dockerfile: frontend-admin/Dockerfile
+      args:
+        VITE_APP_ENV: production
+        VITE_APP_URL: https://${ADMIN_DOMAIN}
+        VITE_API_BASE_URL: https://${ADMIN_DOMAIN}/api/v1
+        VITE_USE_MOCK_API: 'false'
+    image: dien-lanh-247/frontend-admin:${APP_VERSION:-latest}
+    restart: unless-stopped
+    networks: [private]
+    security_opt: ['no-new-privileges:true']
+
+  gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    environment:
+      USER_DOMAIN: ${USER_DOMAIN}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN}
+      NGINX_ENVSUBST_FILTER: '^(USER_DOMAIN|ADMIN_DOMAIN)$'
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deploy/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./deploy/certs:/etc/nginx/certs:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend-user:
+        condition: service_healthy
+      frontend-admin:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-check-certificate -q -O /dev/null https://127.0.0.1/healthz || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks: [private]
+    security_opt: ['no-new-privileges:true']
+
+networks:
+  private:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  audit_data:
+  backup_data:
+  media_data:

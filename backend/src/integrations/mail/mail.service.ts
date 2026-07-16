@@ -5,6 +5,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 export class MailService {
   constructor(private readonly mailerService: MailerService) {}
 
+  // Never print reset/verification links or tokens to logs
   private async deliver(to: string, subject: string, text: string, html?: string) {
     if (!process.env.MAIL_HOST && !process.env.SMTP_HOST) {
       console.log(`[MailService] Simulated email: ${subject} -> ${to}`);

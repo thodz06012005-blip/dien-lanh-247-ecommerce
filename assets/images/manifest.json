@@ -1,0 +1,312 @@
+{
+  "version": 1,
+  "canonicalRoot": "assets/images",
+  "publicRoot": "/images",
+  "notes": "Tìm key img_* để biết ảnh nằm ở đâu và đang được dùng tại file nào. Các mục external cần được thay dần bằng file local tại targetFile.",
+  "entries": [
+    {
+      "key": "img_placeholder_unavailable",
+      "category": "placeholders",
+      "targetFile": "placeholders/image-unavailable.svg",
+      "status": "local",
+      "requiredLocal": true,
+      "aspectRatio": "3:2",
+      "recommendedSize": "1200x800",
+      "maxBytes": 50000,
+      "usedBy": [
+        "frontend-user/src/components/common/OptimizedImage.tsx",
+        "frontend-user/public/images/placeholders/image-unavailable.svg",
+        "frontend-admin/public/images/placeholders/image-unavailable.svg"
+      ],
+      "replacementNote": "Giữ nguyên tên file nếu chỉ muốn đổi hình dự phòng toàn hệ thống."
+    },
+    {
+      "key": "img_hero_home_main",
+      "category": "hero",
+      "targetFile": "hero/hero-home-main.avif",
+      "status": "planned",
+      "requiredLocal": false,
+      "aspectRatio": "16:7",
+      "recommendedSize": "1920x840",
+      "maxBytes": 250000,
+      "usedBy": [
+        "frontend-user/src/pages/Home.tsx hoặc component hero được Home import"
+      ],
+      "replacementNote": "Ảnh LCP. Cần để priority=true, width/height cố định và có lớp overlay bảo đảm tương phản."
+    },
+    {
+      "key": "img_product_daikin_ftkf25xvmv_01",
+      "category": "products",
+      "targetFile": "products/product-daikin-ftkf25xvmv-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1585338107529-13afc5f02586",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "backend/prisma/seed.ts — Điều hòa Daikin FTKF25XVMV",
+        "mock-api/seed/initialData.js — dh-daikin-ftkf25xvmv",
+        "mock-api/seed/initialData.js — thumbnail đơn hàng mẫu"
+      ]
+    },
+    {
+      "key": "img_product_panasonic_xu9zkh8_01",
+      "category": "products",
+      "targetFile": "products/product-panasonic-xu9zkh8-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1621905252507-b354bc25edac",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "backend/prisma/seed.ts — Điều hòa Panasonic CU/CS-XU9ZKH-8",
+        "mock-api/seed/initialData.js — dh-panasonic-xu9zkh8"
+      ]
+    },
+    {
+      "key": "img_product_lg_grb256bl_01",
+      "category": "products",
+      "targetFile": "products/product-lg-grb256bl-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1571175432290-ef713134d131",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "backend/prisma/seed.ts — Tủ lạnh LG GR-B256BL",
+        "mock-api/seed/initialData.js — tl-lg-grb256bl",
+        "mock-api/seed/initialData.js — td-sanaky-vh2599a1"
+      ],
+      "replacementNote": "Nguồn hiện tại đang bị tái sử dụng cho hai sản phẩm khác loại; nên thay thành hai file riêng."
+    },
+    {
+      "key": "img_product_lg_fv1410s4w_01",
+      "category": "products",
+      "targetFile": "products/product-lg-fv1410s4w-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "backend/prisma/seed.ts — Máy giặt LG FV1410S4W",
+        "mock-api/seed/initialData.js — mg-lg-fv1410s4w",
+        "mock-api/seed/initialData.js — ms-electrolux-eds854n3sb",
+        "mock-api/seed/initialData.js — mg-samsung-ww90t3040ww"
+      ],
+      "replacementNote": "Nguồn hiện tại đang được dùng cho nhiều model; cần tách ảnh theo đúng sản phẩm."
+    },
+    {
+      "key": "img_product_ariston_vitaly20_01",
+      "category": "products",
+      "targetFile": "products/product-ariston-vitaly20-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "backend/prisma/seed.ts — Bình nóng lạnh Ariston Vitaly 20",
+        "mock-api/seed/initialData.js — bnl-ariston-vitaly20",
+        "mock-api/seed/initialData.js — tl-panasonic-bz221qskv"
+      ],
+      "replacementNote": "Nguồn hiện tại không phân biệt bình nóng lạnh và tủ lạnh."
+    },
+    {
+      "key": "img_product_air_purifier_generic_01",
+      "category": "products",
+      "targetFile": "products/product-air-purifier-generic-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1585338107529-13afc5f02586",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "mock-api/seed/initialData.js — mlkk-sharp-fpjm30ev",
+        "mock-api/seed/initialData.js — mlkk-xiaomi-4lite"
+      ],
+      "replacementNote": "Nên tạo file riêng cho Sharp và Xiaomi thay vì dùng ảnh điều hòa."
+    },
+    {
+      "key": "img_product_daikin_ftkf35xvmv_01",
+      "category": "products",
+      "targetFile": "products/product-daikin-ftkf35xvmv-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1585338107529-13afc5f02586",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "mock-api/seed/initialData.js — dh-daikin-ftkf35xvmv"
+      ]
+    },
+    {
+      "key": "img_product_panasonic_ba221qskv_01",
+      "category": "products",
+      "targetFile": "products/product-panasonic-ba221qskv-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "mock-api/seed/initialData.js — tl-panasonic-bz221qskv"
+      ]
+    },
+    {
+      "key": "img_product_samsung_ww90t3040ww_01",
+      "category": "products",
+      "targetFile": "products/product-samsung-ww90t3040ww-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "mock-api/seed/initialData.js — mg-samsung-ww90t3040ww"
+      ]
+    },
+    {
+      "key": "img_product_xiaomi_air_purifier_4_lite_01",
+      "category": "products",
+      "targetFile": "products/product-xiaomi-air-purifier-4-lite-01.webp",
+      "currentSource": "https://images.unsplash.com/photo-1585338107529-13afc5f02586",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "4:3",
+      "recommendedSize": "1200x900",
+      "maxBytes": 120000,
+      "usedBy": [
+        "mock-api/seed/initialData.js — mlkk-xiaomi-4lite"
+      ]
+    },
+    {
+      "key": "img_service_air_conditioner_repair_cover",
+      "category": "services",
+      "targetFile": "services/service-air-conditioner-repair-cover.webp",
+      "currentSource": "https://images.unsplash.com/photo-1621905252507-b354bc25edac",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "3:2",
+      "recommendedSize": "1200x800",
+      "maxBytes": 160000,
+      "usedBy": [
+        "backend/prisma/seed-content.ts — Media 5001",
+        "backend/prisma/seed-content.ts — Service sửa chữa điều hòa",
+        "mock-api/seed/initialData.js — thumbnail dịch vụ trong đơn hàng mẫu"
+      ]
+    },
+    {
+      "key": "img_service_air_conditioner_cleaning_cover",
+      "category": "services",
+      "targetFile": "services/service-air-conditioner-cleaning-cover.webp",
+      "currentSource": "https://images.unsplash.com/photo-1581092160562-40aa08e78837",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "3:2",
+      "recommendedSize": "1200x800",
+      "maxBytes": 160000,
+      "usedBy": [
+        "backend/prisma/seed-content.ts — Media 5002",
+        "backend/prisma/seed-content.ts — Service vệ sinh điều hòa"
+      ]
+    },
+    {
+      "key": "img_project_office_maintenance_cover",
+      "category": "projects",
+      "targetFile": "projects/project-office-maintenance-cover.webp",
+      "currentSource": "https://images.unsplash.com/photo-1497366754035-f200968a6e72",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "16:10",
+      "recommendedSize": "1600x1000",
+      "maxBytes": 180000,
+      "usedBy": [
+        "backend/prisma/seed-content.ts — Media 5003",
+        "backend/prisma/seed-content.ts — Project bảo trì văn phòng",
+        "backend/prisma/seed-content.ts — ProjectMedia"
+      ]
+    },
+    {
+      "key": "img_article_energy_saving_cover",
+      "category": "articles",
+      "targetFile": "articles/article-air-conditioner-energy-saving-cover.webp",
+      "currentSource": "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d",
+      "status": "external",
+      "requiredLocal": false,
+      "aspectRatio": "16:9",
+      "recommendedSize": "1600x900",
+      "maxBytes": 160000,
+      "usedBy": [
+        "backend/prisma/seed-content.ts — Media 5004",
+        "backend/prisma/seed-content.ts — Post 5 cách sử dụng điều hòa tiết kiệm điện"
+      ]
+    },
+    {
+      "key": "img_avatar_testimonial_nguyen_minh_anh",
+      "category": "avatars",
+      "targetFile": "avatars/avatar-testimonial-nguyen-minh-anh.webp",
+      "status": "planned",
+      "requiredLocal": false,
+      "aspectRatio": "1:1",
+      "recommendedSize": "512x512",
+      "maxBytes": 80000,
+      "usedBy": [
+        "backend/prisma/seed-editorial-cms.ts — Testimonial Nguyễn Minh Anh",
+        "frontend-user — khu vực đánh giá khách hàng nếu có avatar"
+      ],
+      "replacementNote": "Chỉ dùng ảnh được phép công khai; có thể dùng hình minh họa hoặc initials thay ảnh người thật."
+    },
+    {
+      "key": "img_brand_daikin",
+      "category": "brands",
+      "targetFile": "brands/brand-daikin.svg",
+      "status": "planned",
+      "requiredLocal": false,
+      "aspectRatio": "auto",
+      "recommendedSize": "SVG",
+      "maxBytes": 40000,
+      "usedBy": [
+        "backend/prisma/seed-editorial-cms.ts — Partner Daikin",
+        "frontend-user — khu vực đối tác/thương hiệu"
+      ]
+    },
+    {
+      "key": "img_brand_panasonic",
+      "category": "brands",
+      "targetFile": "brands/brand-panasonic.svg",
+      "status": "planned",
+      "requiredLocal": false,
+      "aspectRatio": "auto",
+      "recommendedSize": "SVG",
+      "maxBytes": 40000,
+      "usedBy": [
+        "backend/prisma/seed-editorial-cms.ts — Partner Panasonic",
+        "frontend-user — khu vực đối tác/thương hiệu"
+      ]
+    },
+    {
+      "key": "img_brand_lg",
+      "category": "brands",
+      "targetFile": "brands/brand-lg.svg",
+      "status": "planned",
+      "requiredLocal": false,
+      "aspectRatio": "auto",
+      "recommendedSize": "SVG",
+      "maxBytes": 40000,
+      "usedBy": [
+        "backend/prisma/seed-editorial-cms.ts — Partner LG",
+        "frontend-user — khu vực đối tác/thương hiệu"
+      ]
+    }
+  ]
+}

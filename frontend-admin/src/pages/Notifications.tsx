@@ -44,9 +44,12 @@ export default function Notifications() {
   }, [unreadOnly]);
 
   useEffect(() => {
-    void load();
+    const initTimer = setTimeout(() => void load(), 0);
     const timer = window.setInterval(() => void load(), 30_000);
-    return () => window.clearInterval(timer);
+    return () => {
+      clearTimeout(initTimer);
+      window.clearInterval(timer);
+    };
   }, [load]);
 
   const unreadCount = useMemo(() => items.filter((item) => !item.isRead).length, [items]);
