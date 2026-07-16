@@ -1,16 +1,37 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
 
-interface DatabaseCheck {
+export interface DatabaseCheck {
   status: 'up' | 'down';
   latencyMs: number;
+}
+
+export interface LivenessResponse {
+  status: 'ok';
+  service: string;
+  version: string;
+  environment: string;
+  uptimeSeconds: number;
+  timestamp: string;
+  checks: {
+    process: { status: 'up' };
+    memory: { rssMb: number; heapUsedMb: number };
+  };
+}
+
+export interface ReadinessResponse {
+  status: 'ok';
+  service: string;
+  version: string;
+  timestamp: string;
+  checks: { database: DatabaseCheck };
 }
 
 @Injectable()
 export class HealthService {
   constructor(private readonly prisma: PrismaService) {}
 
-  liveness() {
+  liveness(): LivenessResponse {
     const memory = process.memoryUsage();
     return {
       status: 'ok',
@@ -29,7 +50,7 @@ export class HealthService {
     };
   }
 
-  async readiness() {
+  async readiness(): Promise<ReadinessResponse> {
     const startedAt = Date.now();
     let database: DatabaseCheck;
 
