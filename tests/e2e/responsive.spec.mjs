@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-const userBase = (process.env.PHASE15_USER_URL || 'http://127.0.0.1:5173').replace(/\/$/, '');
-const adminBase = (process.env.PHASE15_ADMIN_URL || 'http://127.0.0.1:5174').replace(/\/$/, '');
+const userBase = (process.env.PHASE15_USER_URL || 'http://localhost:5173').replace(/\/$/, '');
+const adminBase = (process.env.PHASE15_ADMIN_URL || 'http://localhost:5174').replace(/\/$/, '');
 
 const customerPages = [
   ['home', '/'],
@@ -18,7 +18,12 @@ async function verifyResponsivePage(page, url, testInfo, label) {
   const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
   expect(response?.status(), `${label} must load`).toBeLessThan(400);
   await expect(page.locator('body')).toBeVisible();
-  await page.waitForTimeout(700);
+  await expect
+    .poll(
+      () => page.evaluate(() => document.body.innerText.trim().length),
+      { message: `${label} must finish loading meaningful content`, timeout: 15_000 },
+    )
+    .toBeGreaterThan(40);
 
   const viewport = page.viewportSize();
   expect(viewport?.width).toBeGreaterThan(300);
@@ -39,7 +44,7 @@ async function verifyResponsivePage(page, url, testInfo, label) {
 
   await page.screenshot({
     path: testInfo.outputPath(`${label}.png`),
-    fullPage: true,
+    fullPage: false,
   });
 }
 
