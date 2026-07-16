@@ -22,8 +22,9 @@ export default function DeferredHomeSections({
     }
 
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
         setIsVisible(true);
         observer.disconnect();
       },
