@@ -36,6 +36,19 @@ export default function OptimizedImage({
   const supportsResponsiveSource = /images\.unsplash\.com|images\.pexels\.com/.test(src);
   const resolvedSrc = supportsResponsiveSource ? appendImageParams(src, Number(width) || 1200, 'webp') : src;
 
+  if (hasError && priority) {
+    return (
+      <div
+        aria-hidden="true"
+        className={cn(
+          'pointer-events-none bg-gradient-to-br from-slate-950 via-blue-950 to-cyan-950',
+          fallbackClassName,
+          className,
+        )}
+      />
+    );
+  }
+
   if (hasError) {
     return (
       <div
