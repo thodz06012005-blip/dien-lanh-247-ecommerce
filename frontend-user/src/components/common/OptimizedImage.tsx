@@ -10,11 +10,6 @@ interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 
   fallbackClassName?: string;
 }
 
-const LOCAL_ASSET_MIRRORS: Readonly<Record<string, string>> = {
-  'https://images.unsplash.com/photo-1621905252472-e4b5d9fbe0c5':
-    '/images/home/hero-hvac-operations.svg',
-};
-
 function appendImageParams(src: string, width: number, format?: 'avif' | 'webp') {
   const separator = src.includes('?') ? '&' : '?';
   const fm = format ? `&fm=${format}` : '';
@@ -38,11 +33,8 @@ export default function OptimizedImage({
   ...props
 }: OptimizedImageProps) {
   const [hasError, setHasError] = useState(false);
-  const effectiveSrc = LOCAL_ASSET_MIRRORS[src] || src;
-  const supportsResponsiveSource = /images\.unsplash\.com|images\.pexels\.com/.test(effectiveSrc);
-  const resolvedSrc = supportsResponsiveSource
-    ? appendImageParams(effectiveSrc, Number(width) || 1200, 'webp')
-    : effectiveSrc;
+  const supportsResponsiveSource = /images\.unsplash\.com|images\.pexels\.com/.test(src);
+  const resolvedSrc = supportsResponsiveSource ? appendImageParams(src, Number(width) || 1200, 'webp') : src;
 
   if (hasError) {
     return (
@@ -63,7 +55,7 @@ export default function OptimizedImage({
   const image = (
     <img
       src={resolvedSrc}
-      srcSet={supportsResponsiveSource ? buildSrcSet(effectiveSrc, widths, 'webp') : undefined}
+      srcSet={supportsResponsiveSource ? buildSrcSet(src, widths, 'webp') : undefined}
       sizes={supportsResponsiveSource ? sizes : undefined}
       alt={alt}
       width={width}
@@ -80,8 +72,8 @@ export default function OptimizedImage({
   if (!supportsResponsiveSource) return image;
   return (
     <picture>
-      <source type="image/avif" srcSet={buildSrcSet(effectiveSrc, widths, 'avif')} sizes={sizes} />
-      <source type="image/webp" srcSet={buildSrcSet(effectiveSrc, widths, 'webp')} sizes={sizes} />
+      <source type="image/avif" srcSet={buildSrcSet(src, widths, 'avif')} sizes={sizes} />
+      <source type="image/webp" srcSet={buildSrcSet(src, widths, 'webp')} sizes={sizes} />
       {image}
     </picture>
   );
