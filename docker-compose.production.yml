@@ -4,7 +4,7 @@ services:
   db:
     image: mysql:8.4
     restart: unless-stopped
-    env_file: ./deploy/env/production.env
+    env_file: ./deploy/env/database.env
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -26,7 +26,7 @@ services:
       dockerfile: backend/Dockerfile
     image: dien-lanh-247/backend:${APP_VERSION:-latest}
     restart: unless-stopped
-    env_file: ./deploy/env/production.env
+    env_file: ./deploy/env/backend.env
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
