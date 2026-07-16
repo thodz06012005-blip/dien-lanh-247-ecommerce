@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'rea
 import MainLayout from '@/layouts/MainLayout';
 import SeoManager from '@/seo/SeoManager';
 import { useAuthStore } from '@/store/authStore';
+import api from '@/services/api';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1').replace(/\/$/, '');
 const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
@@ -83,33 +84,19 @@ function AuthBootstrap() {
   useEffect(() => {
     if (isInitialized) return;
     let active = true;
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-
-    void fetch(`${API_BASE_URL}/auth/me`, {
-      headers: { Accept: 'application/json' },
-      credentials: 'include',
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Session bootstrap failed: ${response.status}`);
-        return response.json();
-      })
-      .then((payload) => {
-        if (active) setUser(extractUser(payload) as Parameters<typeof setUser>[0]);
+    void api.get('/auth/me')
+      .then((response) => {
+        if (active) setUser(extractUser(response.data) as Parameters<typeof setUser>[0]);
       })
       .catch(() => {
         if (active) clearSession();
       })
       .finally(() => {
-        window.clearTimeout(timeout);
         if (active) setInitialized(true);
       });
 
     return () => {
       active = false;
-      window.clearTimeout(timeout);
-      controller.abort();
     };
   }, [clearSession, isInitialized, setInitialized, setUser]);
   return null;
