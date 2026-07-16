@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
+import { RequestLoggingInterceptor } from './common/interceptors/request-logging.interceptor';
 import { validateEnvironment } from './config/environment';
 import { PrismaModule } from './core/database/prisma.module';
 import { CloudinaryModule } from './integrations/cloudinary/cloudinary.module';
@@ -19,6 +20,7 @@ import { ContactModule } from './modules/contact/contact.module';
 import { ContentModule } from './modules/content/content.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OperationsModule } from './modules/operations/operations.module';
 import { OrdersModule } from './modules/orders/orders.module';
@@ -48,6 +50,7 @@ import { UsersModule } from './modules/users/users.module';
       ],
     }),
     PrismaModule,
+    HealthModule,
     UsersModule,
     AuthModule,
     ProductsModule,
@@ -74,6 +77,7 @@ import { UsersModule } from './modules/users/users.module';
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_INTERCEPTOR, useClass: RequestLoggingInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ApiResponseInterceptor },
   ],
 })
