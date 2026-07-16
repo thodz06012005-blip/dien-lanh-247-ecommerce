@@ -21,6 +21,7 @@ COPY --from=build --chown=app:app /app/package.json /app/package-lock.json ./
 COPY --from=build --chown=app:app /app/node_modules ./node_modules
 COPY --from=build --chown=app:app /app/dist ./dist
 COPY --from=build --chown=app:app /app/prisma ./prisma
+COPY --chown=app:app scripts/backup-mysql.mjs scripts/restore-mysql.mjs ./scripts/
 COPY --chown=app:app backend/docker-entrypoint.sh /usr/local/bin/dl247-entrypoint
 RUN chmod 0755 /usr/local/bin/dl247-entrypoint \
     && mkdir -p /app/var/audit /app/var/backups /app/storage \
