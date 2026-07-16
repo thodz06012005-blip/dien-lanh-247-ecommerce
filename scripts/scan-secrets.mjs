@@ -13,6 +13,8 @@ const NON_PRODUCTION_FIXTURE_PATH =
 const NON_PRODUCTION_FIXTURE_VALUE =
   /^(?:ci(?:[_-]|$)|test(?:[_-]|$)|phase(?:[0-9]+|seven)|changedphase|otheraccount|wrongpassword)/i;
 const LOCAL_DATABASE_TARGET = /@(127\.0\.0\.1|localhost)(?::[0-9]+)?\//i;
+const RUNTIME_DRILL_PATH = /^deploy\/scripts\/phase15-production-drill\.sh$/;
+const RUNTIME_GENERATOR = /\$\(\s*openssl\s+rand\b/i;
 const SKIPPED_PATHS = [
   /(^|\/)package-lock\.json$/,
   /(^|\/)node_modules\//,
@@ -56,6 +58,14 @@ function isPlaceholder(filePath, line, candidate, ruleName) {
     PLACEHOLDER_PATTERN.test(candidate) ||
     EXPLICIT_TEMPLATE_PATTERN.test(candidate) ||
     GENERIC_SAMPLE_VALUE.test(candidate)
+  ) {
+    return true;
+  }
+
+  if (
+    ruleName === 'hardcoded-sensitive-assignment' &&
+    RUNTIME_DRILL_PATH.test(filePath) &&
+    RUNTIME_GENERATOR.test(line)
   ) {
     return true;
   }
