@@ -70,7 +70,7 @@ export default function OptimizedImage({
       height={height}
       loading={priority ? 'eager' : 'lazy'}
       fetchPriority={priority ? 'high' : 'auto'}
-      decoding={priority ? 'sync' : 'async'}
+      decoding="async"
       className={cn('block max-w-full bg-slate-100', className)}
       onError={() => setHasError(true)}
       {...props}
