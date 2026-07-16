@@ -10,6 +10,7 @@ on:
       - 'mock-api/**'
       - 'scripts/verify-lighthouse.mjs'
       - 'scripts/summarize-lighthouse.mjs'
+      - 'scripts/select-lighthouse-median.mjs'
       - '.github/workflows/customer-lighthouse.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'mock-api/**'
       - 'scripts/verify-lighthouse.mjs'
       - 'scripts/summarize-lighthouse.mjs'
+      - 'scripts/select-lighthouse-median.mjs'
       - '.github/workflows/customer-lighthouse.yml'
   workflow_dispatch:
 
@@ -31,7 +33,7 @@ jobs:
   audit:
     name: Build, Preview and Audit Customer Web
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - name: Checkout repository
@@ -118,35 +120,55 @@ jobs:
         run: |
           set -uo pipefail
           failures=0
+          mkdir -p lighthouse-runs
 
           audit_route() {
             local label="$1"
             local route="$2"
             local profile="$3"
+            local repetitions="${4:-1}"
             local preset_args=()
+            local reports=()
             if [ "$profile" = "desktop" ]; then
               preset_args+=(--preset=desktop)
             fi
 
-            echo "Auditing $label ($profile): $route"
-            if ! npx --yes lighthouse@13.0.0 "http://127.0.0.1:4173${route}" \
-              --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
-              --only-categories=performance,accessibility,best-practices,seo \
-              "${preset_args[@]}" \
-              --output=json \
-              --output-path="lighthouse-${label}-${profile}.json" \
-              --quiet; then
-              echo "Lighthouse execution failed for ${label}-${profile}."
-              failures=$((failures + 1))
-              return
+            for run_number in $(seq 1 "$repetitions"); do
+              local run_path="lighthouse-runs/${label}-${profile}-run${run_number}.json"
+              echo "Auditing $label ($profile) run ${run_number}/${repetitions}: $route"
+              if ! npx --yes lighthouse@13.0.0 "http://127.0.0.1:4173${route}" \
+                --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+                --only-categories=performance,accessibility,best-practices,seo \
+                "${preset_args[@]}" \
+                --output=json \
+                --output-path="$run_path" \
+                --quiet; then
+                echo "Lighthouse execution failed for ${label}-${profile} run ${run_number}."
+                failures=$((failures + 1))
+                return
+              fi
+              reports+=("$run_path")
+            done
+
+            local selected_path="lighthouse-${label}-${profile}.json"
+            if [ "$repetitions" -gt 1 ]; then
+              if ! node scripts/select-lighthouse-median.mjs "$selected_path" "${reports[@]}"; then
+                failures=$((failures + 1))
+                return
+              fi
+            else
+              cp "${reports[0]}" "$selected_path"
             fi
 
-            if ! node scripts/verify-lighthouse.mjs "lighthouse-${label}-${profile}.json" "--profile=${profile}"; then
+            if ! node scripts/verify-lighthouse.mjs "$selected_path" "--profile=${profile}"; then
               failures=$((failures + 1))
             fi
           }
 
-          audit_route home / mobile
+          # The homepage is significantly richer than the other routes and mobile
+          # Lighthouse is CPU-noisy on shared runners. Three runs with the median
+          # selected preserve all Phase 13 thresholds without accepting a best run.
+          audit_route home / mobile 3
           audit_route services /services mobile
           audit_route products /products mobile
           audit_route articles /articles mobile
@@ -176,6 +198,7 @@ jobs:
           name: customer-lighthouse-phase13-report
           path: |
             lighthouse-*.json
+            lighthouse-runs/
             phase13-performance-report.json
             phase13-performance-report.md
             frontend-user/public/sitemap.xml
