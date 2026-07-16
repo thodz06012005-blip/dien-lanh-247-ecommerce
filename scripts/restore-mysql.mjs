@@ -76,6 +76,7 @@ const mysql = spawn(
     '--user',
     safeDecode(databaseUrl.username),
     '--default-character-set=utf8mb4',
+    databaseName,
   ],
   {
     env: {
