@@ -1,0 +1,21 @@
+old_path,new_path,loai_tep,giai_doan,ly_do_di_chuyen,sha256_truoc,sha256_sau,tham_chieu_da_cap_nhat,trang_thai_kiem_thu
+assets/images/placeholders/image-unavailable.svg,assets/images/placeholders/anh-bg-khong-co-hinh-01.svg,hinh-anh,15,Chuan hoa ten tieng Viet khong dau va giu alias tuong thich,,,OptimizedImage; ImageWithFallback; manifest,da-tao-file-moi-giu-file-cu
+assets/images/hero/hero-home-main.avif,assets/images/hero/anh-hero-trang-chu-chinh-01.avif,hinh-anh,15,Chuan hoa tien to anh-hero va vai tro anh,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-daikin-ftkf25xvmv-01.webp,assets/images/products/anh-sp-dieu-hoa-daikin-ftkf25xvmv-mat-truoc-01.webp,hinh-anh,15,Phan biet loai thiet bi brand model va goc anh,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-panasonic-xu9zkh8-01.webp,assets/images/products/anh-sp-dieu-hoa-panasonic-xu9zkh8-mat-truoc-01.webp,hinh-anh,15,Phan biet loai thiet bi brand model va goc anh,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-lg-grb256bl-01.webp,assets/images/products/anh-sp-tu-lanh-lg-grb256bl-mat-truoc-01.webp,hinh-anh,15,Khong dung chung anh tu lanh va tu dong,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-lg-fv1410s4w-01.webp,assets/images/products/anh-sp-may-giat-lg-fv1410s4w-mat-truoc-01.webp,hinh-anh,15,Khong dung chung anh LG Samsung va Electrolux,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-ariston-vitaly20-01.webp,assets/images/products/anh-sp-binh-nong-lanh-ariston-vitaly20-mat-truoc-01.webp,hinh-anh,15,Phan biet binh nong lanh voi tu lanh,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-air-purifier-generic-01.webp,assets/images/products/anh-sp-may-loc-khong-khi-tam-thoi-01.webp,hinh-anh,15,Danh dau ro day la anh tam thoi can thay,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-daikin-ftkf35xvmv-01.webp,assets/images/products/anh-sp-dieu-hoa-daikin-ftkf35xvmv-mat-truoc-01.webp,hinh-anh,15,Phan biet model FTKF35XVMV,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-panasonic-ba221qskv-01.webp,assets/images/products/anh-sp-tu-lanh-panasonic-ba221qskv-mat-truoc-01.webp,hinh-anh,15,Phan biet tu lanh Panasonic,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-samsung-ww90t3040ww-01.webp,assets/images/products/anh-sp-may-giat-samsung-ww90t3040ww-mat-truoc-01.webp,hinh-anh,15,Phan biet may giat Samsung,,,manifest,quy-hoach-chua-co-file
+assets/images/products/product-xiaomi-air-purifier-4-lite-01.webp,assets/images/products/anh-sp-may-loc-khong-khi-xiaomi-4-lite-mat-truoc-01.webp,hinh-anh,15,Phan biet may loc khong khi Xiaomi,,,manifest,quy-hoach-chua-co-file
+assets/images/services/service-air-conditioner-repair-cover.webp,assets/images/services/anh-dv-sua-dieu-hoa-anh-bia-01.webp,hinh-anh,15,Chuan hoa tien to anh-dv va vai tro anh bia,,,manifest,quy-hoach-chua-co-file
+assets/images/services/service-air-conditioner-cleaning-cover.webp,assets/images/services/anh-dv-ve-sinh-dieu-hoa-anh-bia-01.webp,hinh-anh,15,Chuan hoa tien to anh-dv va vai tro anh bia,,,manifest,quy-hoach-chua-co-file
+assets/images/projects/project-office-maintenance-cover.webp,assets/images/projects/anh-da-bao-tri-dieu-hoa-van-phong-anh-bia-01.webp,hinh-anh,15,Chuan hoa tien to anh-da va mo ta du an,,,manifest,quy-hoach-chua-co-file
+assets/images/articles/article-air-conditioner-energy-saving-cover.webp,assets/images/articles/anh-bv-tiet-kiem-dien-dieu-hoa-anh-bia-01.webp,hinh-anh,15,Chuan hoa tien to anh-bv va noi dung bai viet,,,manifest,quy-hoach-chua-co-file
+assets/images/avatars/avatar-testimonial-nguyen-minh-anh.webp,assets/images/avatars/anh-dd-khach-hang-nguyen-minh-anh-01.webp,hinh-anh,15,Chuan hoa tien to anh-dd va vai tro khach hang,,,manifest,quy-hoach-chua-co-file
+assets/images/brands/brand-daikin.svg,assets/images/brands/logo-th-daikin-chinh-01.svg,hinh-anh,15,Chuan hoa tien to logo-th,,,manifest,quy-hoach-chua-co-file
+assets/images/brands/brand-panasonic.svg,assets/images/brands/logo-th-panasonic-chinh-01.svg,hinh-anh,15,Chuan hoa tien to logo-th,,,manifest,quy-hoach-chua-co-file
+assets/images/brands/brand-lg.svg,assets/images/brands/logo-th-lg-chinh-01.svg,hinh-anh,15,Chuan hoa tien to logo-th,,,manifest,quy-hoach-chua-co-file

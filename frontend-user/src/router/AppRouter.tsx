@@ -5,9 +5,6 @@ import SeoManager from '@/seo/SeoManager';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/services/api';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1').replace(/\/$/, '');
-const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS || 15000);
-
 const Home = lazy(() => import('@/pages/Home'));
 const Services = lazy(() => import('@/pages/Services'));
 const Products = lazy(() => import('@/pages/Products'));

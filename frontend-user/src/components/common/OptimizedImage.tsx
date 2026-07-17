@@ -30,7 +30,7 @@ export default function OptimizedImage({
   sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px',
   className,
   fallbackClassName,
-  fallbackSrc = '/images/placeholders/image-unavailable.svg',
+  fallbackSrc = '/images/placeholders/anh-bg-khong-co-hinh-01.svg',
   assetKey,
   width = 1200,
   height = 800,

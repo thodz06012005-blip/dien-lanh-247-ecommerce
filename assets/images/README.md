@@ -14,38 +14,59 @@ assets/images/
 ├── brands/        Logo thương hiệu
 ├── avatars/       Ảnh khách hàng, tác giả và nhân sự
 ├── admin/         Ảnh minh họa chỉ dùng trong trang quản trị
-└── placeholders/  Ảnh dự phòng khi nguồn chính lỗi
+├── icons/         Favicon, sprite và biểu tượng dùng chung
+├── placeholders/  Ảnh dự phòng khi nguồn chính lỗi
+└── legacy/        Tài nguyên cũ được giữ để tránh mất dữ liệu
 ```
 
 ## Quy trình thay ảnh
 
-1. Mở `assets/images/manifest.json` và tìm mã ảnh bắt đầu bằng `img_`.
-2. Đọc trường `usedBy` để biết ảnh đang xuất hiện ở trang, component hoặc seed nào.
-3. Chuẩn bị ảnh đúng tỷ lệ và dung lượng ghi trong manifest.
-4. Đặt ảnh mới vào đúng `targetFile`.
-5. Chạy:
+1. Mở `assets/images/manifest.json`.
+2. Tìm `assetKey` bắt đầu bằng `img_`.
+3. Đọc các trường `tepCanonical`, `duongDanPublic`, `routeSuDung`, `componentSuDung`, `seedSuDung` và `usedBy`.
+4. Chuẩn bị ảnh đúng tỷ lệ, kích thước và dung lượng.
+5. Đặt ảnh mới vào đúng `tepCanonical`.
+6. Chạy trực tiếp:
+
+```bash
+node scripts/sync-image-assets.mjs
+node scripts/audit-image-assets.mjs
+```
+
+7. Sau khi đã đăng ký alias npm trên máy local, có thể dùng:
 
 ```bash
 npm run assets:sync
 npm run assets:audit
 ```
 
-6. Khởi động lại frontend và kiểm tra desktop, tablet, mobile.
+8. Khởi động lại frontend và kiểm tra desktop, tablet, mobile.
 
-## Quy tắc tên file
+## Quy tắc tên file tiếng Việt không dấu
 
 ```text
-hero-home-main.avif
-product-daikin-ftkf25xvmv-01.webp
-service-air-conditioner-repair-cover.webp
-project-office-maintenance-01.webp
-article-air-conditioner-energy-saving-cover.webp
-brand-daikin.svg
-avatar-customer-nguyen-minh-anh.webp
-placeholder-image-unavailable.svg
+anh-hero-trang-chu-chinh-01.avif
+anh-sp-dieu-hoa-daikin-ftkf25xvmv-mat-truoc-01.webp
+anh-dv-sua-dieu-hoa-anh-bia-01.webp
+anh-da-bao-tri-dieu-hoa-van-phong-anh-bia-01.webp
+anh-bv-tiet-kiem-dien-dieu-hoa-anh-bia-01.webp
+logo-th-daikin-chinh-01.svg
+anh-dd-khach-hang-nguyen-minh-anh-01.webp
+anh-bg-khong-co-hinh-01.svg
 ```
 
-Không dùng các tên như `image1.jpg`, `anh-moi.png`, `final-final.jpg`.
+Không dùng dấu tiếng Việt, khoảng trắng hoặc tên như `image1.jpg`, `anh-moi.png`, `final-final.jpg`.
+
+## Asset key và tên file
+
+`assetKey` được giữ ổn định để code và dữ liệu dễ tra cứu. Tên file có thể được chuẩn hóa mà không đổi `assetKey`.
+
+Ví dụ:
+
+```text
+assetKey: img_product_daikin_ftkf25xvmv_01
+file: products/anh-sp-dieu-hoa-daikin-ftkf25xvmv-mat-truoc-01.webp
+```
 
 ## Tỷ lệ và ngân sách
 
@@ -57,7 +78,7 @@ Không dùng các tên như `image1.jpg`, `anh-moi.png`, `final-final.jpg`.
 | Project | 16:10 | 1600×1000 | 180 KB |
 | Article cover | 16:9 | 1600×900 | 160 KB |
 | Avatar | 1:1 | 512×512 | 80 KB |
-| Logo | theo logo | SVG ưu tiên | 40 KB |
+| Logo | Theo logo | SVG ưu tiên | 40 KB |
 
 ## Định dạng
 
@@ -66,14 +87,42 @@ Không dùng các tên như `image1.jpg`, `anh-moi.png`, `final-final.jpg`.
 - PNG chỉ dùng khi thật sự cần nền trong suốt.
 - Không thêm GIF động nặng.
 - Không lưu ảnh chứa dữ liệu cá nhân hoặc thông tin khách hàng thật.
+- Không tải tự động hàng loạt ảnh Unsplash/Pexels nếu chưa xác định quyền sử dụng.
 
 ## Đồng bộ ra frontend
 
-`scripts/sync-image-assets.mjs` sao chép ảnh từ thư mục này sang:
+`scripts/sync-image-assets.mjs` đọc manifest và sao chép file canonical sang:
 
 ```text
 frontend-user/public/images/
 frontend-admin/public/images/
 ```
 
+Script có các bảo đảm:
+
+- Không xóa file đích.
+- Không ghi lại khi SHA-256 nguồn và đích giống nhau.
+- Hỗ trợ `aliases` để giữ tương thích tên cũ.
+- Dừng khi file `requiredLocal` bị thiếu.
+
 Không chỉnh trực tiếp bản sao trong `public/images`; lần đồng bộ sau có thể ghi đè chúng.
+
+## Fallback canonical
+
+```text
+assets/images/placeholders/anh-bg-khong-co-hinh-01.svg
+```
+
+Alias tương thích được giữ:
+
+```text
+assets/images/placeholders/image-unavailable.svg
+```
+
+Không xóa alias trong cùng giai đoạn chuyển đổi.
+
+## Tài liệu liên quan
+
+- `docs/quy-uoc/QY_ANH_quy-tac-dat-ten-hinh-anh_gd15_v01.md`
+- `docs/bao-cao/BC_ANH_kiem-toan-hinh-anh_gd15_v01.md`
+- `assets/images/manifest.json`

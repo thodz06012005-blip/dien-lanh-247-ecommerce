@@ -1,81 +1,43 @@
-import { useEffect, useMemo, useState, type ImgHTMLAttributes, type SyntheticEvent } from 'react';
+import type { ImgHTMLAttributes } from 'react';
+import OptimizedImage from './OptimizedImage';
 
 interface ImageWithFallbackProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'srcSet'> {
   fallbackSrc?: string;
   widths?: number[];
   sizes?: string;
+  assetKey?: string;
 }
 
-function transformImage(src: string, width: number, format: 'avif' | 'webp') {
-  if (src.includes('images.unsplash.com')) {
-    const url = new URL(src);
-    url.searchParams.set('auto', 'format');
-    url.searchParams.set('fit', 'crop');
-    url.searchParams.set('w', String(width));
-    url.searchParams.set('q', '72');
-    url.searchParams.set('fm', format);
-    return url.toString();
-  }
-  if (src.includes('res.cloudinary.com') && src.includes('/upload/')) {
-    return src.replace('/upload/', `/upload/f_${format},q_auto,w_${width},c_limit/`);
-  }
-  return undefined;
-}
-
+/**
+ * @deprecated Dùng `OptimizedImage` cho code mới. Component này chỉ giữ tương thích
+ * với các import cũ trong khi dự án chuyển dần sang thư viện ảnh canonical.
+ */
 export default function ImageWithFallback({
-  src,
-  alt,
-  fallbackSrc = '/placeholder-product.png',
-  className,
-  onError,
+  src = '',
+  alt = 'Hình ảnh sản phẩm',
+  fallbackSrc = '/images/placeholders/anh-bg-khong-co-hinh-01.svg',
   widths = [240, 360, 480, 720],
   sizes = '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw',
   loading = 'lazy',
   decoding = 'async',
   width = 440,
   height = 440,
+  assetKey,
   ...props
 }: ImageWithFallbackProps) {
-  const [imgSrc, setImgSrc] = useState<string>(src || fallbackSrc);
-
-  useEffect(() => {
-    setImgSrc(src || fallbackSrc);
-  }, [src, fallbackSrc]);
-
-  const responsive = useMemo(() => {
-    const avif = widths
-      .map((itemWidth) => transformImage(imgSrc, itemWidth, 'avif'))
-      .filter(Boolean)
-      .map((url, index) => `${url} ${widths[index]}w`)
-      .join(', ');
-    const webp = widths
-      .map((itemWidth) => transformImage(imgSrc, itemWidth, 'webp'))
-      .filter(Boolean)
-      .map((url, index) => `${url} ${widths[index]}w`)
-      .join(', ');
-    return { avif, webp };
-  }, [imgSrc, widths]);
-
-  const handleError = (event: SyntheticEvent<HTMLImageElement, Event>) => {
-    if (imgSrc !== fallbackSrc) setImgSrc(fallbackSrc);
-    onError?.(event);
-  };
-
   return (
-    <picture>
-      {responsive.avif && <source type="image/avif" srcSet={responsive.avif} sizes={sizes} />}
-      {responsive.webp && <source type="image/webp" srcSet={responsive.webp} sizes={sizes} />}
-      <img
-        src={imgSrc}
-        alt={alt || 'Sản phẩm'}
-        width={width}
-        height={height}
-        loading={loading}
-        decoding={decoding}
-        onError={handleError}
-        className={className}
-        {...props}
-      />
-    </picture>
+    <OptimizedImage
+      src={src || fallbackSrc}
+      alt={alt}
+      fallbackSrc={fallbackSrc}
+      widths={widths}
+      sizes={sizes}
+      priority={loading === 'eager'}
+      width={width}
+      height={height}
+      assetKey={assetKey}
+      decoding={decoding}
+      {...props}
+    />
   );
 }
