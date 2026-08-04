@@ -1,0 +1,80 @@
+name: Service-only capability / migration
+description: Công việc triển khai có owner, dependency, acceptance criteria và evidence rõ ràng
+title: "[P0/P1/P2] "
+labels: []
+body:
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 — bắt buộc trước MVP
+        - P1 — nên có trong bản đầu
+        - P2 — sau MVP
+    validations:
+      required: true
+
+  - type: input
+    id: owner
+    attributes:
+      label: Owner
+      description: Một người chịu trách nhiệm chính; không ghi tên nhóm chung nếu chưa có người nhận.
+      placeholder: "@username"
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Phạm vi
+      description: Một capability hoặc một migration; liên kết dòng inventory liên quan.
+      placeholder: "Inventory: CU-01, BE-01..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependency và quyết định D1–D10
+      description: Ghi issue/ADR phụ thuộc hoặc “Không có”. Nếu quyết định còn BLOCKED, issue chưa được bắt đầu hành vi production.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Các điều kiện kiểm chứng được để đóng issue.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence bắt buộc
+      description: Lệnh test, log CI, ảnh UAT, migration output hoặc biên bản cần đính kèm.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback / forward-fix
+      description: Cách hoàn tác hoặc khôi phục an toàn; ghi “Không áp dụng” và lý do nếu thật sự không áp dụng.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Readiness
+      options:
+        - label: Tôi đã kiểm tra inventory commerce và không bỏ sót tham chiếu gián tiếp.
+          required: true
+        - label: Tôi không tự giả định giá trị của quyết định D1–D10 đang BLOCKED.
+          required: true
+        - label: Công việc không yêu cầu commit secret, database dump hoặc dữ liệu khách hàng.
+          required: true
