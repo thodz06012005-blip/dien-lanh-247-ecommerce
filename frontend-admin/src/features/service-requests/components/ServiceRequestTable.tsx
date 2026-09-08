@@ -12,6 +12,7 @@ interface ServiceRequestTableProps {
   categoryMap: Map<string, string>;
   todayStr: string;
   tomorrowStr: string;
+  nowMs?: number;
   isConfirming: boolean;
   confirmingId: string | null;
   onConfirm: (id: string) => void;
@@ -24,6 +25,7 @@ export default function ServiceRequestTable({
   categoryMap,
   todayStr,
   tomorrowStr,
+  nowMs,
   isConfirming,
   confirmingId,
   onConfirm,
@@ -110,6 +112,8 @@ export default function ServiceRequestTable({
           status={row.status}
           todayStr={todayStr}
           tomorrowStr={tomorrowStr}
+          createdAt={row.createdAt}
+          nowMs={nowMs}
         />
       ),
     },

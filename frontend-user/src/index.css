@@ -269,11 +269,89 @@ body {
   @apply bg-[#f8fafc] text-slate-900 font-sans antialiased;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: #bfdbfe;
+  color: #0f172a;
+}
+
+@layer components {
+  .section-eyebrow {
+    @apply mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.14em] text-blue-600;
+  }
+
+  .section-eyebrow::before {
+    content: '';
+    @apply h-px w-6 bg-blue-500;
+  }
+
+  .section-title {
+    @apply text-balance text-3xl font-bold leading-tight tracking-[-0.025em] text-slate-950 sm:text-4xl;
+  }
+
+  .section-description {
+    @apply mt-4 max-w-2xl text-base leading-7 text-slate-600;
+  }
+
+  .service-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm outline-none transition duration-300;
+  }
+
+  .service-card:hover {
+    @apply -translate-y-1 border-blue-200 shadow-xl shadow-blue-950/5;
+  }
+
+  .service-card:focus-visible {
+    @apply ring-4 ring-blue-100;
+  }
+
+  .service-icon {
+    @apply flex h-12 w-12 items-center justify-center rounded-xl transition duration-300 group-hover:scale-105;
+  }
+
+  .service-icon-blue { @apply bg-blue-50 text-blue-600; }
+  .service-icon-cyan { @apply bg-cyan-50 text-cyan-600; }
+  .service-icon-indigo { @apply bg-indigo-50 text-indigo-600; }
+  .service-icon-orange { @apply bg-orange-50 text-orange-600; }
+  .service-icon-emerald { @apply bg-emerald-50 text-emerald-600; }
+  .service-icon-slate { @apply bg-slate-100 text-slate-600; }
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, black, transparent 90%);
+}
+
+@supports (text-wrap: balance) {
+  .text-balance { text-wrap: balance; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  .form-control {
+    @apply h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition hover:border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10;
+  }
+}
+
+@layer components {
+  .portal-input {
+    @apply h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10;
   }
 }

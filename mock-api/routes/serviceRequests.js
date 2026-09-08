@@ -67,6 +67,9 @@ const populateTechnician = (request, db) => {
 router.post('/service-requests', (req, res) => {
   const db = readDB();
   const body = req.body;
+  const allowedBodyKeys = ['customerName', 'customerPhone', 'customerAddress', 'district', 'serviceCategoryId', 'applianceType', 'issueDescription', 'preferredDate', 'preferredTimeSlot', 'note', 'priority', 'images', 'mediaMetadata'];
+  const unknownKey = Object.keys(body).find(key => !allowedBodyKeys.includes(key));
+  if (unknownKey) return respondError(res, 400, `Trường ${unknownKey} không được phép`, 'UNKNOWN_FIELD');
 
   // 1. Required fields validation
   const requiredFields = [
@@ -96,6 +99,24 @@ router.post('/service-requests', (req, res) => {
   const issueDescription = body.issueDescription.trim();
   const preferredDate = body.preferredDate.trim();
   const preferredTimeSlot = body.preferredTimeSlot.trim();
+  const businessConfig = db.settings?.businessConfig;
+
+  if (businessConfig) {
+    const appliance = businessConfig.appliances.find(item => item.active && item.name === applianceType);
+    if (!appliance) return respondError(res, 400, 'Thiết bị không nằm trong danh sách đang phục vụ', 'INVALID_APPLIANCE');
+    if (!businessConfig.serviceAreas.some(item => item.active && item.name === district)) return respondError(res, 400, 'Khu vực hiện chưa được phục vụ', 'INVALID_SERVICE_AREA');
+    if (!businessConfig.timeSlots.some(item => item.active && item.label === preferredTimeSlot)) return respondError(res, 400, 'Khung giờ hiện không còn khả dụng', 'INVALID_TIME_SLOT');
+  }
+
+  const images = body.images || [];
+  if (!Array.isArray(images) || images.length > 4 || images.some(item => typeof item !== 'string' || item.length > 700000 || !/^data:(image|video)\/[a-z0-9.+-]+;base64,/i.test(item))) {
+    return respondError(res, 400, 'Tệp đính kèm không hợp lệ hoặc vượt quá giới hạn', 'INVALID_MEDIA');
+  }
+  if (images.reduce((total, item) => total + item.length, 0) > 900000) return respondError(res, 400, 'Tổng dung lượng tệp đính kèm vượt quá giới hạn', 'MEDIA_TOO_LARGE');
+  const mediaMetadata = body.mediaMetadata || [];
+  if (!Array.isArray(mediaMetadata) || mediaMetadata.length !== images.length || mediaMetadata.some(item => !item || typeof item.name !== 'string' || typeof item.type !== 'string' || !Number.isFinite(Number(item.size)))) {
+    return respondError(res, 400, 'Thông tin tệp đính kèm không hợp lệ', 'INVALID_MEDIA_METADATA');
+  }
 
   // 2. Validate customerPhone (basic Vietnamese phone number format)
   if (!isValidPhone(customerPhone)) {
@@ -143,7 +164,8 @@ router.post('/service-requests', (req, res) => {
     serviceCategoryId,
     applianceType,
     issueDescription,
-    images: body.images || [],
+    images,
+    mediaMetadata,
     preferredDate,
     preferredTimeSlot,
     note: body.note || '',
@@ -151,6 +173,13 @@ router.post('/service-requests', (req, res) => {
     assignedTechnicianId: null,
     priority,
     estimatedPrice: 0,
+    indicativePriceRange: (() => {
+      const appliance = businessConfig?.appliances?.find(item => item.name === applianceType);
+      return appliance && businessConfig?.pricing?.showPriceRanges ? { min: appliance.priceMin, max: appliance.priceMax, disclaimer: businessConfig.pricing.disclaimer } : null;
+    })(),
+    inspectionNote: '',
+    customerApprovalStatus: 'not_requested',
+    customerApprovedAt: null,
     finalPrice: 0,
     paymentStatus: 'unpaid',
     statusHistory: [
@@ -161,6 +190,7 @@ router.post('/service-requests', (req, res) => {
         createdAt: now
       }
     ],
+    activityLog: [{ action: 'REQUEST_CREATED', label: 'Khách hàng gửi yêu cầu', actor: 'Khách hàng', createdAt: now }],
     createdAt: now,
     updatedAt: now
   };
@@ -170,6 +200,41 @@ router.post('/service-requests', (req, res) => {
   writeDB(db);
 
   return respondCreated(res, newRequest, 'Đặt lịch dịch vụ thành công');
+});
+
+// GET /service-requests/lookup/:id — public lookup requires both request code and phone.
+router.get('/service-requests/lookup/:id', (req, res) => {
+  const id = String(req.params.id || '').trim().toUpperCase();
+  const phone = String(req.query.phone || '').replace(/[\s.-]/g, '').trim();
+  if (!id || !isValidPhone(phone)) return respondError(res, 400, 'Vui lòng nhập đúng mã yêu cầu và số điện thoại', 'INVALID_LOOKUP');
+  const db = readDB();
+  const request = (db.serviceRequests || []).find(item => item.id.toUpperCase() === id);
+  if (!request || String(request.customerPhone || '').replace(/[\s.-]/g, '') !== phone) return respondError(res, 404, 'Không tìm thấy yêu cầu phù hợp với thông tin đã nhập', 'SERVICE_REQUEST_NOT_FOUND');
+  return respondSuccess(res, populateTechnician(request, db));
+});
+
+// PATCH /admin/service-requests/:id/inspection — record post-inspection estimate and customer decision.
+router.patch('/admin/service-requests/:id/inspection', requirePermission('serviceRequests:update'), (req, res) => {
+  const { estimatedPrice, inspectionNote, customerApprovalStatus } = req.body || {};
+  const allowedApproval = ['not_requested', 'pending', 'approved', 'rejected'];
+  if (!Number.isFinite(Number(estimatedPrice)) || Number(estimatedPrice) <= 0 || Number(estimatedPrice) > 1000000000) return respondError(res, 400, 'Chi phí sau kiểm tra phải lớn hơn 0', 'INVALID_ESTIMATED_PRICE');
+  if (typeof inspectionNote !== 'string' || inspectionNote.trim().length < 3 || inspectionNote.trim().length > 1000) return respondError(res, 400, 'Kết luận kiểm tra phải có từ 3 đến 1000 ký tự', 'INVALID_INSPECTION_NOTE');
+  if (!allowedApproval.includes(customerApprovalStatus)) return respondError(res, 400, 'Trạng thái xác nhận của khách không hợp lệ', 'INVALID_CUSTOMER_APPROVAL');
+  const db = readDB();
+  const request = (db.serviceRequests || []).find(item => item.id === req.params.id);
+  if (!request) return respondError(res, 404, 'Không tìm thấy yêu cầu dịch vụ', 'SERVICE_REQUEST_NOT_FOUND');
+  if (['completed', 'cancelled'].includes(request.status)) return respondError(res, 400, 'Không thể cập nhật yêu cầu đã kết thúc', 'REQUEST_CLOSED');
+  const now = new Date().toISOString();
+  request.estimatedPrice = Number(estimatedPrice);
+  request.inspectionNote = inspectionNote.trim();
+  request.customerApprovalStatus = customerApprovalStatus;
+  request.customerApprovedAt = customerApprovalStatus === 'approved' ? now : null;
+  request.updatedAt = now;
+  if (!request.activityLog) request.activityLog = [];
+  request.activityLog.unshift({ action: 'INSPECTION_UPDATED', label: customerApprovalStatus === 'approved' ? 'Khách đã đồng ý chi phí sau kiểm tra' : 'Cập nhật kết quả kiểm tra và chi phí dự kiến', actor: req.admin.name, detail: `${inspectionNote.trim()} · ${Number(estimatedPrice).toLocaleString('vi-VN')}đ`, createdAt: now });
+  writeDB(db);
+  auditSuccess(req, 'SERVICE_REQUEST_INSPECTION_UPDATED', 'serviceRequest', request.id, { estimatedPrice: request.estimatedPrice, customerApprovalStatus }, 'Inspection estimate updated');
+  return respondSuccess(res, populateTechnician(request, db), 'Đã cập nhật kết quả kiểm tra');
 });
 
 // GET /service-requests/:id (Customer views their service request)
@@ -331,7 +396,8 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
       const validTransitions = {
         'pending': ['confirmed', 'cancelled'],
         'confirmed': ['assigned', 'cancelled'],
-        'assigned': ['completed', 'cancelled']
+        'assigned': ['in_progress', 'completed', 'cancelled'],
+        'in_progress': ['completed', 'cancelled']
       };
       
       if (validTransitions[oldStatus] && !validTransitions[oldStatus].includes(status)) {
@@ -372,6 +438,8 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
       updatedBy: 'admin',
       createdAt: now
     });
+    if (!request.activityLog) request.activityLog = [];
+    request.activityLog.unshift({ action: 'STATUS_UPDATED', label: `Cập nhật trạng thái thành ${request.status}`, actor: req.admin.name, detail: logNote, createdAt: now });
 
     // Release technician if completed/cancelled
     if ((status === 'completed' || status === 'cancelled') && request.assignedTechnicianId) {
@@ -443,6 +511,8 @@ router.patch('/admin/service-requests/:id/assign-technician', requirePermission(
   request.assignedTechnicianId = technicianId;
   request.status = 'assigned';
   request.updatedAt = new Date().toISOString();
+  if (!request.activityLog) request.activityLog = [];
+  request.activityLog.unshift({ action: 'TECHNICIAN_ASSIGNED', label: `Phân công kỹ thuật viên ${tech.name}`, actor: req.admin.name, createdAt: request.updatedAt });
 
   const now = new Date().toISOString();
   const logNote = `Phân công kỹ thuật viên ${tech.name}`;

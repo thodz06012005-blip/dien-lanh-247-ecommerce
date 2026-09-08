@@ -48,9 +48,13 @@ export default function ServiceRequestStatusActions({
             if (status === 'assigned') {
               return [
                 baseOption,
+                { value: 'in_progress', label: 'Bắt đầu sửa chữa' },
                 { value: 'completed', label: 'Hoàn thành (Completed)' },
                 { value: 'cancelled', label: 'Đã hủy (Cancelled)' },
               ];
+            }
+            if (status === 'in_progress') {
+              return [baseOption, { value: 'completed', label: 'Hoàn thành' }, { value: 'cancelled', label: 'Đã hủy' }];
             }
             return [{ value: '', label: 'Không thể thay đổi trạng thái' }];
           })()}
