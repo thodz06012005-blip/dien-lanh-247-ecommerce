@@ -19,6 +19,9 @@ import ServiceRequestServiceCard from '../features/service-requests/components/S
 import ServiceRequestTimeline from '../features/service-requests/components/ServiceRequestTimeline';
 import TechnicianAssignPanel from '../features/service-requests/components/TechnicianAssignPanel';
 import ServiceRequestStatusActions from '../features/service-requests/components/ServiceRequestStatusActions';
+import InspectionEstimateCard from '../features/service-requests/components/InspectionEstimateCard';
+import ServiceActivityLog from '../features/service-requests/components/ServiceActivityLog';
+import { AlertTriangle, Camera, Clock3 } from 'lucide-react';
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
@@ -72,8 +75,19 @@ export default function ServiceRequestDetail() {
     },
   });
 
+  const inspectionMutation = useMutation({
+    mutationFn: (payload: { estimatedPrice: number; inspectionNote: string; customerApprovalStatus: string }) =>
+      api.patch(`/admin/service-requests/${id}/inspection`, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-service-request', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin-service-requests'] });
+      showToast('Đã lưu kết quả kiểm tra và xác nhận của khách!', 'success');
+    },
+    onError: (err: AxiosError<{ message?: string }>) => showToast(err.response?.data?.message || 'Không thể lưu kết quả kiểm tra', 'error'),
+  });
+
   // Fetch service request detail
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, dataUpdatedAt } = useQuery({
     queryKey: ['admin-service-request', id],
     queryFn: async () => {
       const res = await api.get(`/admin/service-requests/${id}`);
@@ -166,6 +180,7 @@ export default function ServiceRequestDetail() {
   }
 
   const request: ServiceRequest = data.data;
+  const slaMinutes = Math.max(0, Math.floor((dataUpdatedAt - new Date(request.createdAt).getTime()) / 60000));
 
   return (
     <div className="flex flex-col gap-8">
@@ -176,6 +191,8 @@ export default function ServiceRequestDetail() {
         status={request.status}
         onBack={() => navigate('/service-requests')}
       />
+
+      {request.status === 'pending' && <div className={`flex items-center gap-3 rounded-2xl border p-4 ${slaMinutes >= 30 ? 'border-red-200 bg-red-50 text-red-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${slaMinutes >= 30 ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'}`}>{slaMinutes >= 30 ? <AlertTriangle className="h-5 w-5" /> : <Clock3 className="h-5 w-5" />}</span><div><p className="text-sm font-bold">{slaMinutes >= 30 ? `Đã quá SLA xác nhận ${slaMinutes - 30} phút` : `Còn ${30 - slaMinutes} phút để xác nhận`}</p><p className="mt-0.5 text-xs opacity-80">Hãy gọi khách kiểm tra thông tin trước khi chuyển trạng thái.</p></div></div>}
 
       {/* Grid layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -198,6 +215,18 @@ export default function ServiceRequestDetail() {
             preferredDate={request.preferredDate}
             preferredTimeSlot={request.preferredTimeSlot}
             note={request.note}
+          />
+
+          {request.images && request.images.length > 0 && <Card title="Ảnh/video khách hàng cung cấp"><div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{request.images.map((source, index) => <a key={index} href={source} target="_blank" rel="noreferrer" className="group relative aspect-video overflow-hidden rounded-xl border border-slate-200 bg-slate-100">{source.startsWith('data:video') ? <div className="flex h-full flex-col items-center justify-center text-blue-600"><Camera className="h-6 w-6" /><span className="mt-2 text-xs font-semibold">Mở video</span></div> : <img src={source} alt={`Tệp sự cố ${index + 1}`} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />}<span className="absolute bottom-2 left-2 rounded-md bg-slate-950/70 px-2 py-1 text-[10px] font-medium text-white">Tệp {index + 1}</span></a>)}</div></Card>}
+
+          <InspectionEstimateCard
+            estimatedPrice={request.estimatedPrice || 0}
+            inspectionNote={request.inspectionNote}
+            approvalStatus={request.customerApprovalStatus}
+            approvedAt={request.customerApprovedAt}
+            disabled={['completed', 'cancelled'].includes(request.status)}
+            isSaving={inspectionMutation.isPending}
+            onSave={(payload) => inspectionMutation.mutate(payload)}
           />
 
           {/* Chi phí */}
@@ -256,6 +285,7 @@ export default function ServiceRequestDetail() {
 
           {/* Lịch sử trạng thái */}
           <ServiceRequestTimeline statusHistory={request.statusHistory} />
+          <ServiceActivityLog entries={request.activityLog} />
         </div>
       </div>
 

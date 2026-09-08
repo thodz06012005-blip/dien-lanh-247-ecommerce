@@ -9,7 +9,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import LoadingState from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
-import { Search, RotateCw } from 'lucide-react';
+import { Search, RotateCw, AlertTriangle, Radio, X } from 'lucide-react';
 import type { ServiceRequest, ServiceCategory, ServiceRequestWithKey } from '../features/service-requests/types';
 import ServiceRequestFilterCards from '../features/service-requests/components/ServiceRequestFilterCards';
 import ServiceRequestTable from '../features/service-requests/components/ServiceRequestTable';
@@ -20,6 +20,9 @@ export default function ServiceRequests() {
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [areaFilter, setAreaFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [activeQuickFilter, setActiveQuickFilter] = useState<string>('all');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -48,7 +51,7 @@ export default function ServiceRequests() {
   };
 
   // Fetch service requests
-  const { data, isLoading, error, refetch, isRefetching } = useQuery({
+  const { data, isLoading, error, refetch, isRefetching, dataUpdatedAt } = useQuery({
     queryKey: ['admin-service-requests', categoryFilter],
     queryFn: async () => {
       const params: Record<string, string> = {};
@@ -56,6 +59,7 @@ export default function ServiceRequests() {
       const res = await api.get('/admin/service-requests', { params });
       return res.data;
     },
+    refetchInterval: 30000,
   });
 
   // Fetch service categories
@@ -107,9 +111,8 @@ export default function ServiceRequests() {
   const upcomingRequests = requestsList.filter(
     (r) => r.status === 'assigned' && (r.preferredDate === todayStr || r.preferredDate === tomorrowStr)
   );
-  const overdueRequests = requestsList.filter(
-    (r) => r.status !== 'completed' && r.status !== 'cancelled' && r.preferredDate < todayStr
-  );
+  const overdueRequests = requestsList.filter((r) => r.status === 'pending' && dataUpdatedAt - new Date(r.createdAt).getTime() > 30 * 60 * 1000);
+  const areas = [...new Set(requestsList.map((request) => request.district))].sort();
 
   const handleStatusFilterChange = (val: string) => {
     setStatusFilter(val);
@@ -135,22 +138,19 @@ export default function ServiceRequests() {
 
     // Quick Filter Card vs Status Dropdown filter
     if (activeQuickFilter !== 'all') {
-      if (activeQuickFilter === 'pending') {
-        return r.status === 'pending';
-      }
-      if (activeQuickFilter === 'unassigned') {
-        return r.status === 'confirmed' && !r.assignedTechnicianId;
-      }
-      if (activeQuickFilter === 'upcoming') {
-        return r.status === 'assigned' && (r.preferredDate === todayStr || r.preferredDate === tomorrowStr);
-      }
-      if (activeQuickFilter === 'overdue') {
-        return r.status !== 'completed' && r.status !== 'cancelled' && r.preferredDate < todayStr;
-      }
+      const matchesQuickFilter =
+        (activeQuickFilter === 'pending' && r.status === 'pending') ||
+        (activeQuickFilter === 'unassigned' && r.status === 'confirmed' && !r.assignedTechnicianId) ||
+        (activeQuickFilter === 'upcoming' && ['assigned', 'in_progress'].includes(r.status) && (r.preferredDate === todayStr || r.preferredDate === tomorrowStr)) ||
+        (activeQuickFilter === 'overdue' && r.status === 'pending' && dataUpdatedAt - new Date(r.createdAt).getTime() > 30 * 60 * 1000);
+      if (!matchesQuickFilter) return false;
     } else if (statusFilter !== 'all') {
-      return r.status === statusFilter;
+      if (r.status !== statusFilter) return false;
     }
 
+    if (areaFilter !== 'all' && r.district !== areaFilter) return false;
+    if (dateFrom && r.preferredDate < dateFrom) return false;
+    if (dateTo && r.preferredDate > dateTo) return false;
     return true;
   });
 
@@ -181,13 +181,13 @@ export default function ServiceRequests() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-950">
             Yêu cầu dịch vụ sửa chữa
           </h1>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            Quản lý và điều phối các yêu cầu sửa chữa điện lạnh từ khách hàng
+            Hàng đợi điều phối theo thời gian thực · tự làm mới mỗi 30 giây
           </p>
         </div>
         <Button
@@ -202,6 +202,8 @@ export default function ServiceRequests() {
         </Button>
       </div>
 
+      {overdueRequests.length > 0 && <button type="button" onClick={() => handleQuickFilterClick('overdue')} className="group flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-md shadow-red-600/20"><AlertTriangle className="h-5 w-5" /></span><div><p className="font-bold text-red-950">{overdueRequests.length} yêu cầu đã quá SLA xác nhận 30 phút</p><p className="mt-0.5 text-sm text-red-700">Ưu tiên liên hệ ngay để không bỏ sót khách hàng.</p></div></div><span className="hidden items-center gap-2 text-sm font-bold text-red-700 sm:flex"><Radio className="h-4 w-4 animate-pulse" />Xem ngay</span></button>}
+
       {/* Quick Filter Cards */}
       <ServiceRequestFilterCards
         activeQuickFilter={activeQuickFilter}
@@ -214,7 +216,7 @@ export default function ServiceRequests() {
 
       {/* Filters Search Form Panel */}
       <Card className="p-4 shadow-sm border-slate-200/60">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
           <div className="relative w-full">
             <Input
               placeholder="Tìm theo tên hoặc SĐT..."
@@ -234,6 +236,7 @@ export default function ServiceRequests() {
                 { value: 'pending', label: 'Chờ xác nhận' },
                 { value: 'confirmed', label: 'Đã xác nhận' },
                 { value: 'assigned', label: 'Đã phân công' },
+                { value: 'in_progress', label: 'Đang sửa chữa' },
                 { value: 'cancelled', label: 'Đã hủy' },
                 { value: 'completed', label: 'Hoàn thành' },
               ]}
@@ -250,7 +253,11 @@ export default function ServiceRequests() {
               ]}
             />
           </div>
+          <Select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} className="h-10 w-full bg-slate-50 border-slate-200" options={[{ value: 'all', label: 'Tất cả khu vực' }, ...areas.map((area) => ({ value: area, label: area }))]} />
+          <Input type="date" aria-label="Từ ngày" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 bg-slate-50" />
+          <Input type="date" aria-label="Đến ngày" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 bg-slate-50" />
         </div>
+        {(searchText || statusFilter !== 'all' || categoryFilter !== 'all' || areaFilter !== 'all' || dateFrom || dateTo || activeQuickFilter !== 'all') && <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs font-medium text-slate-500">Tìm thấy <strong className="text-slate-900">{filteredRequests.length}</strong> yêu cầu phù hợp</p><button type="button" onClick={() => { setSearchText(''); setStatusFilter('all'); setCategoryFilter('all'); setAreaFilter('all'); setDateFrom(''); setDateTo(''); setActiveQuickFilter('all'); }} className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800"><X className="h-3.5 w-3.5" />Xóa bộ lọc</button></div>}
       </Card>
 
       {/* Table List View */}
@@ -260,6 +267,7 @@ export default function ServiceRequests() {
           categoryMap={categoryMap}
           todayStr={todayStr}
           tomorrowStr={tomorrowStr}
+          nowMs={dataUpdatedAt}
           isConfirming={confirmMutation.isPending}
           confirmingId={confirmingId}
           onConfirm={handleConfirmRequest}

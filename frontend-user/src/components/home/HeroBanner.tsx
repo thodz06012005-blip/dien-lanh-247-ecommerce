@@ -1,239 +1,118 @@
-import { motion } from 'framer-motion';
-import { ArrowRight, ShieldCheck, Zap, Truck, CheckCircle, Calendar, BadgeCheck, Wrench, ShieldAlert } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarCheck,
+  CheckCircle2,
+  Clock3,
+  Phone,
+  ShieldCheck,
+  Sparkles,
+  Wrench,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Button from '../ui/Button';
+import { useSettings } from '../../hooks/useSettings';
 
-const floatingCards = [
-  {
-    icon: <ShieldCheck className="w-5 h-5 text-cyan-400" />,
-    label: 'Thợ kỹ thuật',
-    value: 'Đã xác minh',
-    color: 'from-cyan-500/20 to-blue-500/10',
-    delay: 0,
-    offsetClass: 'top-[12%] left-[-4%] lg:left-[-8%]',
-    animateY: [0, -8, 0],
-  },
-  {
-    icon: <Truck className="w-5 h-5 text-orange-400" />,
-    label: 'Dịch vụ tận nơi',
-    value: 'Có mặt trong 2h',
-    color: 'from-orange-500/20 to-red-500/10',
-    delay: 0.8,
-    offsetClass: 'bottom-[22%] left-[-4%] lg:left-[-8%]',
-    animateY: [0, 8, 0],
-  },
-  {
-    icon: <Zap className="w-5 h-5 text-blue-400" />,
-    label: 'Báo giá trước',
-    value: 'Không phí ẩn',
-    color: 'from-blue-500/20 to-indigo-500/10',
-    delay: 1.5,
-    offsetClass: 'top-[8%] right-[-4%] lg:right-[-8%]',
-    animateY: [0, -6, 0],
-  },
-  {
-    icon: <CheckCircle className="w-5 h-5 text-green-400" />,
-    label: 'Bảo hành dài',
-    value: '3 - 12 tháng',
-    color: 'from-green-500/20 to-emerald-500/10',
-    delay: 2.2,
-    offsetClass: 'bottom-[10%] right-[-4%] lg:right-[-8%]',
-    animateY: [0, 6, 0],
-  },
-];
-
-const trustBadges = [
-  { icon: <BadgeCheck className="w-4.5 h-4.5 text-cyan-400" />, label: 'Thợ kỹ thuật đã xác minh' },
-  { icon: <Wrench className="w-4.5 h-4.5 text-orange-400" />, label: 'Báo giá minh bạch trước khi sửa' },
-  { icon: <ShieldCheck className="w-4.5 h-4.5 text-green-400" />, label: 'Bảo hành an tâm 3-12 tháng' },
-  { icon: <ShieldAlert className="w-4.5 h-4.5 text-blue-400" />, label: 'Hỗ trợ khẩn cấp 24/7' },
+const trustItems = [
+  { icon: BadgeCheck, title: 'Thợ đã xác minh', detail: 'Đúng chuyên môn, rõ danh tính' },
+  { icon: Clock3, title: 'Xác nhận nhanh', detail: 'Liên hệ lại trong vòng 30 phút' },
+  { icon: ShieldCheck, title: 'Minh bạch chi phí', detail: 'Thông báo trước khi sửa chữa' },
 ];
 
 export default function HeroBanner() {
+  const { settings } = useSettings();
+  const reduceMotion = useReducedMotion();
+  const reveal = (delay = 0) => ({
+    initial: reduceMotion ? false : { opacity: 0, y: 18 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] as const },
+  });
+
   return (
-    <section className="relative bg-gradient-to-b from-[#020b14] via-[#061527] to-[#041221] overflow-hidden min-h-[90vh] flex flex-col justify-center pt-28 pb-16 lg:pb-24">
-      {/* Blueprint grid overlay */}
-      <div className="absolute inset-0 blueprint-grid opacity-100 pointer-events-none" />
+    <section className="relative isolate overflow-hidden bg-[#061525] text-white">
+      <div className="absolute inset-0 hero-grid opacity-40" aria-hidden="true" />
+      <div className="absolute -left-40 top-10 h-96 w-96 rounded-full bg-blue-500/15 blur-3xl" aria-hidden="true" />
+      <div className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" aria-hidden="true" />
 
-      {/* Mesh glow blobs */}
-      <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full bg-blue-600/14 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[55%] h-[55%] rounded-full bg-cyan-500/10 blur-[140px] pointer-events-none" />
-      <div className="absolute top-[35%] right-[15%] w-[28%] h-[28%] rounded-full bg-indigo-600/10 blur-[80px] pointer-events-none" />
-
-      {/* ── Main Grid ─────────────────────────────────────────────── */}
-      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-6 items-center">
-
-        {/* LEFT — copy */}
-        <div className="lg:col-span-6 xl:col-span-7 flex flex-col items-start text-left order-2 lg:order-1">
-
-          {/* Kicker */}
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/8 mb-6"
-          >
-            <Zap className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400 animate-pulse" />
-            <span className="text-[10px] font-extrabold tracking-widest uppercase text-cyan-300">
-              Hệ thống kỹ thuật điện lạnh toàn diện tại Hà Nội
-            </span>
+      <div className="relative mx-auto grid min-h-[680px] max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-24">
+        <div className="max-w-2xl">
+          <motion.div {...reveal()} className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-100">
+            <Sparkles className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+            Dịch vụ điện lạnh tận nhà tại Hà Nội
           </motion.div>
 
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.08 }}
-            className="text-[32px] sm:text-[44px] lg:text-[48px] xl:text-[56px] font-black text-white leading-[1.08] tracking-tight mb-5"
-          >
-            Dịch vụ điện lạnh cao cấp<br className="hidden sm:block" />
-            Lắp đặt &amp; sửa chữa <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-[#F97316]">siêu tốc.</span>
+          <motion.h1 {...reveal(0.06)} className="text-balance text-4xl font-bold leading-[1.12] tracking-[-0.035em] sm:text-5xl lg:text-6xl">
+            Đặt thợ điện lạnh<br />
+            <span className="text-cyan-300">nhanh chóng, an tâm.</span>
           </motion.h1>
 
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.18 }}
-            className="text-sm sm:text-base text-slate-200/90 mb-8 leading-[1.65] max-w-[560px]"
-          >
-            Điện Lạnh 247 cung cấp giải pháp toàn diện: bán thiết bị chính hãng, lắp đặt tiêu chuẩn, sửa chữa tận nơi và bảo trì định kỳ bởi đội ngũ kỹ thuật viên giàu kinh nghiệm.
+          <motion.p {...reveal(0.12)} className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
+            Mô tả sự cố, chọn lịch phù hợp và theo dõi tiến độ trực tuyến. Kỹ thuật viên kiểm tra tận nơi, thông báo chi phí để bạn đồng ý trước khi sửa.
           </motion.p>
 
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.28 }}
-            className="flex flex-col sm:flex-row gap-3.5 w-full sm:w-auto mb-8"
-          >
-            <Link to="/service-booking" className="w-full sm:w-auto min-w-0">
-              <button className="btn-cta-orange w-full sm:w-auto flex items-center justify-center gap-2 text-sm font-bold px-7 py-3.5 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 hover:-translate-y-0.5 transition-all cursor-pointer">
-                <Calendar className="w-4 h-4 shrink-0" />
-                Đặt lịch sửa chữa ngay
-              </button>
+          <motion.div {...reveal(0.18)} className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link to="/service-booking" className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-orange-950/30 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-300/40">
+              <CalendarCheck className="h-5 w-5" aria-hidden="true" />
+              Đặt lịch sửa chữa
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Link>
-            <Link to="/products" className="w-full sm:w-auto min-w-0">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto bg-white/5 hover:bg-white/10 text-white border-white/10 hover:border-white/25 backdrop-blur-sm font-bold rounded-xl py-3.5 px-7 text-sm hover:-translate-y-0.5 transition-all"
-              >
-                Mua sắm thiết bị
-                <ArrowRight className="w-4 h-4 ml-1.5 shrink-0" />
-              </Button>
-            </Link>
+            <a href={`tel:${settings.hotline.replace(/\s+/g, '')}`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-base font-semibold text-white backdrop-blur transition duration-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20">
+              <Phone className="h-5 w-5 text-cyan-300" aria-hidden="true" />
+              Gọi {settings.hotline}
+            </a>
           </motion.div>
 
-          {/* Trust Badges */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.38 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 border-t border-white/8 pt-6 w-full"
-          >
-            {trustBadges.map((badge, idx) => (
-              <div key={idx} className="flex items-center gap-2.5 text-slate-300">
-                {badge.icon}
-                <span className="text-xs font-semibold tracking-wide">{badge.label}</span>
-              </div>
-            ))}
-          </motion.div>
+          <motion.p {...reveal(0.22)} className="mt-4 flex items-center gap-2 text-sm text-slate-400">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+            Không cần đăng nhập · Chỉ mất khoảng 2 phút
+          </motion.p>
         </div>
 
-        {/* RIGHT — Product stage */}
-        <div className="lg:col-span-6 xl:col-span-5 relative flex items-center justify-center order-1 lg:order-2 h-[320px] sm:h-[400px] lg:h-[500px]">
-          {/* Central glow */}
-          <div className="absolute w-[65%] h-[65%] rounded-full bg-blue-500/18 blur-[64px] pointer-events-none" />
-
-          {/* Main product image card */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.88, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.12, ease: [0.34, 1.56, 0.64, 1] }}
-            className="relative w-[75%] aspect-square rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl shadow-black/50"
-          >
-            {/* Dark gradient bg */}
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-950" />
-            {/* Blueprint grid on product stage */}
-            <div className="absolute inset-0 blueprint-grid opacity-60" />
-
-            <img
-              src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=700&auto=format&fit=crop"
-              alt="Kỹ thuật viên Điện Lạnh 247 sửa chữa chuyên nghiệp"
-              className="relative z-10 w-full h-full object-cover opacity-75 mix-blend-luminosity"
-            />
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 z-20 bg-gradient-to-t from-slate-950/70 via-transparent to-blue-900/10" />
-
-            {/* Inner badge */}
-            <div className="absolute bottom-5 left-5 z-35">
-              <span className="inline-block px-3 py-1.5 rounded-full bg-orange-500/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-orange-500/30">
-                Cam kết chất lượng 5 sao
-              </span>
-            </div>
-          </motion.div>
-
-          {/* iOS Widget Schedule Simulation Overlay */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.2, duration: 0.5 }}
-            className="absolute bottom-4 right-[-4%] lg:right-[-6%] z-30 bg-slate-950/90 border border-white/10 backdrop-blur-md rounded-2xl p-4 shadow-xl max-w-[200px]"
-          >
-            <p className="text-[9px] font-bold text-cyan-400 uppercase tracking-widest leading-none mb-2">Trạng thái điều phối</p>
-            <h4 className="text-xs font-bold text-white mb-1">Vệ sinh điều hòa</h4>
-            <p className="text-[10px] text-slate-400">Khách hàng: Anh Minh (Cầu Giấy)</p>
-            <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-green-400 font-medium">
-              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              <span>KTV đang đến (15 phút)</span>
-            </div>
-          </motion.div>
-
-          {/* Floating Cards */}
-          {floatingCards.map((card) => (
-            <motion.div
-              key={card.label}
-              animate={{ y: card.animateY }}
-              transition={{ repeat: Infinity, duration: 4.5 + card.delay * 0.4, delay: card.delay * 0.2, ease: 'easeInOut' }}
-              className={`absolute ${card.offsetClass} floating-card px-4 py-3 flex items-center gap-2.5 min-w-[150px] z-30`}
-            >
-              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center shrink-0`}>
-                {card.icon}
+        <motion.div {...reveal(0.16)} className="relative mx-auto w-full max-w-lg">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.07] p-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
+            <div className="overflow-hidden rounded-[22px] bg-white text-slate-900">
+              <div className="relative h-52 overflow-hidden sm:h-64">
+                <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1000&auto=format&fit=crop" alt="Kỹ thuật viên đang kiểm tra thiết bị điện lạnh tại nhà" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3 text-white">
+                  <div>
+                    <p className="text-sm text-slate-200">Dịch vụ tận nơi</p>
+                    <p className="mt-1 text-lg font-bold">Theo dõi từng bước xử lý</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-400/20 px-3 py-1.5 text-xs font-semibold text-emerald-100 backdrop-blur">Đang hoạt động</span>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-semibold text-slate-500 tracking-wide leading-none">{card.label}</p>
-                <p className="text-xs font-bold text-slate-900 mt-1.5 leading-none">{card.value}</p>
+
+              <div className="space-y-4 p-5 sm:p-6">
+                {[
+                  ['1', 'Gửi yêu cầu', 'Chọn thiết bị và thời gian phù hợp', true],
+                  ['2', 'Xác nhận & phân công', 'Điều phối thợ đúng chuyên môn', true],
+                  ['3', 'Kiểm tra & thông báo chi phí', 'Bạn đồng ý rồi mới tiến hành', false],
+                ].map(([number, title, detail, active]) => (
+                  <div key={String(number)} className="flex items-center gap-4">
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${active ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>{number}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900">{title}</p>
+                      <p className="mt-0.5 text-sm text-slate-500">{detail}</p>
+                    </div>
+                    {active ? <CheckCircle2 className="h-5 w-5 text-emerald-500" aria-hidden="true" /> : <Wrench className="h-5 w-5 text-blue-500" aria-hidden="true" />}
+                  </div>
+                ))}
               </div>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
-      {/* Bottom commitment strip */}
-      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full mt-14 hidden md:block">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          {[
-            { icon: <ShieldCheck className="w-6 h-6 text-cyan-400" />, title: 'Cam kết chính hãng 100%', desc: 'Thiết bị đầy đủ CO/CQ, kiểm tra nguồn gốc rõ ràng.' },
-            { icon: <CheckCircle className="w-6 h-6 text-green-400" />, title: 'Bảo hành tận nơi', desc: 'Tiếp nhận nhanh, hỗ trợ xử lý trong thời gian bảo hành.' },
-            { icon: <Zap className="w-6 h-6 text-blue-400" />, title: 'Báo giá minh bạch', desc: 'Kỹ thuật viên kiểm tra và báo giá trước khi sửa.' },
-          ].map((item, i) => (
-            <div key={i} className="flex gap-4 items-center p-5 rounded-2xl bg-white/4 border border-white/7 backdrop-blur-sm hover:bg-white/8 transition-colors">
-              <div className="w-12 h-12 bg-white/5 border border-white/8 rounded-xl flex items-center justify-center shrink-0">
-                {item.icon}
-              </div>
-              <div>
-                <p className="text-[15px] font-extrabold text-white leading-snug">{item.title}</p>
-                <p className="text-[13px] text-slate-300 mt-1 leading-relaxed">{item.desc}</p>
-              </div>
+      <div className="relative border-t border-white/10 bg-white/[0.035]">
+        <div className="mx-auto grid max-w-7xl divide-y divide-white/10 px-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-6 lg:px-8">
+          {trustItems.map(({ icon: Icon, title, detail }) => (
+            <div key={title} className="flex items-center gap-3 px-2 py-5 sm:px-6">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-300/10 text-cyan-300"><Icon className="h-5 w-5" aria-hidden="true" /></span>
+              <div><p className="text-sm font-semibold text-white">{title}</p><p className="mt-0.5 text-xs text-slate-400">{detail}</p></div>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

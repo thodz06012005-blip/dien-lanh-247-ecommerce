@@ -18,6 +18,9 @@ import ServiceBooking from './pages/ServiceBooking';
 import ServiceBookingSuccess from './pages/ServiceBookingSuccess';
 import MyServices from './pages/MyServices';
 import MyServiceDetail from './pages/MyServiceDetail';
+import TrackService from './pages/TrackService';
+import TechnicianLogin from './pages/TechnicianLogin';
+import TechnicianPortal from './pages/TechnicianPortal';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -46,6 +49,7 @@ function App() {
           <Route path="service-booking" element={<ServiceBooking />} />
           <Route path="service-booking/success" element={<ServiceBookingSuccess />} />
           <Route path="my-services" element={<MyServices />} />
+          <Route path="track-service" element={<TrackService />} />
           <Route path="my-services/:id" element={<MyServiceDetail />} />
           <Route path="contact" element={<Contact />} />
           <Route path="about" element={<About />} />
@@ -54,6 +58,8 @@ function App() {
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/technician/login" element={<TechnicianLogin />} />
+        <Route path="/technician" element={<TechnicianPortal />} />
       </Routes>
     </HashRouter>
   );

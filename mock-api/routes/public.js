@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { DEFAULT_BUSINESS_CONFIG } = require('../businessConfig');
 const { readDB } = require('../utils/db');
 const { respondSuccess, respondError } = require('../utils/response');
 const {
@@ -245,7 +246,8 @@ router.get('/settings/public', (req, res) => {
     email: db.settings.email,
     address: db.settings.address,
     shippingFee: db.settings.shippingFee,
-    freeShippingThreshold: db.settings.freeShippingThreshold
+    freeShippingThreshold: db.settings.freeShippingThreshold,
+    businessConfig: db.settings.businessConfig || DEFAULT_BUSINESS_CONFIG
   };
   return respondSuccess(res, pub);
 });
