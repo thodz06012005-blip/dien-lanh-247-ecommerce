@@ -12,6 +12,7 @@ export default function MainLayout() {
       <Header />
       <main id="main-content" className="flex-grow pt-[72px] md:pt-[104px] pb-20 md:pb-0" tabIndex={-1}>
         <div key={location.pathname} className="page-route"><Outlet /></div>
+        <Outlet />
       </main>
       <ToastContainer />
       <Footer />

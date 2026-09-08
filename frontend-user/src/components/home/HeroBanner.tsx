@@ -77,6 +77,7 @@ export default function HeroBanner() {
                   <source type="image/webp" srcSet="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=72&w=640&fm=webp&fit=crop 640w, https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=76&w=1000&fm=webp&fit=crop 1000w" sizes="(max-width: 1024px) 100vw, 50vw" />
                   <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=76&w=1000&auto=format&fit=crop" alt="Kỹ thuật viên đang kiểm tra thiết bị điện lạnh tại nhà" width="1000" height="750" fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
                 </picture>
+                <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1000&auto=format&fit=crop" alt="Kỹ thuật viên đang kiểm tra thiết bị điện lạnh tại nhà" className="h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3 text-white">
                   <div>
