@@ -10,6 +10,7 @@ import ServiceRequestDetail from './pages/ServiceRequestDetail';
 import Technicians from './pages/Technicians';
 import Login from './pages/Login';
 import Forbidden from './pages/Forbidden';
+import Finance from './pages/Finance';
 import AdminProtectedRoute from './routes/AdminProtectedRoute';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
           <Route path="service-requests" element={<ServiceRequests />} />
           <Route path="service-requests/:id" element={<ServiceRequestDetail />} />
           <Route path="technicians" element={<Technicians />} />
+          <Route path="finance" element={<Finance />} />
           <Route path="*" element={<div className="flex items-center justify-center h-64 text-slate-500 text-lg">Trang này đang được phát triển...</div>} />
         </Route>
       </Routes>

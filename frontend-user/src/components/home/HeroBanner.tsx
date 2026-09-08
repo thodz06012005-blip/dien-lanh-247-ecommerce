@@ -72,6 +72,11 @@ export default function HeroBanner() {
           <div className="rounded-[28px] border border-white/10 bg-white/[0.07] p-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
             <div className="overflow-hidden rounded-[22px] bg-white text-slate-900">
               <div className="relative h-52 overflow-hidden sm:h-64">
+                <picture>
+                  <source type="image/avif" srcSet="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=72&w=640&fm=avif&fit=crop 640w, https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=76&w=1000&fm=avif&fit=crop 1000w" sizes="(max-width: 1024px) 100vw, 50vw" />
+                  <source type="image/webp" srcSet="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=72&w=640&fm=webp&fit=crop 640w, https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=76&w=1000&fm=webp&fit=crop 1000w" sizes="(max-width: 1024px) 100vw, 50vw" />
+                  <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=76&w=1000&auto=format&fit=crop" alt="Kỹ thuật viên đang kiểm tra thiết bị điện lạnh tại nhà" width="1000" height="750" fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
+                </picture>
                 <img src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1000&auto=format&fit=crop" alt="Kỹ thuật viên đang kiểm tra thiết bị điện lạnh tại nhà" className="h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3 text-white">

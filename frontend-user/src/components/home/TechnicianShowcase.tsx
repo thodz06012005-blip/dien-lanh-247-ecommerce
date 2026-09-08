@@ -97,6 +97,9 @@ export default function TechnicianShowcase() {
                   alt={tech.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
+                  decoding="async"
+                  width="80"
+                  height="80"
                 />
               </div>
 

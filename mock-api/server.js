@@ -31,6 +31,7 @@ const adminProductsRouter = require('./routes/adminProducts');
 const adminDashboardRouter = require('./routes/adminDashboard');
 const adminCustomersRouter = require('./routes/adminCustomers');
 const adminSettingsRouter = require('./routes/adminSettings');
+const adminFinanceRouter = require('./routes/adminFinance');
 const technicianPortalRouter = require('./routes/technicianPortal');
 const customerAuthRouter = require('./routes/customerAuth');
 const contactRouter = require('./routes/contact');
@@ -114,6 +115,7 @@ app.use('/api/v1', adminProductsRouter);
 app.use('/api/v1', adminDashboardRouter);
 app.use('/api/v1', adminCustomersRouter);
 app.use('/api/v1', adminSettingsRouter);
+app.use('/api/v1', adminFinanceRouter);
 app.use('/api/v1', customerAuthRouter);
 app.use('/api/v1', contactRouter);
 app.use('/api/v1', devRouter);
@@ -206,8 +208,7 @@ app.post('/api/v1/admin/auth/login', (req, res) => {
   }
 
   const demoEmails = ['admin@dienlanh247.vn', 'staff@dienlanh247.vn'];
-  const isDefaultOwner = normalizedEmail === 'owner@dienlanh247.vn' && password === 'Admin@123';
-  if ((demoEmails.includes(normalizedEmail) || isDefaultOwner) && !isDemoAccountsEnabled()) {
+  if (demoEmails.includes(normalizedEmail) && !isDemoAccountsEnabled()) {
     recordLoginFailure(req, normalizedEmail);
     auditFailure(req, 'AUTH_LOGIN_FAILED', 'auth', null, { email: normalizedEmail }, 'Admin login failed (demo accounts disabled)');
     return respondError(res, 401, 'Email hoặc mật khẩu không chính xác', 'INVALID_CREDENTIALS');

@@ -13,7 +13,8 @@ import {
   Search,
   Bell,
   ChevronDown,
-  Wrench
+  Wrench,
+  BadgeDollarSign
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAdminAuthStore } from '../store/adminAuthStore';
@@ -55,6 +56,7 @@ export default function AdminLayout() {
       items: [
         { path: '/service-requests', label: 'Yêu cầu sửa chữa', icon: <Wrench className="h-[18px] w-[18px] shrink-0" /> },
         { path: '/technicians', label: 'Quản lý thợ kỹ thuật', icon: <Users className="h-[18px] w-[18px] shrink-0" /> },
+        { path: '/finance', label: 'Doanh thu & đối soát', icon: <BadgeDollarSign className="h-[18px] w-[18px] shrink-0" /> },
       ]
     },
     {
@@ -74,6 +76,7 @@ export default function AdminLayout() {
     '/settings': 'Cài đặt Hệ thống',
     '/service-requests': 'Yêu cầu dịch vụ sửa chữa',
     '/technicians': 'Quản lý Thợ kỹ thuật',
+    '/finance': 'Doanh thu & Đối soát dịch vụ',
   };
 
   const getBreadcrumbTitle = (pathname: string) => {
