@@ -73,7 +73,9 @@ const ROLE_PERMISSIONS = {
     'technicians:update',
     'technicians:delete',
     'technicians:assign',
-    'adminUsers:manage'
+    'adminUsers:manage',
+    'finance:read',
+    'finance:update'
   ],
   admin: [
     'dashboard:read',
@@ -89,7 +91,9 @@ const ROLE_PERMISSIONS = {
     'technicians:read',
     'technicians:create',
     'technicians:update',
-    'technicians:assign'
+    'technicians:assign',
+    'finance:read',
+    'finance:update'
   ],
   staff: [
     'dashboard:read',
@@ -98,7 +102,8 @@ const ROLE_PERMISSIONS = {
     'orders:update',
     'serviceRequests:read',
     'serviceRequests:update',
-    'technicians:read'
+    'technicians:read',
+    'finance:read'
   ]
 };
 

@@ -1,62 +1,63 @@
-import { useEffect } from 'react';
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Products from './pages/Products';
-import ProductDetail from './pages/ProductDetail';
-import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import Account from './pages/Account';
-import Orders from './pages/Orders';
-import Contact from './pages/Contact';
-import About from './pages/About';
-import Policy from './pages/Policy';
-import Services from './pages/Services';
-import ServiceBooking from './pages/ServiceBooking';
-import ServiceBookingSuccess from './pages/ServiceBookingSuccess';
-import MyServices from './pages/MyServices';
-import MyServiceDetail from './pages/MyServiceDetail';
+import RouteSkeleton from './components/common/RouteSkeleton';
 
-function ScrollToTop() {
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Products = lazy(() => import('./pages/Products'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Account = lazy(() => import('./pages/Account'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Contact = lazy(() => import('./pages/Contact'));
+const About = lazy(() => import('./pages/About'));
+const Policy = lazy(() => import('./pages/Policy'));
+const Services = lazy(() => import('./pages/Services'));
+const ServiceBooking = lazy(() => import('./pages/ServiceBooking'));
+const ServiceBookingSuccess = lazy(() => import('./pages/ServiceBookingSuccess'));
+const MyServices = lazy(() => import('./pages/MyServices'));
+const MyServiceDetail = lazy(() => import('./pages/MyServiceDetail'));
+const TrackService = lazy(() => import('./pages/TrackService'));
+const TechnicianLogin = lazy(() => import('./pages/TechnicianLogin'));
+const TechnicianPortal = lazy(() => import('./pages/TechnicianPortal'));
+
+function RouteEffects() {
   const { pathname } = useLocation();
-
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    const main = document.getElementById('main-content');
+    if (main) window.requestAnimationFrame(() => main.focus({ preventScroll: true }));
   }, [pathname]);
-
   return null;
 }
 
-function App() {
-  return (
-    <HashRouter>
-      <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Home />} />
-          <Route path="products" element={<Products />} />
-          <Route path="products/:id" element={<ProductDetail />} />
-          <Route path="cart" element={<Cart />} />
-          <Route path="checkout" element={<Checkout />} />
-          <Route path="account" element={<Account />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="services" element={<Services />} />
-          <Route path="service-booking" element={<ServiceBooking />} />
-          <Route path="service-booking/success" element={<ServiceBookingSuccess />} />
-          <Route path="my-services" element={<MyServices />} />
-          <Route path="my-services/:id" element={<MyServiceDetail />} />
-          <Route path="contact" element={<Contact />} />
-          <Route path="about" element={<About />} />
-          <Route path="policy/:slug" element={<Policy />} />
-          <Route path="*" element={<div className="flex flex-col items-center justify-center h-96 text-slate-500 text-sm">Trang này đang được phát triển...</div>} />
-        </Route>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
-    </HashRouter>
-  );
+export default function App() {
+  return <HashRouter><RouteEffects /><Suspense fallback={<RouteSkeleton />}><Routes>
+    <Route path="/" element={<MainLayout />}>
+      <Route index element={<Home />} />
+      <Route path="products" element={<Products />} />
+      <Route path="products/:id" element={<ProductDetail />} />
+      <Route path="cart" element={<Cart />} />
+      <Route path="checkout" element={<Checkout />} />
+      <Route path="account" element={<Account />} />
+      <Route path="orders" element={<Orders />} />
+      <Route path="services" element={<Services />} />
+      <Route path="service-booking" element={<ServiceBooking />} />
+      <Route path="service-booking/success" element={<ServiceBookingSuccess />} />
+      <Route path="my-services" element={<MyServices />} />
+      <Route path="track-service" element={<TrackService />} />
+      <Route path="my-services/:id" element={<MyServiceDetail />} />
+      <Route path="contact" element={<Contact />} />
+      <Route path="about" element={<About />} />
+      <Route path="policy/:slug" element={<Policy />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Route>
+    <Route path="/login" element={<Login />} />
+    <Route path="/register" element={<Register />} />
+    <Route path="/technician/login" element={<TechnicianLogin />} />
+    <Route path="/technician" element={<TechnicianPortal />} />
+  </Routes></Suspense></HashRouter>;
 }
-
-export default App;

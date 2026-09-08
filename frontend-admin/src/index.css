@@ -29,6 +29,23 @@
   }
 }
 
+.finance-input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0 0.875rem;
+  background: #fff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.finance-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
 @utility admin-card {
   @apply bg-white border border-slate-200/60 rounded-2xl shadow-sm transition-all duration-200;
 }

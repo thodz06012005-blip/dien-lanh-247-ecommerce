@@ -18,10 +18,13 @@ export interface ServiceRequest {
   preferredDate: string;
   preferredTimeSlot: string;
   note?: string;
-  status: 'pending' | 'confirmed' | 'assigned' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
   assignedTechnicianId?: string | null;
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   estimatedPrice?: number;
+  inspectionNote?: string;
+  customerApprovalStatus?: 'not_requested' | 'pending' | 'approved' | 'rejected';
+  customerApprovedAt?: string | null;
   finalPrice?: number;
   paymentStatus?: 'unpaid' | 'paid';
   createdAt: string;
@@ -40,6 +43,7 @@ export interface ServiceRequest {
     updatedBy: string;
     createdAt: string;
   }[];
+  activityLog?: { action: string; label: string; actor: string; detail?: string; createdAt: string }[];
 }
 
 export type ServiceRequestWithKey = ServiceRequest & { key: string };

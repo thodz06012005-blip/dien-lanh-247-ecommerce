@@ -1,10 +1,10 @@
-const VALID_SERVICE_STATUSES = ['pending', 'confirmed', 'assigned', 'completed', 'cancelled'];
+const VALID_SERVICE_STATUSES = ['pending', 'confirmed', 'assigned', 'in_progress', 'completed', 'cancelled'];
 const VALID_SERVICE_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 const VALID_TECHNICIAN_STATUSES = ['available', 'busy', 'offline', 'inactive'];
 const VALID_ORDER_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 const VALID_PAYMENT_STATUSES = ['unpaid', 'paid', 'failed', 'refunded'];
 const VALID_PAYMENT_METHODS = ['COD', 'BANK_TRANSFER'];
-const ACTIVE_SERVICE_REQUEST_STATUSES = ['assigned'];
+const ACTIVE_SERVICE_REQUEST_STATUSES = ['assigned', 'in_progress'];
 
 module.exports = {
   VALID_SERVICE_STATUSES,

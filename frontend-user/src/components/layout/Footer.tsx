@@ -14,12 +14,12 @@ export default function Footer() {
   };
 
   const categoriesLinks = [
-    { name: 'Điều hòa chính hãng', path: '/products?categoryId=dieu-hoa' },
-    { name: 'Tủ lạnh cao cấp Inverter', path: '/products?categoryId=tu-lanh' },
-    { name: 'Máy giặt & Máy sấy quần áo', path: '/products?categoryId=may-giat' },
-    { name: 'Bình nóng lạnh an toàn', path: '/products?categoryId=binh-nong-lanh' },
-    { name: 'Linh kiện thiết bị điện lạnh', path: '/products?categoryId=linh-kien' },
-    { name: 'Dịch vụ sửa chữa & Bảo dưỡng', path: '/services' },
+    { name: 'Sửa chữa điều hòa', path: '/service-booking?appliance=Điều hòa' },
+    { name: 'Sửa chữa tủ lạnh', path: '/service-booking?appliance=Tủ lạnh' },
+    { name: 'Sửa chữa máy giặt', path: '/service-booking?appliance=Máy giặt' },
+    { name: 'Sửa bình nóng lạnh', path: '/service-booking?appliance=Bình nóng lạnh' },
+    { name: 'Vệ sinh & bảo dưỡng', path: '/service-booking?appliance=Vệ sinh định kỳ' },
+    { name: 'Tất cả dịch vụ', path: '/services' },
   ];
 
   const supportLinks = [
@@ -94,13 +94,13 @@ export default function Footer() {
 
           {/* Column 2: Categories */}
           <div>
-            <h3 className="text-xs font-bold text-white tracking-wider uppercase mb-5">Danh mục nổi bật</h3>
+            <h3 className="text-sm font-bold text-white tracking-wider uppercase mb-5">Dịch vụ nổi bật</h3>
             <ul className="space-y-3">
               {categoriesLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.path}
-                    className="text-2xs text-slate-400 hover:text-cyan-400 transition-colors"
+                    className="text-sm text-slate-400 hover:text-cyan-400 transition-colors"
                   >
                     {link.name}
                   </Link>
@@ -111,13 +111,13 @@ export default function Footer() {
 
           {/* Column 3: Customer Support Links */}
           <div>
-            <h3 className="text-xs font-bold text-white tracking-wider uppercase mb-5">Hỗ trợ khách hàng</h3>
+            <h3 className="text-sm font-bold text-white tracking-wider uppercase mb-5">Hỗ trợ khách hàng</h3>
             <ul className="space-y-3">
               {supportLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.path}
-                    className="text-2xs text-slate-400 hover:text-cyan-400 transition-colors"
+                    className="text-sm text-slate-400 hover:text-cyan-400 transition-colors"
                   >
                     {link.name}
                   </Link>

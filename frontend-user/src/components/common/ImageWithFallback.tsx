@@ -33,6 +33,8 @@ export default function ImageWithFallback({
       alt={alt || 'Sản phẩm'}
       onError={handleError}
       className={className}
+      loading={props.loading || 'lazy'}
+      decoding={props.decoding || 'async'}
       {...props}
     />
   );
