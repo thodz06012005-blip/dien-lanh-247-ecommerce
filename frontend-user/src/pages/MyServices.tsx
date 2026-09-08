@@ -15,6 +15,7 @@ const statusConfigs: Record<string, { label: string; colorClass: string; variant
   pending: { label: 'Chờ xác nhận', colorClass: 'bg-amber-50 text-amber-700 border-amber-200', variant: 'warning' },
   confirmed: { label: 'Đã xác nhận', colorClass: 'bg-sky-50 text-sky-700 border-sky-200', variant: 'info' },
   assigned: { label: 'Đã phân công', colorClass: 'bg-primary-50 text-primary-700 border-primary-100', variant: 'primary' },
+  in_progress: { label: 'Đang sửa chữa', colorClass: 'bg-cyan-50 text-cyan-700 border-cyan-100', variant: 'primary' },
   cancelled: { label: 'Đã hủy', colorClass: 'bg-slate-100 text-slate-500 border-slate-200', variant: 'neutral' },
   completed: { label: 'Hoàn thành', colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200', variant: 'success' },
 };
