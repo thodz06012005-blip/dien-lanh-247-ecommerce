@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 
@@ -24,23 +23,15 @@ export const defaultSettings: PublicSettings = {
     pricing: { inspectionFee: 0, emergencySurcharge: 0, showPriceRanges: false, disclaimer: '' } },
 };
 
-const money = z.number().finite().nonnegative();
-const publicSettingsSchema = z.object({
-  hotline: z.string(), zalo: z.string(), email: z.string(), address: z.string(),
-  shippingFee: money, freeShippingThreshold: money,
-  businessConfig: z.object({
-    appliances: z.array(z.object({ id: z.string(), name: z.string(), active: z.boolean(), issues: z.array(z.string()), priceMin: money, priceMax: money }).refine(item => item.priceMax >= item.priceMin)),
-    serviceAreas: z.array(z.object({ id: z.string(), name: z.string(), active: z.boolean(), travelFee: money })),
-    timeSlots: z.array(z.object({ id: z.string(), label: z.string(), active: z.boolean() })),
-    pricing: z.object({ inspectionFee: money, emergencySurcharge: money, showPriceRanges: z.boolean(), disclaimer: z.string() }),
-  }),
-});
 
 export function useSettings() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['public-settings'],
     queryFn: async () => {
-      const res = await api.get('/settings/public');
+      const [res, { publicSettingsSchema }] = await Promise.all([
+        api.get('/settings/public'),
+        import('./publicSettingsSchema'),
+      ]);
       if (res.data?.success !== true) throw new Error('Không thể tải cấu hình dịch vụ');
       return publicSettingsSchema.parse(res.data.data);
     },

@@ -65,7 +65,7 @@ jobs:
         run: npm --prefix frontend-admin run build
 
       - name: Build frontend-user portal
-        run: npm --prefix frontend-user run build
+        run: npm run quality:user
 
       - name: Install mock API dependencies
         run: npm --prefix mock-api ci

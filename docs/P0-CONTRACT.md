@@ -73,7 +73,7 @@ Báo cáo dùng ngày Việt Nam (Asia/Ho_Chi_Minh). Chính sách completed ch�
 ## 5. Migration và đưa vào vận hành
 
 1. Sao lưu DB đang dùng; kiểm tra migration history. Với DB đã có bảng nhưng chưa được Prisma quản lý, thực hiện quy trình baseline của dự án trước, không chạy lại migration khởi tạo lên bảng đã tồn tại.
-2. Cài backend dependencies; `npm --prefix backend run prisma:generate`; `npm --prefix backend run prisma:migrate:deploy`; build và khởi động backend mới. Migration P0 thêm cột/bảng, không xóa dữ liệu.
+2. Cài backend dependencies; `npm --prefix backend run prisma:generate`; `npm --prefix backend run prisma:migrate:deploy`; build và khởi động backend mới. Migration P0 thêm cột/bảng và bổ sung enum STAFF còn thiếu trong migration cũ, không xóa dữ liệu.
 3. SUPERADMIN khai báo thiết bị/lỗi/khu vực/giờ/phí và chính sách tài chính thật qua admin/settings. Sau đó đặt PIN riêng cho từng thợ qua endpoint access. Giao diện quản lý PIN chưa được bổ sung trong P0.
 4. Deploy frontend trỏ tới NestJS `/api/v1`, kiểm tra yêu cầu thử và tra cứu trên môi trường vận hành.
 
