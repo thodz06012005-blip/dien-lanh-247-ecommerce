@@ -43,8 +43,9 @@ export class HttpErrorFilter implements ExceptionFilter {
 
     // Fallback for generic server errors (hide stack trace in production)
     return response.status(status).json({
+      success: false,
       statusCode: status,
-      message: exception.message || 'Internal server error',
+      message: status >= 500 && process.env.NODE_ENV === 'production' ? 'Internal server error' : exception.message || 'Internal server error',
     });
   }
 }

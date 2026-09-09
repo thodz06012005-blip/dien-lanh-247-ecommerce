@@ -8,7 +8,7 @@ const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
 const paymentStatuses = ['paid', 'unpaid', 'partial'];
 const settlementStatuses = ['pending', 'settled'];
 
-const { buildReport, createFinanceSnapshot, ensureFinanceSnapshots, exportFinanceXml } = require('../../backend/src/domain/finance');
+const { businessDate, buildReport, createFinanceSnapshot, ensureFinanceSnapshots, exportFinanceXml } = require('../../backend/src/domain/finance');
 const requestRevenue = request => Number(request.finalPrice || 0);
 const requestPartsCost = request => Number(request.partsCost || 0);
 const financeDB = () => { const db = readDB(); if (ensureFinanceSnapshots(db)) writeDB(db); return db; };
@@ -18,7 +18,7 @@ function validMonth(value) {
 }
 
 router.get('/admin/finance/report', requirePermission('finance:read'), (req, res) => {
-  const month = String(req.query.month || new Date().toISOString().slice(0, 7));
+  const month = String(req.query.month || businessDate(new Date()).slice(0, 7));
   if (!validMonth(month)) return respondError(res, 400, 'Tháng báo cáo không hợp lệ', 'INVALID_MONTH');
   return respondSuccess(res, buildReport(financeDB(), month));
 });
@@ -31,9 +31,11 @@ router.patch('/admin/finance/requests/:id', requirePermission('finance:update'),
   const amountCollected = Number(req.body?.amountCollected);
   const paymentStatus = req.body?.paymentStatus;
   const note = String(req.body?.note || '').trim();
-  if (!Number.isFinite(partsCost) || partsCost < 0 || !Number.isFinite(amountCollected) || amountCollected < 0 || amountCollected > requestRevenue(request) || !paymentStatuses.includes(paymentStatus)) return respondError(res, 400, 'Thông tin tài chính không hợp lệ', 'INVALID_FINANCE_DATA');
+  if (!Number.isSafeInteger(partsCost) || partsCost < 0 || partsCost > 9999999999 || !Number.isSafeInteger(amountCollected) || amountCollected < 0 || amountCollected > requestRevenue(request) || !paymentStatuses.includes(paymentStatus)) return respondError(res, 400, 'Thông tin tài chính không hợp lệ', 'INVALID_FINANCE_DATA');
   if (paymentStatus === 'paid' && amountCollected !== requestRevenue(request)) return respondError(res, 400, 'Số tiền đã thu phải bằng doanh thu khi đánh dấu đã thanh toán', 'INVALID_COLLECTED_AMOUNT');
   if (paymentStatus === 'unpaid' && amountCollected !== 0) return respondError(res, 400, 'Công việc chưa thanh toán không thể có tiền đã thu', 'INVALID_COLLECTED_AMOUNT');
+
+  if (paymentStatus === 'partial' && (amountCollected <= 0 || amountCollected >= requestRevenue(request))) return respondError(res, 400, 'Thanh toán một phần phải lớn hơn 0 và nhỏ hơn doanh thu', 'INVALID_COLLECTED_AMOUNT');
 
   if (request.technicianSettlementStatus === 'settled') return respondError(res, 409, 'Mở lại đối soát trước khi chỉnh sửa tài chính', 'SETTLEMENT_LOCKED');
   const oldSnapshot = request.financeSnapshot;
@@ -60,13 +62,14 @@ router.patch('/admin/finance/requests/:id/settlement', requirePermission('financ
 });
 
 router.get('/admin/finance/audit-logs', requirePermission('finance:read'), (req, res) => {
-  const month = String(req.query.month || '');
-  const logs = (readDB().financeAuditLogs || []).filter(item => !month || item.createdAt.startsWith(month)).slice(0, 200);
+  const month = String(req.query.month || businessDate(new Date()).slice(0, 7));
+  if (!validMonth(month)) return respondError(res, 400, 'Tháng báo cáo không hợp lệ', 'INVALID_MONTH');
+  const logs = (readDB().financeAuditLogs || []).filter(item => businessDate(item.createdAt).startsWith(month)).slice(0, 200);
   return respondSuccess(res, logs);
 });
 
 router.get('/admin/finance/export', requirePermission('finance:read'), (req, res) => {
-  const month = String(req.query.month || new Date().toISOString().slice(0, 7));
+  const month = String(req.query.month || businessDate(new Date()).slice(0, 7));
   if (!validMonth(month)) return respondError(res, 400, 'Tháng báo cáo không hợp lệ', 'INVALID_MONTH');
   const report = buildReport(financeDB(), month);
   const xml = exportFinanceXml(report, month);

@@ -87,6 +87,7 @@ npm --prefix backend run build
 npm --prefix frontend-user run build
 npm --prefix frontend-admin run build
 node tests/test_p0_domain.cjs
+node tests/test_p0_settings.cjs
 node tests/test_p0_mock.cjs
 # Chỉ trên MySQL trống dùng riêng cho test, tên DB kết thúc _p0_test:
 npm --prefix backend run prisma:migrate:deploy

@@ -71,7 +71,7 @@ jobs:
         run: npm --prefix mock-api ci
 
       - name: Test P0 financial rules and isolated mock HTTP flow
-        run: node tests/test_p0_domain.cjs && node tests/test_p0_mock.cjs
+        run: node tests/test_p0_domain.cjs && node tests/test_p0_settings.cjs && node tests/test_p0_mock.cjs
 
       - name: Apply schema migrations to disposable MySQL
         run: npm --prefix backend run prisma:migrate:deploy
