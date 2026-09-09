@@ -41,7 +41,13 @@ async function run() {
     const hash = await bcrypt.hash(password, 10);
     for (const [email, role] of [['owner-p0@example.test', 'SUPERADMIN'], ['staff-p0@example.test', 'STAFF'], ['customer-p0@example.test', 'CUSTOMER']]) await prisma.user.create({ data: { email, password: hash, role } });
     const owner = (await call('POST', '/admin/auth/login', { email: 'owner-p0@example.test', password })).data.token;
-    const staff = (await call('POST', '/admin/auth/login', { email: 'staff-p0@example.test', password })).data.token;
+    // STAFF is not an admin-login role; use the existing general login cookie.
+    await call('POST', '/admin/auth/login', { email: 'staff-p0@example.test', password }, undefined, 403);
+    const staffLogin = await fetch(base + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'staff-p0@example.test', password }) });
+    assert.equal(staffLogin.status, 200);
+    const staffCookie = staffLogin.headers.getSetCookie().find(value => value.startsWith('accessToken='));
+    assert.ok(staffCookie, 'General login issues an access token cookie');
+    const staff = staffCookie.split(';')[0].slice('accessToken='.length);
     const config = structuredClone(DEFAULT_BUSINESS_CONFIG);
     await call('PATCH', '/admin/settings', { businessConfig: config }, owner);
     const settings = (await call('GET', '/settings/public')).data;
