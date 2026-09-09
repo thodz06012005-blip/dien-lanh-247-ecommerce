@@ -1,3 +1,4 @@
+const { createFinanceSnapshot } = require('../../backend/src/domain/finance');
 const express = require('express');
 const router = express.Router();
 const { readDB, writeDB } = require('../utils/db');
@@ -386,6 +387,7 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
   }
 
   const oldStatus = request.status;
+  if (['completed', 'cancelled'].includes(oldStatus)) return respondError(res, 409, 'Công việc đã đóng', 'JOB_CLOSED');
 
   if (status) {
     if (status !== oldStatus) {
@@ -412,8 +414,12 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
       if (finalPrice === undefined || finalPrice === null || isNaN(Number(finalPrice)) || Number(finalPrice) < 0) {
         return respondError(res, 400, 'Giá cuối cùng không hợp lệ', 'INVALID_FINAL_PRICE');
       }
+      if (request.customerApprovalStatus !== 'approved' || Number(finalPrice) !== Number(request.estimatedPrice)) return respondError(res, 409, 'Giá phải khớp báo giá khách đã đồng ý', 'PRICE_NOT_APPROVED');
       request.finalPrice = Number(finalPrice);
-      request.paymentStatus = 'paid';
+      request.paymentStatus = 'unpaid';
+      request.amountCollected = 0;
+      request.paidAt = null;
+      request.financeSnapshot = createFinanceSnapshot(request, db.settings.businessConfig.finance);
       request.completedAt = new Date().toISOString();
 
       // Increase technician completedCount
@@ -508,6 +514,8 @@ router.patch('/admin/service-requests/:id/assign-technician', requirePermission(
   }
 
   const oldTechnicianId = request.assignedTechnicianId;
+  request.technicianDecision = null;
+  request.acceptedAt = null;
   request.assignedTechnicianId = technicianId;
   request.status = 'assigned';
   request.updatedAt = new Date().toISOString();

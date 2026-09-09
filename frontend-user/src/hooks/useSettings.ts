@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 
@@ -16,37 +17,32 @@ export interface PublicSettings {
   };
 }
 
-// Fallback settings in case of connection errors or API boot delay
+// Inert placeholder only: never activate demo prices, phone numbers or service areas on API failure.
 export const defaultSettings: PublicSettings = {
-  hotline: '1900 1234',
-  zalo: '0987654321',
-  email: 'support@dienlanh247.vn',
-  address: '123 Đường Cầu Giấy, Hà Nội',
-  shippingFee: 30000,
-  freeShippingThreshold: 5000000,
-  businessConfig: {
-    appliances: [
-      { id: 'air-conditioner', name: 'Điều hòa', active: true, issues: ['Không mát', 'Rò nước', 'Không lên nguồn', 'Kêu to', 'Cần vệ sinh', 'Không rõ lỗi'], priceMin: 150000, priceMax: 650000 },
-      { id: 'refrigerator', name: 'Tủ lạnh', active: true, issues: ['Không lạnh', 'Đóng tuyết', 'Chảy nước', 'Kêu to', 'Không rõ lỗi'], priceMin: 250000, priceMax: 900000 },
-      { id: 'washing-machine', name: 'Máy giặt', active: true, issues: ['Không vắt', 'Không xả nước', 'Rung mạnh', 'Báo lỗi', 'Không rõ lỗi'], priceMin: 200000, priceMax: 750000 },
-    ],
-    serviceAreas: [{ id: 'cau-giay', name: 'Quận Cầu Giấy', active: true, travelFee: 0 }],
-    timeSlots: [
-      { id: 'morning-1', label: '08:00 - 10:00', active: true },
-      { id: 'morning-2', label: '10:00 - 12:00', active: true },
-      { id: 'afternoon-1', label: '14:00 - 16:00', active: true },
-      { id: 'afternoon-2', label: '16:00 - 18:00', active: true },
-    ],
-    pricing: { inspectionFee: 100000, emergencySurcharge: 100000, showPriceRanges: true, disclaimer: 'Mức giá chỉ để tham khảo. Kỹ thuật viên sẽ thông báo chi phí để khách hàng đồng ý trước khi sửa.' },
-  },
+  hotline: '', zalo: '', email: '', address: '', shippingFee: 0, freeShippingThreshold: 0,
+  businessConfig: { appliances: [], serviceAreas: [], timeSlots: [],
+    pricing: { inspectionFee: 0, emergencySurcharge: 0, showPriceRanges: false, disclaimer: '' } },
 };
 
+const money = z.number().finite().nonnegative();
+const publicSettingsSchema = z.object({
+  hotline: z.string(), zalo: z.string(), email: z.string(), address: z.string(),
+  shippingFee: money, freeShippingThreshold: money,
+  businessConfig: z.object({
+    appliances: z.array(z.object({ id: z.string(), name: z.string(), active: z.boolean(), issues: z.array(z.string()), priceMin: money, priceMax: money }).refine(item => item.priceMax >= item.priceMin)),
+    serviceAreas: z.array(z.object({ id: z.string(), name: z.string(), active: z.boolean(), travelFee: money })),
+    timeSlots: z.array(z.object({ id: z.string(), label: z.string(), active: z.boolean() })),
+    pricing: z.object({ inspectionFee: money, emergencySurcharge: money, showPriceRanges: z.boolean(), disclaimer: z.string() }),
+  }),
+});
+
 export function useSettings() {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['public-settings'],
     queryFn: async () => {
       const res = await api.get('/settings/public');
-      return res.data?.data as PublicSettings;
+      if (res.data?.success !== true) throw new Error('Không thể tải cấu hình dịch vụ');
+      return publicSettingsSchema.parse(res.data.data);
     },
     staleTime: 60000, // Cache for 1 minute
   });
@@ -54,6 +50,8 @@ export function useSettings() {
   return {
     settings: data || defaultSettings,
     isLoading,
+    isReady: Boolean(data),
+    refetch,
     error,
   };
 }

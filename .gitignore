@@ -20,3 +20,6 @@ mock-api/backups/
 backups/
 *.sql
 *.bak
+
+# Version schema migrations; only database dumps stay ignored.
+!backend/prisma/migrations/**/*.sql

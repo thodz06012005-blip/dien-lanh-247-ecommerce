@@ -1,6 +1,10 @@
-import { IsString, IsOptional, IsNumber, Min, IsEmail, Length } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, IsEmail, Length, IsObject } from 'class-validator';
 
 export class UpdateSettingsDto {
+  @IsOptional()
+  @IsObject()
+  businessConfig?: Record<string, unknown>;
+
   @IsString()
   @IsOptional()
   @Length(2, 100)

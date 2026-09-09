@@ -14,6 +14,22 @@ jobs:
     name: Lint, Typecheck and Build Validation
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: p0-test-only
+          MYSQL_DATABASE: dl247_p0_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pp0-test-only"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: mysql://root:p0-test-only@127.0.0.1:3306/dl247_p0_test
+      CHECKPOINT_DISABLE: 1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,26 +37,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
-
-      - name: Install NestJS CLI globally
-        run: npm install -g @nestjs/cli
+        run: npm ci
 
       - name: Install backend dependencies
-        run: npm --prefix backend install
+        run: npm --prefix backend ci
 
       - name: Generate Prisma Client
         run: npm --prefix backend run prisma:generate
 
       - name: Install frontend-admin dependencies
-        run: npm --prefix frontend-admin install
+        run: npm --prefix frontend-admin ci
 
       - name: Install frontend-user dependencies
-        run: npm --prefix frontend-user install
+        run: npm --prefix frontend-user ci
 
       - name: Run code quality checks (check:all)
         run: npm run check:all
@@ -53,3 +66,15 @@ jobs:
 
       - name: Build frontend-user portal
         run: npm --prefix frontend-user run build
+
+      - name: Install mock API dependencies
+        run: npm --prefix mock-api ci
+
+      - name: Test P0 financial rules and isolated mock HTTP flow
+        run: node tests/test_p0_domain.cjs && node tests/test_p0_mock.cjs
+
+      - name: Apply schema migrations to disposable MySQL
+        run: npm --prefix backend run prisma:migrate:deploy
+
+      - name: Test P0 real Nest and MySQL HTTP flow
+        run: node tests/test_p0_nest.cjs

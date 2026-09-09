@@ -340,6 +340,7 @@ model Coupon {
 // SERVICE REQUESTS & TECHNICIANS (Added in 10A)
 // ========================
 enum ServiceRequestStatus {
+  in_progress
   pending
   confirmed
   assigned
@@ -384,6 +385,8 @@ model Technician {
   skills         Json             // Array of service category IDs, e.g. ["sua-dieu-hoa"]
   workingAreas   Json             // Array of districts, e.g. ["Quận Cầu Giấy"]
   status         TechnicianStatus @default(available)
+  pinHash        String?
+  sessions       TechnicianSession[]
   completedCount Int              @default(0)
   requests       ServiceRequest[]
   createdAt      DateTime         @default(now())
@@ -408,6 +411,25 @@ model ServiceRequest {
   status               ServiceRequestStatus   @default(pending)
   estimatedPrice       Decimal                @db.Decimal(12, 2) @default(0)
   finalPrice           Decimal                @db.Decimal(12, 2) @default(0)
+  businessConfigSnapshot Json?
+  technicianDecision   String?
+  acceptedAt           DateTime?
+  inspectionNote       String?                @db.Text
+  customerApprovalStatus String               @default("not_requested")
+  customerApprovedAt   DateTime?
+  completionNote       String?                @db.Text
+  completionPhotos     Json?
+  completedAt          DateTime?
+  paidAt               DateTime?
+  mediaMetadata        Json?
+  activityLog          Json?
+  partsCost            Decimal                @db.Decimal(12, 2) @default(0)
+  amountCollected      Decimal                @db.Decimal(12, 2) @default(0)
+  financeSnapshot      Json?
+  technicianSettlementStatus String           @default("pending")
+  technicianSettledAt  DateTime?
+  financeNote          String?                @db.Text
+  financeAuditLogs     FinanceAuditLog[]
   paymentStatus        String                 @default("unpaid") // "unpaid" | "paid"
   statusHistory        Json?                  // Array of history objects
   createdAt            DateTime               @default(now())
@@ -431,6 +453,7 @@ model SystemSetting {
   email                 String
   address               String
   shippingFee           Decimal  @db.Decimal(12, 2) @default(30000)
+  businessConfig        Json?
   freeShippingThreshold Decimal  @db.Decimal(12, 2) @default(10000000)
   updatedAt             DateTime @updatedAt
 }
@@ -444,3 +467,28 @@ model Contact {
   createdAt   DateTime @default(now())
 }
 
+
+model TechnicianSession {
+  tokenHash String @id @db.Char(64)
+  technicianId String
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([technicianId])
+  @@index([expiresAt])
+}
+
+model FinanceAuditLog {
+  id String @id @default(uuid())
+  requestId String
+  request ServiceRequest @relation(fields: [requestId], references: [id])
+  action String
+  actorId String
+  actorName String
+  note String? @db.Text
+  before Json?
+  after Json?
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@index([requestId])
+}

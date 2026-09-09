@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { OperationsService } from '../service-operations/operations.service';
+import { AdminInspectionDto } from '../service-operations/operations.dto';
+import { ForbiddenException, NotFoundException, Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ServiceRequestsService } from './service-requests.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { UpdateServiceRequestStatusDto } from './dto/update-service-request-status.dto';
@@ -16,12 +18,29 @@ export class ServiceRequestsController {
   constructor(
     private readonly serviceRequestsService: ServiceRequestsService,
     private readonly auditLogService: AuditLogService,
+    private readonly operations: OperationsService,
   ) {}
 
   // Customer: Create a new service request
   @Post('service-requests')
   create(@Body() createServiceRequestDto: CreateServiceRequestDto) {
     return this.serviceRequestsService.create(createServiceRequestDto);
+  }
+
+  @Get('service-requests/lookup/:id')
+  async lookup(@Param('id') id: string, @Query('phone') phone: string) {
+    try { return await this.serviceRequestsService.findOneCustomer(id.trim().toUpperCase(), phone); }
+    catch (error) {
+      if (error instanceof ForbiddenException || error instanceof NotFoundException) throw new NotFoundException('Không tìm thấy yêu cầu phù hợp với thông tin đã nhập');
+      throw error;
+    }
+  }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF)
+  @Patch('admin/service-requests/:id/inspection')
+  async inspection(@Param('id') id: string, @Body() dto: AdminInspectionDto, @Req() req: Request) {
+    const user = req.user as { userId: number; email: string };
+    return { success: true, message: 'Đã lưu kiểm tra', data: await this.operations.inspect(id, { estimatedPrice: dto.estimatedPrice, diagnosis: dto.inspectionNote, customerApprovalStatus: dto.customerApprovalStatus }, { id: String(user.userId), name: user.email }) };
   }
 
   // Customer: View a specific service request (requires phone query param)
@@ -62,7 +81,7 @@ export class ServiceRequestsController {
     @Req() req: Request,
   ) {
     const oldRequest = await this.serviceRequestsService.findOneAdmin(id);
-    const result = await this.serviceRequestsService.updateStatusAdmin(id, updateStatusDto);
+    const result = await this.serviceRequestsService.updateStatusAdmin(id, updateStatusDto, { id: String((req.user as { userId: number }).userId), name: (req.user as { email: string }).email });
     this.auditLogService.auditSuccess(req, 'SERVICE_REQUEST_STATUS_UPDATED', 'serviceRequest', id, { from: oldRequest.data.status, to: result.data.status, finalPrice: result.data.finalPrice }, 'Service request status updated successfully');
     return result;
   }
@@ -77,7 +96,7 @@ export class ServiceRequestsController {
     @Req() req: Request,
   ) {
     const oldRequest = await this.serviceRequestsService.findOneAdmin(id);
-    const result = await this.serviceRequestsService.assignTechnicianAdmin(id, assignTechnicianDto);
+    const result = await this.serviceRequestsService.assignTechnicianAdmin(id, assignTechnicianDto, { id: String((req.user as { userId: number }).userId), name: (req.user as { email: string }).email });
     this.auditLogService.auditSuccess(req, 'SERVICE_REQUEST_ASSIGNED', 'serviceRequest', id, { oldTechnicianId: oldRequest.data.assignedTechnicianId, newTechnicianId: result.data.assignedTechnicianId }, 'Technician assigned to service request');
     return result;
   }

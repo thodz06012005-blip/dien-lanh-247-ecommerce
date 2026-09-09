@@ -4,7 +4,9 @@ import { CreateTechnicianDto } from './dto/create-technician.dto';
 import { UpdateTechnicianDto } from './dto/update-technician.dto';
 import { UpdateTechnicianStatusDto } from './dto/update-technician-status.dto';
 import { TechnicianQueryDto } from './dto/technician-query.dto';
-import { TechnicianStatus, Prisma } from '@prisma/client';
+import { TechnicianStatus, Prisma, Technician } from '@prisma/client';
+
+const safeTechnician = (tech: Technician) => { const { pinHash: _pinHash, ...safe } = tech; return { ...safe, rating: Number(tech.rating) }; };
 
 @Injectable()
 export class TechniciansService {
@@ -58,7 +60,7 @@ export class TechniciansService {
     return {
       success: true,
       message: 'Tạo kỹ thuật viên thành công',
-      data: tech,
+      data: safeTechnician(tech),
     };
   }
 
@@ -74,7 +76,7 @@ export class TechniciansService {
     };
 
     if (query?.status) {
-      const statusUpper = query.status.toUpperCase();
+      const statusUpper = query.status.toLowerCase();
       const validStatuses = Object.keys(TechnicianStatus);
       if (validStatuses.includes(statusUpper)) {
         where.status = statusUpper as TechnicianStatus;
@@ -123,7 +125,7 @@ export class TechniciansService {
 
     return {
       success: true,
-      data: list,
+      data: list.map(safeTechnician),
     };
   }
 
@@ -136,7 +138,7 @@ export class TechniciansService {
     }
     return {
       success: true,
-      data: tech,
+      data: safeTechnician(tech),
     };
   }
 
@@ -201,7 +203,7 @@ export class TechniciansService {
     return {
       success: true,
       message: 'Cập nhật thông tin kỹ thuật viên thành công',
-      data: updated,
+      data: safeTechnician(updated),
     };
   }
 
@@ -237,7 +239,7 @@ export class TechniciansService {
     return {
       success: true,
       message: 'Cập nhật trạng thái kỹ thuật viên thành công',
-      data: updated,
+      data: safeTechnician(updated),
     };
   }
 

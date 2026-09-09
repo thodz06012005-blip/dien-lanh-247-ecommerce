@@ -4,7 +4,7 @@ import { PaginationDto } from '../../../common/dto/pagination.dto';
 export class ServiceRequestQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
-  @IsEnum(['pending', 'confirmed', 'assigned', 'completed', 'cancelled', 'PENDING', 'CONFIRMED', 'ASSIGNED', 'COMPLETED', 'CANCELLED'], {
+  @IsEnum(['in_progress', 'IN_PROGRESS', 'pending', 'confirmed', 'assigned', 'completed', 'cancelled', 'PENDING', 'CONFIRMED', 'ASSIGNED', 'COMPLETED', 'CANCELLED'], {
     message: 'Trạng thái yêu cầu dịch vụ không hợp lệ'
   })
   status?: string;

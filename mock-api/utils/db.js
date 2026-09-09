@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '../mock-db.json');
+const DB_PATH = process.env.MOCK_DB_PATH || path.join(__dirname, '../mock-db.json');
 
 let getInitialDataFn = null;
 

@@ -1,3 +1,7 @@
+import { randomUUID } from 'crypto';
+import { OperationsService } from '../service-operations/operations.service';
+import { SettingsService } from '../settings/settings.service';
+import { jobInclude, jobView, publicJobView, normalizePhone, jsonValue } from '../service-operations/job-view';
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
@@ -8,33 +12,12 @@ import { ServiceRequestStatus, ServiceRequestPriority, TechnicianStatus } from '
 
 @Injectable()
 export class ServiceRequestsService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  // Helper to dynamically update technician status based on active assigned jobs
-  private async updateTechnicianStatusAfterJobChange(techId: string, excludeRequestId: string | null = null) {
-    const tech = await this.prisma.technician.findUnique({ where: { id: techId } });
-    if (!tech) return;
-
-    // Active jobs are those assigned to this technician and in 'confirmed' or 'assigned' status
-    const activeJobsCount = await this.prisma.serviceRequest.count({
-      where: {
-        assignedTechnicianId: techId,
-        status: {
-          in: [ServiceRequestStatus.confirmed, ServiceRequestStatus.assigned],
-        },
-        ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
-      },
-    });
-
-    await this.prisma.technician.update({
-      where: { id: techId },
-      data: {
-        status: activeJobsCount > 0 ? TechnicianStatus.busy : TechnicianStatus.available,
-      },
-    });
-  }
+  constructor(private readonly prisma: PrismaService, private readonly operations: OperationsService, private readonly settings: SettingsService) {}
 
   async create(dto: CreateServiceRequestDto) {
+    const config = await this.settings.getBusinessConfig();
+    if (!config.appliances.some(item => item.active && item.name === dto.applianceType) || !config.serviceAreas.some(item => item.active && item.name === dto.district) || !config.timeSlots.some(item => item.active && item.label === dto.preferredTimeSlot)) throw new BadRequestException('Thiết bị, khu vực hoặc khung giờ không còn được phục vụ');
+    if ((dto.images || []).reduce((size, item) => size + item.length, 0) > 850000) throw new BadRequestException('Tệp đính kèm quá lớn');
     // 1. Validate serviceCategoryId exists
     const category = await this.prisma.serviceCategory.findUnique({
       where: { id: dto.serviceCategoryId },
@@ -57,10 +40,10 @@ export class ServiceRequestsService {
     }
 
     // 3. Normalize district
-    const districtNormalized = dto.district.startsWith('Quận ') ? dto.district : `Quận ${dto.district}`;
+    const districtNormalized = dto.district.trim();
 
     // 4. Generate String ID (SR-xxxxxx)
-    const requestId = `SR-${Date.now().toString().slice(-6)}`;
+    const requestId = `SR-${randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase()}`;
 
     const now = new Date().toISOString();
     const statusHistory = [
@@ -76,13 +59,15 @@ export class ServiceRequestsService {
       data: {
         id: requestId,
         customerName: dto.customerName.trim(),
-        customerPhone: dto.customerPhone.replace(/\s+/g, '').trim(),
+        customerPhone: normalizePhone(dto.customerPhone),
         customerAddress: dto.customerAddress.trim(),
         district: districtNormalized,
         serviceCategoryId: dto.serviceCategoryId,
         applianceType: dto.applianceType.trim(),
         issueDescription: dto.issueDescription.trim(),
         images: dto.images || [],
+        mediaMetadata: jsonValue(dto.mediaMetadata || []),
+        businessConfigSnapshot: jsonValue(config),
         preferredDate: dto.preferredDate,
         preferredTimeSlot: dto.preferredTimeSlot,
         note: dto.note || '',
@@ -93,56 +78,49 @@ export class ServiceRequestsService {
         paymentStatus: 'unpaid',
         statusHistory: statusHistory,
       },
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
+      include: jobInclude,
     });
 
     return {
       success: true,
       message: 'Đặt lịch dịch vụ thành công',
-      data: request,
+      data: publicJobView(request),
     };
   }
 
   async findOneCustomer(id: string, phone: string) {
     const request = await this.prisma.serviceRequest.findUnique({
       where: { id },
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
+      include: jobInclude,
     });
     if (!request) {
       throw new NotFoundException('Không tìm thấy yêu cầu dịch vụ');
     }
 
-    const normalizedPhone = phone.replace(/\s+/g, '').trim();
-    if (request.customerPhone !== normalizedPhone) {
+    if (!phone) throw new BadRequestException('Vui lòng nhập số điện thoại');
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizePhone(request.customerPhone) !== normalizedPhone) {
       throw new ForbiddenException('Bạn không có quyền xem yêu cầu dịch vụ này');
     }
 
     return {
       success: true,
-      data: request,
+      data: publicJobView(request),
     };
   }
 
   async findMyRequests(phone: string) {
-    const normalizedPhone = phone.replace(/\s+/g, '').trim();
+    if (!phone) throw new BadRequestException('Vui lòng nhập số điện thoại');
+    const normalizedPhone = normalizePhone(phone);
     const list = await this.prisma.serviceRequest.findMany({
       where: { customerPhone: normalizedPhone },
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
+      include: jobInclude,
       orderBy: { createdAt: 'desc' },
     });
 
     return {
       success: true,
-      data: list,
+      data: list.map(publicJobView),
     };
   }
 
@@ -213,10 +191,7 @@ export class ServiceRequestsService {
 
     const list = await this.prisma.serviceRequest.findMany({
       where: whereClause,
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
+      include: jobInclude,
       orderBy,
       skip,
       take: limit,
@@ -224,195 +199,28 @@ export class ServiceRequestsService {
 
     return {
       success: true,
-      data: list,
+      data: list.map(jobView),
     };
   }
 
   async findOneAdmin(id: string) {
     const request = await this.prisma.serviceRequest.findUnique({
       where: { id },
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
+      include: jobInclude,
     });
     if (!request) {
       throw new NotFoundException('Không tìm thấy yêu cầu dịch vụ');
     }
     return {
       success: true,
-      data: request,
+      data: jobView(request),
     };
   }
 
-  async updateStatusAdmin(id: string, dto: UpdateServiceRequestStatusDto) {
-    const request = await this.prisma.serviceRequest.findUnique({
-      where: { id },
-    });
-    if (!request) {
-      throw new NotFoundException('Không tìm thấy yêu cầu dịch vụ');
-    }
-
-    const oldStatus = request.status;
-    const newStatus = dto.status;
-
-    if (newStatus !== oldStatus) {
-      // 1. Chặn quay lui từ completed / cancelled
-      if (oldStatus === ServiceRequestStatus.completed || oldStatus === ServiceRequestStatus.cancelled) {
-        throw new BadRequestException('Không thể thay đổi trạng thái của yêu cầu dịch vụ đã hoàn thành hoặc đã hủy');
-      }
-
-      // 2. Kiểm tra chuyển đổi hợp lệ
-      const validTransitions: Record<string, string[]> = {
-        pending: ['confirmed', 'cancelled'],
-        confirmed: ['assigned', 'cancelled'],
-        assigned: ['completed', 'cancelled'],
-      };
-
-      if (validTransitions[oldStatus] && !validTransitions[oldStatus].includes(newStatus)) {
-        throw new BadRequestException(`Không thể chuyển trạng thái từ ${oldStatus} sang ${newStatus}`);
-      }
-    }
-
-    const updateData: any = {
-      status: newStatus,
-    };
-
-    if (newStatus === ServiceRequestStatus.completed) {
-      if (!request.assignedTechnicianId) {
-        throw new BadRequestException('Không thể hoàn thành yêu cầu dịch vụ chưa được phân công kỹ thuật viên');
-      }
-      if (dto.finalPrice === undefined || dto.finalPrice === null || dto.finalPrice < 0) {
-        throw new BadRequestException('Giá cuối cùng không hợp lệ');
-      }
-      updateData.finalPrice = dto.finalPrice;
-      updateData.paymentStatus = 'paid';
-
-      // Tăng completedCount của thợ
-      await this.prisma.technician.update({
-        where: { id: request.assignedTechnicianId },
-        data: {
-          completedCount: { increment: 1 },
-        },
-      });
-    }
-
-    // Ghi status history
-    const now = new Date().toISOString();
-    const logNote = dto.note || `Cập nhật trạng thái thành ${newStatus}`;
-    const oldHistory = (request.statusHistory as any[]) || [];
-    const newHistory = [
-      ...oldHistory,
-      {
-        status: newStatus,
-        note: logNote,
-        updatedBy: 'admin',
-        createdAt: now,
-      },
-    ];
-    updateData.statusHistory = newHistory;
-    updateData.updatedAt = new Date();
-
-    const updatedRequest = await this.prisma.serviceRequest.update({
-      where: { id },
-      data: updateData,
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
-    });
-
-    // Giải phóng thợ nếu hoàn thành hoặc hủy
-    if ((newStatus === ServiceRequestStatus.completed || newStatus === ServiceRequestStatus.cancelled) && request.assignedTechnicianId) {
-      await this.updateTechnicianStatusAfterJobChange(request.assignedTechnicianId, request.id);
-    }
-
-    return {
-      success: true,
-      message: 'Cập nhật trạng thái thành công',
-      data: updatedRequest,
-    };
+  async updateStatusAdmin(id: string, dto: UpdateServiceRequestStatusDto, actor = { id: 'admin', name: 'Admin' }) {
+    return { success: true, data: await this.operations.adminStatus(id, dto.status, dto.finalPrice, dto.note, actor), message: 'Cập nhật trạng thái thành công' };
   }
-
-  async assignTechnicianAdmin(id: string, dto: AssignTechnicianDto) {
-    const request = await this.prisma.serviceRequest.findUnique({
-      where: { id },
-    });
-    if (!request) {
-      throw new NotFoundException('Không tìm thấy yêu cầu dịch vụ');
-    }
-
-    if (request.status === ServiceRequestStatus.completed || request.status === ServiceRequestStatus.cancelled) {
-      throw new BadRequestException('Không thể phân công kỹ thuật viên cho yêu cầu dịch vụ đã hoàn thành hoặc đã hủy');
-    }
-
-    const tech = await this.prisma.technician.findUnique({
-      where: { id: dto.technicianId },
-    });
-    if (!tech) {
-      throw new NotFoundException('Không tìm thấy kỹ thuật viên');
-    }
-
-    // Kiểm tra thợ rảnh
-    if (tech.status !== TechnicianStatus.available && request.assignedTechnicianId !== dto.technicianId) {
-      throw new BadRequestException(`Kỹ thuật viên ${tech.name} hiện đang bận hoặc ngừng hoạt động!`);
-    }
-
-    // Kiểm tra kỹ năng (skills là Json chứa mảng các ID danh mục dịch vụ)
-    const skills = (tech.skills as string[]) || [];
-    if (!skills.includes(request.serviceCategoryId)) {
-      throw new BadRequestException(`Kỹ thuật viên ${tech.name} không có kỹ năng sửa chữa loại thiết bị này!`);
-    }
-
-    // Kiểm tra địa bàn (workingAreas là Json chứa mảng tên các quận)
-    const workingAreas = (tech.workingAreas as string[]) || [];
-    if (!workingAreas.includes(request.district)) {
-      throw new BadRequestException(`Kỹ thuật viên ${tech.name} không hỗ trợ hoạt động tại khu vực ${request.district}!`);
-    }
-
-    const oldTechnicianId = request.assignedTechnicianId;
-    const now = new Date().toISOString();
-    const logNote = `Phân công kỹ thuật viên ${tech.name}`;
-    const oldHistory = (request.statusHistory as any[]) || [];
-    const newHistory = [
-      ...oldHistory,
-      {
-        status: ServiceRequestStatus.assigned,
-        note: logNote,
-        updatedBy: 'admin',
-        createdAt: now,
-      },
-    ];
-
-    const updatedRequest = await this.prisma.serviceRequest.update({
-      where: { id },
-      data: {
-        assignedTechnicianId: dto.technicianId,
-        status: ServiceRequestStatus.assigned,
-        statusHistory: newHistory,
-        updatedAt: new Date(),
-      },
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
-    });
-
-    // Chuyển trạng thái thợ mới sang busy
-    await this.prisma.technician.update({
-      where: { id: dto.technicianId },
-      data: { status: TechnicianStatus.busy },
-    });
-
-    // Giải phóng thợ cũ nếu có
-    if (oldTechnicianId && oldTechnicianId !== dto.technicianId) {
-      await this.updateTechnicianStatusAfterJobChange(oldTechnicianId, request.id);
-    }
-
-    return {
-      success: true,
-      message: 'Phân công kỹ thuật viên thành công',
-      data: updatedRequest,
-    };
+  async assignTechnicianAdmin(id: string, dto: AssignTechnicianDto, actor = { id: 'admin', name: 'Admin' }) {
+    return { success: true, data: await this.operations.assign(id, dto.technicianId, actor), message: 'Phân công thành công' };
   }
 }

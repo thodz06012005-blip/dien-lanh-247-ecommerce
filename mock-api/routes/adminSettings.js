@@ -1,3 +1,5 @@
+const { ensureFinanceSnapshots } = require('../../backend/src/domain/finance');
+const { validateBusinessConfig } = require('../../backend/src/domain/business-config');
 const express = require('express');
 const router = express.Router();
 const { readDB, writeDB } = require('../utils/db');
@@ -69,22 +71,8 @@ router.patch('/admin/settings', requirePermission('settings:update'), (req, res)
   }
 
   if (body.businessConfig !== undefined) {
-    const config = body.businessConfig;
-    if (!config || typeof config !== 'object' || Array.isArray(config)) {
-      errors.push({ field: 'businessConfig', message: 'Cấu hình nghiệp vụ không hợp lệ' });
-    } else {
-      for (const key of ['appliances', 'serviceAreas', 'timeSlots', 'requestStatuses', 'roles']) {
-        if (!Array.isArray(config[key]) || config[key].length === 0 || config[key].length > 50) {
-          errors.push({ field: `businessConfig.${key}`, message: `${key} phải có từ 1 đến 50 mục` });
-        }
-      }
-      if (!config.pricing || typeof config.pricing !== 'object') errors.push({ field: 'businessConfig.pricing', message: 'Thiếu cấu hình giá tham khảo' });
-      if (!config.finance || typeof config.finance !== 'object') errors.push({ field: 'businessConfig.finance', message: 'Thiếu cấu hình tài chính' });
-      for (const [index, appliance] of (config.appliances || []).entries()) {
-        if (!appliance.id || !appliance.name || !Array.isArray(appliance.issues) || appliance.issues.length === 0) errors.push({ field: `businessConfig.appliances[${index}]`, message: 'Thiết bị phải có mã, tên và ít nhất một lỗi phổ biến' });
-        if (Number(appliance.priceMin) < 0 || Number(appliance.priceMax) < Number(appliance.priceMin)) errors.push({ field: `businessConfig.appliances[${index}].priceMax`, message: 'Khoảng giá thiết bị không hợp lệ' });
-      }
-    }
+    try { validateBusinessConfig(body.businessConfig); }
+    catch (error) { errors.push({ field: 'businessConfig', message: error.message }); }
   }
 
   if (errors.length > 0) {
@@ -92,6 +80,7 @@ router.patch('/admin/settings', requirePermission('settings:update'), (req, res)
   }
 
   const db = readDB();
+  ensureFinanceSnapshots(db);
   db.settings = {
     ...db.settings,
     ...body

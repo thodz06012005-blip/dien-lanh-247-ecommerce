@@ -1,14 +1,23 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray, IsEnum, Matches } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsString, IsNotEmpty, IsOptional, IsArray, IsEnum, Matches, ArrayMaxSize, MaxLength, ValidateNested, IsInt, Min, Max } from 'class-validator';
 import { ServiceRequestPriority } from '@prisma/client';
 
+class MediaMetadataDto {
+  @IsString() @MaxLength(255) name: string;
+  @IsString() @Matches(/^(image|video)\//) type: string;
+  @IsInt() @Min(0) @Max(500000) size: number;
+}
 export class CreateServiceRequestDto {
+  @IsOptional() @IsArray() @ArrayMaxSize(4) @ValidateNested({ each: true }) @Type(() => MediaMetadataDto)
+  mediaMetadata?: MediaMetadataDto[];
+
   @IsString()
   @IsNotEmpty({ message: 'Trường customerName là bắt buộc' })
   customerName: string;
 
   @IsString()
   @IsNotEmpty({ message: 'Trường customerPhone là bắt buộc' })
-  @Matches(/(84|0[3|5|7|8|9])+([0-9]{8})\b/, { message: 'Số điện thoại không hợp lệ' })
+  @Matches(/^(?:0\d{9}|\+84\d{9})$/, { message: 'Số điện thoại không hợp lệ' })
   customerPhone: string;
 
   @IsString()
@@ -33,6 +42,8 @@ export class CreateServiceRequestDto {
 
   @IsArray({ message: 'Danh sách hình ảnh phải là mảng' })
   @IsOptional()
+  @ArrayMaxSize(4) @IsString({ each: true }) @MaxLength(700000, { each: true })
+  @Matches(/^(?:https:\/\/|data:(?:image|video)\/)/, { each: true })
   images?: string[];
 
   @IsString()

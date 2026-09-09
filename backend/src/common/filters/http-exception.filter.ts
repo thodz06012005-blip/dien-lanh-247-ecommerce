@@ -38,7 +38,7 @@ export class HttpErrorFilter implements ExceptionFilter {
     // Fallback: If exception is a NestJS HttpException, respond with its response structure
     if (exception instanceof HttpException) {
       const res = exception.getResponse();
-      return response.status(status).json(res);
+      return response.status(status).json(typeof res === 'string' ? { success: false, message: res, statusCode: status } : { ...res, success: false });
     }
 
     // Fallback for generic server errors (hide stack trace in production)
