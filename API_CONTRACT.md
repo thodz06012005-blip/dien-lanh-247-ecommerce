@@ -452,3 +452,11 @@ Admin list endpoints for service requests, technicians and customers return `{ s
 `GET /admin/service-requests` accepts `createdFrom`/`createdTo` for creation timestamps and `scheduledFrom`/`scheduledTo` for the `preferredDate` appointment. Creation-day ranges use the `Asia/Ho_Chi_Minh` business day and `[start, nextDay)` boundaries. Appointment ranges compare date-only values and are inclusive from the caller's perspective. The ambiguous `dateFrom`/`dateTo` parameters and nonexistent `scheduledAt` sort key are no longer accepted; use `sortBy=preferredDate` for appointment ordering.
 
 All list screens debounce search, include every server parameter in the React Query key, and reset to page 1 whenever a filter changes. The temporary Mock `pagination` response alias remains for retired clients, while `meta` is the canonical contract.
+
+## Versioned quotes, approval and payment separation (Stage 4.1–4.3)
+
+`PATCH /admin/service-requests/:id/inspection` accepts only `diagnosis`, `labor`, `parts`, `travel`, `other` and optional `validUntil`. It creates a new draft `ServiceQuote`; `customerApprovalStatus` is forbidden. `POST /admin/service-quotes/:id/send` marks a draft sent and moves the request to `waiting_customer_approval`.
+
+Each quote has an immutable `(serviceRequestId, version)` identity. Creating a new quote after a sent/approved quote marks the former version `superseded` and invalidates its approval for completion. Customer decisions use `POST /me/service-quotes/:id/decision` with ownership enforcement. Guest decisions use `POST /service-quotes/:id/guest-decision` with the request-scoped Lookup token. Staff phone confirmation is a distinct privileged action requiring `channel=phone` and evidence note.
+
+Completion accepts `status=completed`, `finalPrice`, `completionNote`, `quoteId` and `version`. The latest quote and that exact version must have a valid approval. Completion never marks a request paid. Collection uses `POST /admin/service-requests/:id/payments` with `{ amount, method, reference? }`, creates an immutable payment entry and derives the read-only payment summary.

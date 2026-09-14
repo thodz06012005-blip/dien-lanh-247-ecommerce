@@ -163,3 +163,5 @@ Frontend dùng permission literals để ẩn route/menu/action, nhưng backend 
 Chạy `npm run test:service-contract` để kiểm tra cách ly ownership giữa hai customer, guest booking không tự liên kết theo số điện thoại, lookup token chỉ dùng được cho một request và DTO guest không lộ PII. Test tự đặt `LOOKUP_TEST_OTP`; endpoint không bao giờ trả OTP trong response. Production phải cấu hình `OTP_DELIVERY_WEBHOOK_URL`, `OTP_DELIVERY_WEBHOOK_SECRET` và `LOOKUP_TOKEN_PEPPER` riêng; `LOOKUP_TEST_OTP` bị bỏ qua khi `NODE_ENV=production`.
 
 Chạy `npm run test:list-contract` để kiểm tra trang cuối với 35 yêu cầu/15 kỹ thuật viên, tìm kiếm server-side, `meta.total/totalPages`, và ranh giới ngày tạo 23:30/00:30 theo múi giờ Việt Nam. UI Admin không được tính KPI hoặc tổng kết bằng `data.length` của một trang.
+
+Chạy `npm run test:quote-contract` để kiểm tra inspection không thể giả mạo xác nhận khách, ownership khi duyệt, version supersede, completion bắt buộc đúng approval mới nhất và thu tiền qua payment entry riêng. Không gửi `paymentStatus` trong payload hoàn thành.

@@ -30,7 +30,8 @@
     "test:service-surface": "npm run test:service-surface:mock && npm run test:service-surface:nest",
     "test:auth": "node tests/test_auth_isolation.js && node tests/check_auth_contract.js && node tests/check_session_bootstrap.js",
     "test:service-contract": "node tests/test_service_ownership_lookup.js && node tests/check_service_contract_stage3.js",
-    "test:list-contract": "node tests/test_list_pagination_filters.js && node tests/check_list_contract.js"
+    "test:list-contract": "node tests/test_list_pagination_filters.js && node tests/check_list_contract.js",
+    "test:quote-contract": "node tests/test_quote_state_machine.js && node tests/check_quote_contract.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

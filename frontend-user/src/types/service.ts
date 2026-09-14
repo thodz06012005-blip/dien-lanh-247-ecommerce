@@ -36,7 +36,7 @@ export interface ServiceRequest {
   preferredDate: string;
   preferredTimeSlot: string;
   note: string;
-  status: 'pending' | 'confirmed' | 'assigned' | 'in_progress' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'assigned' | 'in_progress' | 'waiting_customer_approval' | 'cancelled' | 'completed';
   assignedTechnicianId: string | null;
   technician?: PublicTechnician | null;
   estimatedPrice: number;
@@ -50,10 +50,11 @@ export interface ServiceRequest {
   createdAt: string;
   updatedAt: string;
 }
+export interface ServiceQuote { id: string; version: number; diagnosis: string; labor: number; parts: number; travel: number; other: number; total: number; status: 'draft'|'sent'|'approved'|'rejected'|'superseded'; validUntil: string; }
 
 export type CustomerServiceRequest = ServiceRequest;
 export type GuestLookupServiceRequest = Pick<ServiceRequest,
   'id' | 'serviceCategoryId' | 'applianceType' | 'issueDescription' | 'preferredDate' |
   'preferredTimeSlot' | 'district' | 'status' | 'estimatedPrice' | 'finalPrice' |
   'paymentStatus' | 'createdAt' | 'updatedAt' | 'technician'
->;
+> & { quote?: ServiceQuote | null };

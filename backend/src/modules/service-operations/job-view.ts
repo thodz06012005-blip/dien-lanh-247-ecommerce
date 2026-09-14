@@ -40,6 +40,7 @@ export const toCustomerDetail = (row: RequestRecord) => ({
 export const toGuestLookupDetail = (row: RequestRecord) => ({
   ...publicCore(row),
   technician: technician(row.assignedTechnician),
+  quote: row.quotes?.[0] ? { id: row.quotes[0].id, version: row.quotes[0].version, diagnosis: row.quotes[0].diagnosis, labor: numberValue(row.quotes[0].labor), parts: numberValue(row.quotes[0].parts), travel: numberValue(row.quotes[0].travel), other: numberValue(row.quotes[0].other), total: numberValue(row.quotes[0].total), status: row.quotes[0].status, validUntil: row.quotes[0].validUntil } : null,
 });
 
 export const toAdminList = (row: RequestRecord) => ({

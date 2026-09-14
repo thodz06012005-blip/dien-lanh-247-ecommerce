@@ -96,23 +96,10 @@ router.get('/admin/finance/report', requirePermission('finance:read'), (req, res
 });
 
 router.patch('/admin/finance/requests/:id', requirePermission('finance:update'), (req, res) => {
-  const db = readDB();
-  const request = (db.serviceRequests || []).find(item => item.id === req.params.id);
-  if (!request || request.status !== 'completed') return respondError(res, 404, 'Không tìm thấy dịch vụ đã hoàn thành', 'REQUEST_NOT_FOUND');
-  const partsCost = Number(req.body?.partsCost);
-  const amountCollected = Number(req.body?.amountCollected);
-  const paymentStatus = req.body?.paymentStatus;
-  const note = String(req.body?.note || '').trim();
-  if (!Number.isFinite(partsCost) || partsCost < 0 || !Number.isFinite(amountCollected) || amountCollected < 0 || amountCollected > requestRevenue(request) || !paymentStatuses.includes(paymentStatus)) return respondError(res, 400, 'Thông tin tài chính không hợp lệ', 'INVALID_FINANCE_DATA');
-  if (paymentStatus === 'paid' && amountCollected !== requestRevenue(request)) return respondError(res, 400, 'Số tiền đã thu phải bằng doanh thu khi đánh dấu đã thanh toán', 'INVALID_COLLECTED_AMOUNT');
-  if (paymentStatus === 'unpaid' && amountCollected !== 0) return respondError(res, 400, 'Công việc chưa thanh toán không thể có tiền đã thu', 'INVALID_COLLECTED_AMOUNT');
-
-  const before = { partsCost: requestPartsCost(request), amountCollected: Number(request.amountCollected || 0), paymentStatus: request.paymentStatus || 'unpaid' };
-  request.partsCost = partsCost; request.amountCollected = amountCollected; request.paymentStatus = paymentStatus; request.financeNote = note; request.updatedAt = new Date().toISOString();
-  if (!db.financeAuditLogs) db.financeAuditLogs = [];
-  db.financeAuditLogs.unshift({ id: `FIN-${Date.now()}`, requestId: request.id, action: 'UPDATE_FINANCIALS', before, after: { partsCost, amountCollected, paymentStatus }, note, actorId: req.admin.id, actorName: req.admin.name, createdAt: request.updatedAt });
-  writeDB(db);
-  return respondSuccess(res, request, 'Đã cập nhật số liệu tài chính');
+  if (req.body?.amountCollected !== undefined || req.body?.paymentStatus !== undefined) return respondError(res, 400, 'Thu tiền phải sử dụng endpoint payments', 'PAYMENT_ENDPOINT_REQUIRED');
+  const db=readDB(),request=(db.serviceRequests||[]).find(item=>item.id===req.params.id),partsCost=Number(req.body?.partsCost),note=String(req.body?.note||'').trim();
+  if(!request||request.status!=='completed'||!Number.isFinite(partsCost)||partsCost<0||note.length<3)return respondError(res,400,'Thông tin điều chỉnh không hợp lệ','INVALID_FINANCE_DATA');
+  request.partsCost=partsCost;request.financeNote=note;request.updatedAt=new Date().toISOString();if(!db.financeAuditLogs)db.financeAuditLogs=[];db.financeAuditLogs.unshift({id:`FIN-${Date.now()}`,requestId:request.id,action:'PARTS_COST_CORRECTED',after:{partsCost},note,actorId:req.admin.id,actorName:req.admin.name,createdAt:request.updatedAt});writeDB(db);return respondSuccess(res,request,'Đã cập nhật chi phí linh kiện');
 });
 
 router.patch('/admin/finance/requests/:id/settlement', requirePermission('finance:update'), (req, res) => {

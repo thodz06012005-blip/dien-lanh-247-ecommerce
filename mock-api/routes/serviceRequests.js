@@ -185,6 +185,8 @@ router.post('/service-requests', (req, res) => {
 const lookupGrants = [];
 const lookupRequestWindows = new Map();
 const lookupHash = value => crypto.createHash('sha256').update(`${value}:${process.env.LOOKUP_TOKEN_PEPPER || 'mock-local-pepper'}`).digest('hex');
+const quoteTotal = body => ['labor','parts','travel','other'].reduce((sum,key)=>sum+Number(body[key]||0),0);
+const latestQuote = (db, requestId) => (db.serviceQuotes || []).filter(q=>q.serviceRequestId===requestId).sort((a,b)=>b.version-a.version)[0];
 router.post('/service-requests/lookup/request-otp', (req, res) => {
   const id = String(req.body?.requestCode || '').trim().toUpperCase();
   const phone = String(req.body?.phone || '').replace(/[\s.-]/g, '');
@@ -222,28 +224,40 @@ router.get('/service-requests/lookup/:id', (req, res) => {
   return respondSuccess(res, guestDetail(request, db));
 });
 
-// PATCH /admin/service-requests/:id/inspection — record post-inspection estimate and customer decision.
+router.post('/me/service-quotes/:id/decision', requireCustomer, (req,res)=>{
+  const db=readDB(),quote=(db.serviceQuotes||[]).find(q=>q.id===req.params.id),request=quote&&(db.serviceRequests||[]).find(r=>r.id===quote.serviceRequestId);
+  if(!quote||!request||request.userId!==req.customer.id)return respondError(res,403,'Forbidden','FORBIDDEN'); return decideQuote(req,res,db,quote,'customer',String(req.customer.id),'account');
+});
+router.get('/me/service-requests/:id/quote',requireCustomer,(req,res)=>{const db=readDB(),request=(db.serviceRequests||[]).find(r=>r.id===req.params.id&&r.userId===req.customer.id);if(!request)return respondError(res,404,'Không tìm thấy yêu cầu','NOT_FOUND');const quote=(db.serviceQuotes||[]).filter(q=>q.serviceRequestId===request.id&&['sent','approved','rejected'].includes(q.status)).sort((a,b)=>b.version-a.version)[0]||null;return respondSuccess(res,quote);});
+router.post('/service-quotes/:id/guest-decision',(req,res)=>{const db=readDB(),quote=(db.serviceQuotes||[]).find(q=>q.id===req.params.id);const auth=String(req.headers.authorization||''),token=auth.startsWith('Lookup ')?auth.slice(7):'';const grant=quote&&lookupGrants.find(g=>g.requestId===quote.serviceRequestId&&g.tokenHash===lookupHash(token)&&g.usedAt&&g.expiresAt>Date.now());if(!quote||!grant)return respondError(res,401,'Quyền tra cứu không hợp lệ','INVALID_LOOKUP_GRANT');return decideQuote(req,res,db,quote,'guest',null,'lookup_token');});
+function decideQuote(req,res,db,quote,actorType,actorId,channel){const decision=req.body?.decision;if(!['approved','rejected'].includes(decision))return respondError(res,400,'Quyết định không hợp lệ','INVALID_DECISION');if(quote!==latestQuote(db,quote.serviceRequestId)||quote.status!=='sent'||new Date(quote.validUntil)<=new Date())return respondError(res,400,'Báo giá không còn hiệu lực','QUOTE_NOT_CURRENT');const now=new Date().toISOString();const approval={id:`QA-${Date.now()}`,quoteId:quote.id,version:quote.version,decision,actorType,actorId,channel,evidence:req.body?.evidence||req.body?.note||'',createdAt:now};if(!db.quoteApprovals)db.quoteApprovals=[];db.quoteApprovals.push(approval);quote.status=decision;const request=db.serviceRequests.find(r=>r.id===quote.serviceRequestId);if(decision==='approved')request.status='in_progress';if(!request.activityLog)request.activityLog=[];request.activityLog.unshift({action:decision==='approved'?'QUOTE_APPROVED':'QUOTE_REJECTED',label:`Báo giá v${quote.version} ${decision==='approved'?'được duyệt':'bị từ chối'}`,actor:actorType,detail:`Kênh: ${channel}`,createdAt:now});writeDB(db);return respondSuccess(res,approval);}
+
+router.get('/admin/service-requests/:id/quotes',requirePermission('serviceRequests:read'),(req,res)=>{const db=readDB();return respondSuccess(res,(db.serviceQuotes||[]).filter(q=>q.serviceRequestId===req.params.id).sort((a,b)=>b.version-a.version).map(q=>({...q,approvals:(db.quoteApprovals||[]).filter(a=>a.quoteId===q.id)})));});
+router.post('/admin/service-quotes/:id/send',requirePermission('serviceRequests:update'),(req,res)=>{const db=readDB(),quote=(db.serviceQuotes||[]).find(q=>q.id===req.params.id);if(!quote||quote.status!=='draft')return respondError(res,400,'Chỉ có thể gửi báo giá nháp','INVALID_QUOTE_STATUS');quote.status='sent';const request=db.serviceRequests.find(r=>r.id===quote.serviceRequestId);request.status='waiting_customer_approval';if(!request.activityLog)request.activityLog=[];request.activityLog.unshift({action:'QUOTE_SENT',label:`Đã gửi báo giá v${quote.version}`,actor:req.admin.name,detail:`Tổng ${Number(quote.total).toLocaleString('vi-VN')}đ`,createdAt:new Date().toISOString()});writeDB(db);return respondSuccess(res,quote,'Đã gửi báo giá');});
+router.post('/admin/service-quotes/:id/phone-decision',requirePermission('technicians:assign'),(req,res)=>{if(req.body?.channel!=='phone'||String(req.body?.note||'').trim().length<3)return respondError(res,400,'Cần kênh và ghi chú xác nhận','INVALID_PHONE_APPROVAL');const db=readDB(),quote=(db.serviceQuotes||[]).find(q=>q.id===req.params.id);if(!quote)return respondError(res,404,'Không tìm thấy báo giá','QUOTE_NOT_FOUND');return decideQuote(req,res,db,quote,'staff',req.admin.id,'phone');});
+router.post('/admin/service-requests/:id/payments',requirePermission('finance:update'),(req,res)=>{const db=readDB(),request=(db.serviceRequests||[]).find(r=>r.id===req.params.id),amount=Number(req.body?.amount);if(!request||request.status!=='completed'||!Number.isFinite(amount)||amount<=0)return respondError(res,400,'Thông tin thu tiền không hợp lệ','INVALID_PAYMENT');if(!db.servicePayments)db.servicePayments=[];const entries=db.servicePayments.filter(p=>p.serviceRequestId===request.id).reduce((s,p)=>s+Number(p.amount),0),collected=Math.max(Number(request.amountCollected||0),entries);if(collected+amount>Number(request.finalPrice))return respondError(res,400,'Số tiền thu vượt giá trị công việc','PAYMENT_EXCEEDS_TOTAL');const payment={id:`PAY-${Date.now()}`,serviceRequestId:request.id,amount,method:String(req.body?.method||'cash'),reference:req.body?.reference||'',receivedBy:req.admin.id,receivedAt:new Date().toISOString()};db.servicePayments.push(payment);request.amountCollected=collected+amount;request.paymentStatus=request.amountCollected===Number(request.finalPrice)?'paid':'partial';if(!db.financeAuditLogs)db.financeAuditLogs=[];db.financeAuditLogs.unshift({id:`FIN-${Date.now()}`,requestId:request.id,action:'PAYMENT_RECORDED',after:payment,actorId:req.admin.id,actorName:req.admin.name,createdAt:payment.receivedAt});writeDB(db);return respondCreated(res,payment,'Đã ghi nhận thu tiền');});
+
+// PATCH /admin/service-requests/:id/inspection — record diagnosis and create an approval-neutral draft quote.
 router.patch('/admin/service-requests/:id/inspection', requirePermission('serviceRequests:update'), (req, res) => {
-  const { estimatedPrice, inspectionNote, customerApprovalStatus } = req.body || {};
-  const allowedApproval = ['not_requested', 'pending', 'approved', 'rejected'];
-  if (!Number.isFinite(Number(estimatedPrice)) || Number(estimatedPrice) <= 0 || Number(estimatedPrice) > 1000000000) return respondError(res, 400, 'Chi phí sau kiểm tra phải lớn hơn 0', 'INVALID_ESTIMATED_PRICE');
-  if (typeof inspectionNote !== 'string' || inspectionNote.trim().length < 3 || inspectionNote.trim().length > 1000) return respondError(res, 400, 'Kết luận kiểm tra phải có từ 3 đến 1000 ký tự', 'INVALID_INSPECTION_NOTE');
-  if (!allowedApproval.includes(customerApprovalStatus)) return respondError(res, 400, 'Trạng thái xác nhận của khách không hợp lệ', 'INVALID_CUSTOMER_APPROVAL');
+  const allowed=['diagnosis','labor','parts','travel','other','validUntil']; if(Object.keys(req.body||{}).some(k=>!allowed.includes(k)))return respondError(res,400,'Payload inspection có trường không được phép','UNKNOWN_FIELD');
+  const { diagnosis } = req.body || {}; const total=quoteTotal(req.body||{});
+  if (!Number.isFinite(total) || total <= 0 || total > 1000000000) return respondError(res, 400, 'Tổng báo giá phải lớn hơn 0', 'INVALID_ESTIMATED_PRICE');
+  if (typeof diagnosis !== 'string' || diagnosis.trim().length < 3 || diagnosis.trim().length > 2000) return respondError(res, 400, 'Chẩn đoán phải có từ 3 đến 2000 ký tự', 'INVALID_INSPECTION_NOTE');
   const db = readDB();
   const request = (db.serviceRequests || []).find(item => item.id === req.params.id);
   if (!request) return respondError(res, 404, 'Không tìm thấy yêu cầu dịch vụ', 'SERVICE_REQUEST_NOT_FOUND');
   if (['completed', 'cancelled'].includes(request.status)) return respondError(res, 400, 'Không thể cập nhật yêu cầu đã kết thúc', 'REQUEST_CLOSED');
   const now = new Date().toISOString();
-  request.estimatedPrice = Number(estimatedPrice);
-  request.inspectionNote = inspectionNote.trim();
-  request.customerApprovalStatus = customerApprovalStatus;
-  request.customerApprovedAt = customerApprovalStatus === 'approved' ? now : null;
+  if(!db.serviceQuotes)db.serviceQuotes=[];const previous=latestQuote(db,request.id);if(previous&&['sent','approved'].includes(previous.status)){previous.status='superseded';request.status='waiting_customer_approval';}
+  const quote={id:`QUOTE-${Date.now()}`,serviceRequestId:request.id,version:(previous?.version||0)+1,diagnosis:diagnosis.trim(),labor:Number(req.body.labor||0),parts:Number(req.body.parts||0),travel:Number(req.body.travel||0),other:Number(req.body.other||0),total,status:'draft',validUntil:req.body.validUntil||new Date(Date.now()+7*86400000).toISOString(),createdBy:req.admin.id,createdAt:now};db.serviceQuotes.push(quote);
+  request.estimatedPrice = total;
+  request.inspectionNote = diagnosis.trim();
   request.updatedAt = now;
   if (!request.activityLog) request.activityLog = [];
-  request.activityLog.unshift({ action: 'INSPECTION_UPDATED', label: customerApprovalStatus === 'approved' ? 'Khách đã đồng ý chi phí sau kiểm tra' : 'Cập nhật kết quả kiểm tra và chi phí dự kiến', actor: req.admin.name, detail: `${inspectionNote.trim()} · ${Number(estimatedPrice).toLocaleString('vi-VN')}đ`, createdAt: now });
+  request.activityLog.unshift({ action: 'QUOTE_DRAFT_CREATED', label: `Tạo báo giá nháp v${quote.version}`, actor: req.admin.name, detail: `${diagnosis.trim()} · ${total.toLocaleString('vi-VN')}đ`, createdAt: now });
   writeDB(db);
-  auditSuccess(req, 'SERVICE_REQUEST_INSPECTION_UPDATED', 'serviceRequest', request.id, { estimatedPrice: request.estimatedPrice, customerApprovalStatus }, 'Inspection estimate updated');
-  return respondSuccess(res, adminDetail(request, db), 'Đã cập nhật kết quả kiểm tra');
+  auditSuccess(req, 'SERVICE_QUOTE_DRAFT_CREATED', 'serviceRequest', request.id, { quoteId:quote.id,version:quote.version,total }, 'Inspection draft quote created');
+  return respondSuccess(res, quote, 'Đã lưu chẩn đoán và tạo báo giá nháp');
 });
 
 // GET /service-requests/:id (Customer views their service request)
@@ -356,7 +370,8 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
   const errors = [];
   validateRequiredString(req.params.id, 'id', errors, 1, 50);
   
-  const { status, finalPrice, note } = req.body;
+  const allowedStatusFields=['status','finalPrice','note','completionNote','quoteId','version'];if(Object.keys(req.body||{}).some(k=>!allowedStatusFields.includes(k)))return respondError(res,400,'Payload trạng thái có trường không được phép','UNKNOWN_FIELD');
+  const { status, finalPrice, note, completionNote, quoteId, version } = req.body;
   if (status !== undefined) {
     validateEnum(status, VALID_SERVICE_STATUSES, 'status', errors);
   }
@@ -390,7 +405,8 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
       const validTransitions = {
         'pending': ['confirmed', 'cancelled'],
         'confirmed': ['assigned', 'cancelled'],
-        'assigned': ['in_progress', 'completed', 'cancelled'],
+        'assigned': ['in_progress', 'waiting_customer_approval', 'cancelled'],
+        'waiting_customer_approval': ['in_progress', 'cancelled'],
         'in_progress': ['completed', 'cancelled']
       };
       
@@ -406,8 +422,10 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
       if (finalPrice === undefined || finalPrice === null || isNaN(Number(finalPrice)) || Number(finalPrice) < 0) {
         return respondError(res, 400, 'Giá cuối cùng không hợp lệ', 'INVALID_FINAL_PRICE');
       }
+      const quote=latestQuote(db,request.id),approval=quote&&(db.quoteApprovals||[]).find(a=>a.quoteId===quote.id&&a.version===quote.version&&a.decision==='approved');
+      if(!completionNote||!quoteId||!version||!quote||quote.id!==quoteId||quote.version!==Number(version)||quote.status!=='approved'||!approval)return respondError(res,400,'Báo giá mới nhất chưa được khách hàng duyệt','QUOTE_NOT_APPROVED');
       request.finalPrice = Number(finalPrice);
-      request.paymentStatus = 'paid';
+      request.paymentStatus = request.paymentStatus || 'unpaid';
       request.completedAt = new Date().toISOString();
 
       // Increase technician completedCount
@@ -424,7 +442,7 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
     request.status = status;
     
     const now = new Date().toISOString();
-    const logNote = note || `Cập nhật trạng thái thành ${status}`;
+    const logNote = completionNote || note || `Cập nhật trạng thái thành ${status}`;
     if (!request.statusHistory) request.statusHistory = [];
     request.statusHistory.push({
       status: request.status,

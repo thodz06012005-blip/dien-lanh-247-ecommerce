@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../services/api';
-import type { ServiceRequest, ServiceCategory } from '../features/service-requests/types';
+import type { ServiceRequest, ServiceCategory, ServiceQuote } from '../features/service-requests/types';
 import type { Technician } from '../features/technicians/types';
 import type { AxiosError } from 'axios';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
-import Select from '../components/ui/Select';
 import LoadingState from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
@@ -43,7 +42,6 @@ export default function ServiceRequestDetail() {
   // Custom toast & completed modal state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isConfirmCompletedModalOpen, setIsConfirmCompletedModalOpen] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState('unpaid');
   const [modalError, setModalError] = useState('');
 
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -80,15 +78,19 @@ export default function ServiceRequestDetail() {
   });
 
   const inspectionMutation = useMutation({
-    mutationFn: (payload: { estimatedPrice: number; inspectionNote: string; customerApprovalStatus: string }) =>
+    mutationFn: (payload: { diagnosis: string; labor: number; parts: number; travel: number; other: number }) =>
       api.patch(`/admin/service-requests/${id}/inspection`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-service-request', id] });
       queryClient.invalidateQueries({ queryKey: ['admin-service-requests'] });
-      showToast('Đã lưu kết quả kiểm tra và xác nhận của khách!', 'success');
+      showToast('Đã tạo phiên bản báo giá nháp mới!', 'success');
     },
     onError: (err: AxiosError<{ message?: string }>) => showToast(err.response?.data?.message || 'Không thể lưu kết quả kiểm tra', 'error'),
   });
+
+  const { data: quotesData } = useQuery({ queryKey: ['admin-service-quotes', id], queryFn: async () => (await api.get(`/admin/service-requests/${id}/quotes`)).data, enabled: !!id });
+  const quotes: ServiceQuote[] = quotesData?.data || []; const latestQuote = quotes[0];
+  const sendQuote = useMutation({ mutationFn: (quoteId: string) => api.post(`/admin/service-quotes/${quoteId}/send`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-service-quotes', id] }); queryClient.invalidateQueries({ queryKey: ['admin-service-request', id] }); showToast('Đã gửi báo giá cho khách hàng', 'success'); } });
 
   // Fetch service request detail
   const { data, isLoading, error, dataUpdatedAt } = useQuery({
@@ -114,7 +116,7 @@ export default function ServiceRequestDetail() {
 
   // Status update mutation
   const updateStatus = useMutation({
-    mutationFn: (payload: { status: string; note: string; finalPrice?: number; paymentStatus?: string }) =>
+    mutationFn: (payload: { status: string; note?: string; completionNote?: string; finalPrice?: number; quoteId?: string; version?: number }) =>
       api.patch(`/admin/service-requests/${id}/status`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-service-request', id] });
@@ -146,7 +148,6 @@ export default function ServiceRequestDetail() {
     if (newStatus === 'completed') {
       const estPrice = currentRequestObj?.estimatedPrice;
       setFinalPrice(estPrice && estPrice > 0 ? String(estPrice) : '');
-      setPaymentStatus(currentRequestObj?.paymentStatus || 'unpaid');
       setStatusNote('');
       setModalError('');
       setIsConfirmCompletedModalOpen(true);
@@ -161,12 +162,15 @@ export default function ServiceRequestDetail() {
       setModalError('Chi phí thực tế phải lớn hơn 0');
       return;
     }
+    if (!statusNote.trim()) { setModalError('Vui lòng nhập ghi chú hoàn thành'); return; }
+    if (!latestQuote || latestQuote.status !== 'approved') { setModalError('Báo giá mới nhất chưa được khách hàng duyệt'); return; }
     setModalError('');
     updateStatus.mutate({
       status: 'completed',
-      note: statusNote,
+      completionNote: statusNote,
       finalPrice: priceVal,
-      paymentStatus
+      quoteId: latestQuote?.id,
+      version: latestQuote?.version
     });
   };
 
@@ -226,12 +230,11 @@ export default function ServiceRequestDetail() {
           <InspectionEstimateCard
             estimatedPrice={request.estimatedPrice || 0}
             inspectionNote={request.inspectionNote}
-            approvalStatus={request.customerApprovalStatus}
-            approvedAt={request.customerApprovedAt}
             disabled={['completed', 'cancelled'].includes(request.status)}
             isSaving={inspectionMutation.isPending}
             onSave={(payload) => inspectionMutation.mutate(payload)}
           />
+          {latestQuote && <Card title={`Báo giá phiên bản ${latestQuote.version}`}><div className="flex items-center justify-between"><div><p className="font-bold text-slate-900">{formatCurrency(latestQuote.total)}</p><p className="text-xs text-slate-500">Trạng thái: {latestQuote.status}</p></div>{latestQuote.status === 'draft' && <Button onClick={() => sendQuote.mutate(latestQuote.id)} isLoading={sendQuote.isPending}>Gửi khách duyệt</Button>}</div></Card>}
 
           {/* Chi phí */}
           <Card title="Chi phí">
@@ -328,19 +331,6 @@ export default function ServiceRequestDetail() {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[13px] font-medium text-slate-700">Trạng thái thanh toán</label>
-            <Select
-              value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value)}
-              disabled={!request.assignedTechnicianId}
-              options={[
-                { value: 'unpaid', label: 'Chưa thanh toán' },
-                { value: 'paid', label: 'Đã thanh toán' }
-              ]}
-              className="w-full"
-            />
-          </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[13px] font-medium text-slate-700">Ghi chú hoàn tất</label>
@@ -369,7 +359,7 @@ export default function ServiceRequestDetail() {
               variant="primary"
               onClick={handleConfirmCompleted}
               isLoading={updateStatus.isPending}
-              disabled={!request.assignedTechnicianId || !finalPrice || Number(finalPrice) <= 0}
+              disabled={!request.assignedTechnicianId || !finalPrice || Number(finalPrice) <= 0 || latestQuote?.status !== 'approved'}
               className="px-5 font-bold"
             >
               Xác nhận hoàn tất

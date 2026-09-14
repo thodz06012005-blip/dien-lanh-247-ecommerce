@@ -19,6 +19,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { AuditLogModule } from './modules/audit/audit-log.module';
 import { CustomerVerificationModule } from './modules/customer-verification/customer-verification.module';
+import { OperationsModule } from './modules/service-operations/operations.module';
+import { ServiceQuotesModule } from './modules/service-quotes/service-quotes.module';
 
 const serviceOnly = process.env.SERVICE_ONLY !== 'false';
 const commerceModules = serviceOnly
@@ -54,6 +56,8 @@ const commerceModules = serviceOnly
     CustomersModule,
     AuditLogModule,
     CustomerVerificationModule,
+    OperationsModule,
+    ServiceQuotesModule,
   ],
   controllers: [AppController],
   providers: [

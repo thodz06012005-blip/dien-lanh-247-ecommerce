@@ -267,7 +267,9 @@ export class ServiceRequestsService {
       const validTransitions: Record<string, string[]> = {
         pending: ['confirmed', 'cancelled'],
         confirmed: ['assigned', 'cancelled'],
-        assigned: ['completed', 'cancelled'],
+        assigned: ['in_progress', 'waiting_customer_approval', 'cancelled'],
+        waiting_customer_approval: ['in_progress', 'cancelled'],
+        in_progress: ['completed', 'cancelled'],
       };
 
       if (validTransitions[oldStatus] && !validTransitions[oldStatus].includes(newStatus)) {
@@ -286,8 +288,12 @@ export class ServiceRequestsService {
       if (dto.finalPrice === undefined || dto.finalPrice === null || dto.finalPrice < 0) {
         throw new BadRequestException('Giá cuối cùng không hợp lệ');
       }
+      if (!dto.quoteId || !dto.version || !dto.completionNote?.trim()) throw new BadRequestException('Thiếu báo giá đã duyệt hoặc ghi chú hoàn thành');
+      const latestQuote = await this.prisma.serviceQuote.findFirst({ where: { serviceRequestId: id }, include: { approvals: true }, orderBy: { version: 'desc' } });
+      const approved = latestQuote?.id === dto.quoteId && latestQuote.version === dto.version && latestQuote.status === 'approved' && latestQuote.approvals.some(item => item.version === dto.version && item.decision === 'approved');
+      if (!approved) throw new BadRequestException('Báo giá mới nhất chưa được khách hàng duyệt');
       updateData.finalPrice = dto.finalPrice;
-      updateData.paymentStatus = 'paid';
+      updateData.paymentStatus = request.paymentStatus || 'unpaid';
 
       // Tăng completedCount của thợ
       await this.prisma.technician.update({
@@ -300,7 +306,7 @@ export class ServiceRequestsService {
 
     // Ghi status history
     const now = new Date().toISOString();
-    const logNote = dto.note || `Cập nhật trạng thái thành ${newStatus}`;
+    const logNote = dto.completionNote || dto.note || `Cập nhật trạng thái thành ${newStatus}`;
     const oldHistory = (request.statusHistory as any[]) || [];
     const newHistory = [
       ...oldHistory,

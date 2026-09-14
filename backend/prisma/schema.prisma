@@ -344,8 +344,23 @@ enum ServiceRequestStatus {
   pending
   confirmed
   assigned
+  in_progress
+  waiting_customer_approval
   completed
   cancelled
+}
+
+enum ServiceQuoteStatus {
+  draft
+  sent
+  approved
+  rejected
+  superseded
+}
+
+enum QuoteApprovalDecision {
+  approved
+  rejected
 }
 
 enum ServiceRequestPriority {
@@ -422,11 +437,62 @@ model ServiceRequest {
   assignedTechnicianId String?
   assignedTechnician   Technician?            @relation(fields: [assignedTechnicianId], references: [id])
   lookupGrants         ServiceLookupGrant[]
+  quotes               ServiceQuote[]
+  payments             ServicePayment[]
 
   @@index([status])
   @@index([serviceCategoryId])
   @@index([assignedTechnicianId])
   @@index([userId, createdAt])
+}
+
+model ServiceQuote {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  version          Int
+  diagnosis        String         @db.Text
+  labor            Decimal        @db.Decimal(12, 2) @default(0)
+  parts            Decimal        @db.Decimal(12, 2) @default(0)
+  travel           Decimal        @db.Decimal(12, 2) @default(0)
+  other            Decimal        @db.Decimal(12, 2) @default(0)
+  total            Decimal        @db.Decimal(12, 2)
+  status           ServiceQuoteStatus @default(draft)
+  validUntil       DateTime
+  createdBy        String
+  approvals        QuoteApproval[]
+  createdAt        DateTime       @default(now())
+
+  @@unique([serviceRequestId, version])
+  @@index([serviceRequestId, status])
+}
+
+model QuoteApproval {
+  id        String                @id @default(cuid())
+  quoteId   String
+  quote     ServiceQuote          @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  version   Int
+  decision  QuoteApprovalDecision
+  actorType String
+  actorId   String?
+  channel   String
+  evidence  String?               @db.Text
+  createdAt DateTime              @default(now())
+
+  @@index([quoteId, decision])
+}
+
+model ServicePayment {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  amount           Decimal        @db.Decimal(12, 2)
+  method           String
+  reference        String?
+  receivedBy       String
+  receivedAt       DateTime       @default(now())
+
+  @@index([serviceRequestId, receivedAt])
 }
 
 model ServiceLookupGrant {

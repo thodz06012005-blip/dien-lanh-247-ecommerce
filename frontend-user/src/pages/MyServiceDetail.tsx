@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Calendar, ArrowLeft, PhoneCall, CheckCircle2, MapPin, User,
@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import type { ServiceRequest, ServiceCategory } from '../types/service';
+import type { ServiceQuote, ServiceRequest, ServiceCategory } from '../types/service';
 import Breadcrumb from '../components/common/Breadcrumb';
 import PageTransition from '../components/common/PageTransition';
 import Button from '../components/ui/Button';
@@ -76,6 +76,10 @@ export default function MyServiceDetail() {
     },
     enabled: !!id && isAuthenticated,
   });
+
+  const { data: quoteRes, refetch: refetchQuote } = useQuery({ queryKey: ['my-service-quote', id], queryFn: async () => (await api.get(`/me/service-requests/${id}/quote`)).data, enabled: !!id && isAuthenticated });
+  const quote: ServiceQuote | null = quoteRes?.data || null;
+  const quoteDecision = useMutation({ mutationFn: (decision: 'approved'|'rejected') => api.post(`/me/service-quotes/${quote!.id}/decision`, { decision }), onSuccess: () => { void refetchQuote(); } });
 
   // Fetch service categories to display names
   const { data: categoriesRes } = useQuery({
@@ -203,6 +207,8 @@ export default function MyServiceDetail() {
             </a>
           </div>
         </div>
+
+        {quote && <div className="mb-8 rounded-[2rem] border border-blue-200 bg-blue-50 p-6"><p className="text-xs font-black uppercase tracking-wider text-blue-700">Báo giá phiên bản {quote.version}</p><p className="mt-3 text-sm leading-6 text-slate-700">{quote.diagnosis}</p><strong className="mt-3 block text-2xl text-blue-800">{new Intl.NumberFormat('vi-VN').format(quote.total)}đ</strong>{quote.status === 'sent' && <div className="mt-5 flex flex-wrap gap-3"><Button onClick={() => quoteDecision.mutate('approved')} isLoading={quoteDecision.isPending}>Đồng ý báo giá</Button><Button variant="outline" onClick={() => quoteDecision.mutate('rejected')} disabled={quoteDecision.isPending}>Từ chối</Button></div>}<p className="mt-3 text-xs font-semibold text-slate-500">Trạng thái báo giá: {quote.status}</p></div>}
 
         {/* Timeline Progress */}
         <div className="bg-white rounded-[2rem] border border-slate-100 p-6 md:p-8 shadow-2xs mb-8 flex flex-col gap-5">

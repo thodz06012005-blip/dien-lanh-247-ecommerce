@@ -1,4 +1,4 @@
-const VALID_SERVICE_STATUSES = ['pending', 'confirmed', 'assigned', 'in_progress', 'completed', 'cancelled'];
+const VALID_SERVICE_STATUSES = ['pending', 'confirmed', 'assigned', 'in_progress', 'waiting_customer_approval', 'completed', 'cancelled'];
 const VALID_SERVICE_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 const VALID_TECHNICIAN_STATUSES = ['available', 'busy', 'offline', 'inactive'];
 const VALID_ORDER_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];

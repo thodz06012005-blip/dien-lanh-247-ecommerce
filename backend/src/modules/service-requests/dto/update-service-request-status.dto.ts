@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsNumber, Min, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsNumber, Min, IsString, IsInt } from 'class-validator';
 import { ServiceRequestStatus } from '@prisma/client';
 
 export class UpdateServiceRequestStatusDto {
@@ -14,4 +14,8 @@ export class UpdateServiceRequestStatusDto {
   @IsString()
   @IsOptional()
   note?: string;
+
+  @IsString() @IsOptional() completionNote?: string;
+  @IsString() @IsOptional() quoteId?: string;
+  @IsInt() @Min(1) @IsOptional() version?: number;
 }

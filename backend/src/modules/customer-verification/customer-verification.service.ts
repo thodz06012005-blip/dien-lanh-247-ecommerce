@@ -51,8 +51,12 @@ export class CustomerVerificationService {
   async lookup(requestCode: string, token: string) {
     const grant = await this.prisma.serviceLookupGrant.findUnique({ where: { tokenHash: this.hash(token) } });
     if (!grant || grant.serviceRequestId !== requestCode || !grant.usedAt || grant.expiresAt <= new Date()) throw new UnauthorizedException('Quyền tra cứu không hợp lệ hoặc đã hết hạn');
-    const request = await this.prisma.serviceRequest.findUnique({ where: { id: requestCode }, include: { assignedTechnician: true } });
+    const request = await this.prisma.serviceRequest.findUnique({ where: { id: requestCode }, include: { assignedTechnician: true, quotes: { where: { status: { in: ['sent','approved','rejected'] } }, orderBy: { version: 'desc' }, take: 1 } } });
     if (!request) throw new UnauthorizedException('Quyền tra cứu không hợp lệ hoặc đã hết hạn');
     return { success: true, data: toGuestLookupDetail(request as any) };
+  }
+  async authorizeLookup(requestCode: string, token: string) {
+    const grant = token ? await this.prisma.serviceLookupGrant.findUnique({ where: { tokenHash: this.hash(token) } }) : null;
+    return Boolean(grant && grant.serviceRequestId === requestCode && grant.usedAt && grant.expiresAt > new Date());
   }
 }

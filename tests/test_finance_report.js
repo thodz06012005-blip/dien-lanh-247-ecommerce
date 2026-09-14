@@ -26,12 +26,14 @@ async function run() {
 
     const report = await request('GET', '/admin/finance/report?month=2026-09', null, token);
     if (report.status !== 200 || report.data.data.totals.revenue !== 1000000 || report.data.data.totals.collected !== 400000 || report.data.data.totals.debt !== 600000 || report.data.data.totals.technicianPay !== 320000 || report.data.data.totals.estimatedProfit !== 480000) throw new Error('Finance totals are incorrect');
-    const update = await request('PATCH', '/admin/finance/requests/SR-FIN-TEST', { partsCost: 250000, amountCollected: 1000000, paymentStatus: 'paid', note: 'Đã nhận chuyển khoản' }, token);
+    const update = await request('PATCH', '/admin/finance/requests/SR-FIN-TEST', { partsCost: 250000, note: 'Điều chỉnh theo hóa đơn linh kiện' }, token);
     if (update.status !== 200) throw new Error('Finance update failed');
+    const payment = await request('POST', '/admin/service-requests/SR-FIN-TEST/payments', { amount: 600000, method: 'bank_transfer', reference: 'BANK-TEST' }, token);
+    if (payment.status !== 201) throw new Error('Payment recording failed');
     const settlement = await request('PATCH', '/admin/finance/requests/SR-FIN-TEST/settlement', { status: 'settled' }, token);
     if (settlement.status !== 200) throw new Error('Settlement failed');
     const audit = await request('GET', '/admin/finance/audit-logs?month=2026-09', null, token);
-    if (audit.status !== 200 || audit.data.data.length !== 2) throw new Error('Finance audit log failed');
+    if (audit.status !== 200 || audit.data.data.length !== 3) throw new Error('Finance audit log failed');
     const exported = await request('GET', '/admin/finance/export?month=2026-09', null, token);
     if (exported.status !== 200 || !exported.data.includes('SR-FIN-TEST')) throw new Error('Excel export failed');
     console.log('FINANCE REPORT, SETTLEMENT, AUDIT AND EXCEL TESTS PASSED');

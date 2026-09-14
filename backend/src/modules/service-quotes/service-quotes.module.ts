@@ -1,0 +1,2 @@
+import { Module } from '@nestjs/common'; import { CustomerVerificationModule } from '../customer-verification/customer-verification.module'; import { ServiceQuotesController } from './service-quotes.controller'; import { ServiceQuotesService } from './service-quotes.service';
+@Module({imports:[CustomerVerificationModule],controllers:[ServiceQuotesController],providers:[ServiceQuotesService],exports:[ServiceQuotesService]}) export class ServiceQuotesModule {}
