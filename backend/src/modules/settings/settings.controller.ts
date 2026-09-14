@@ -21,7 +21,7 @@ export class SettingsController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERADMIN)
+  @Roles(UserRole.SUPERADMIN)
   @Get('admin/settings')
   getAdminSettings() {
     return this.settingsService.getAdminSettings();

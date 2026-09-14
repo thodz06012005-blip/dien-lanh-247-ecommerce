@@ -10,6 +10,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { Request } from 'express';
 import { AuditLogService } from '../audit/audit-log.service';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 
 @Controller()
 export class ServiceRequestsController {
@@ -20,20 +21,21 @@ export class ServiceRequestsController {
 
   // Customer: Create a new service request
   @Post('service-requests')
-  create(@Body() createServiceRequestDto: CreateServiceRequestDto) {
-    return this.serviceRequestsService.create(createServiceRequestDto);
+  @UseGuards(OptionalJwtAuthGuard)
+  create(@Body() createServiceRequestDto: CreateServiceRequestDto, @Req() req: Request) {
+    return this.serviceRequestsService.create(createServiceRequestDto, (req.user as any)?.userId ?? null);
   }
 
-  // Customer: View a specific service request (requires phone query param)
-  @Get('service-requests/:id')
-  findOneCustomer(@Param('id') id: string, @Query('phone') phone: string) {
-    return this.serviceRequestsService.findOneCustomer(id, phone);
+  @UseGuards(JwtAuthGuard)
+  @Get('me/service-requests/:id')
+  findOneCustomer(@Param('id') id: string, @Req() req: Request) {
+    return this.serviceRequestsService.findOneCustomer(id, (req.user as any).userId);
   }
 
-  // Customer: View service request history (requires phone query param)
-  @Get('my-service-requests')
-  findMyRequests(@Query('phone') phone: string) {
-    return this.serviceRequestsService.findMyRequests(phone);
+  @UseGuards(JwtAuthGuard)
+  @Get('me/service-requests')
+  findMyRequests(@Req() req: Request) {
+    return this.serviceRequestsService.findMyRequests((req.user as any).userId);
   }
 
   // Admin: View all service requests with filters
@@ -82,4 +84,3 @@ export class ServiceRequestsController {
     return result;
   }
 }
-

@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { LoginRateLimitService } from './login-rate-limit.service';
 import { AuditLogService } from '../audit/audit-log.service';
+import type { AuthAudience } from './auth-cookie';
 
 @Injectable()
 export class AuthService {
@@ -34,7 +35,7 @@ export class AuthService {
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.role, 'customer');
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
 
     const { password, refreshToken, ...userWithoutSecrets } = user;
@@ -54,7 +55,7 @@ export class AuthService {
       throw new ForbiddenException('Tài khoản đã bị khóa');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.role, 'customer');
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
 
     const { password, refreshToken: rt, ...userWithoutSecrets } = user;
@@ -72,7 +73,7 @@ export class AuthService {
     return userWithoutSecrets;
   }
 
-  async refreshTokens(userId: number, oldRefreshToken: string) {
+  async refreshTokens(userId: number, oldRefreshToken: string, audience: AuthAudience) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || !user.refreshToken) {
       throw new ForbiddenException('Truy cập bị từ chối');
@@ -87,7 +88,7 @@ export class AuthService {
       throw new ForbiddenException('Truy cập bị từ chối');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.role, audience);
     await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
     return tokens;
   }
@@ -110,7 +111,7 @@ export class AuthService {
         throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
       }
 
-      if (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN') {
+      if (!['STAFF', 'ADMIN', 'SUPERADMIN'].includes(user.role)) {
         throw new ForbiddenException('Truy cập bị từ chối');
       }
 
@@ -121,7 +122,7 @@ export class AuthService {
       this.loginRateLimitService.recordSuccess(ip, dto.email);
       this.auditLogService.auditSuccess(req, 'AUTH_LOGIN_SUCCESS', 'auth', String(user.id), { email: dto.email }, 'Admin login successful');
 
-      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      const tokens = await this.generateTokens(user.id, user.email, user.role, 'admin');
       await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
 
       const expiresAt = Date.now() + 15 * 60 * 1000; // 15 phút
@@ -176,8 +177,8 @@ export class AuthService {
     await this.logout(userId);
   }
 
-  private async generateTokens(userId: number, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  private async generateTokens(userId: number, email: string, role: string, audience: AuthAudience) {
+    const payload = { sub: userId, email, role, aud: audience };
 
     const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET');

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Phone, Mail, MapPin, Clock, ShieldCheck, Heart, Award, FileText, Calendar } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, ShieldCheck, Heart, Award, Calendar } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 
 export default function Footer() {
@@ -14,19 +14,19 @@ export default function Footer() {
   };
 
   const categoriesLinks = [
-    { name: 'Điều hòa chính hãng', path: '/products?categoryId=dieu-hoa' },
-    { name: 'Tủ lạnh cao cấp Inverter', path: '/products?categoryId=tu-lanh' },
-    { name: 'Máy giặt & Máy sấy quần áo', path: '/products?categoryId=may-giat' },
-    { name: 'Bình nóng lạnh an toàn', path: '/products?categoryId=binh-nong-lanh' },
-    { name: 'Linh kiện thiết bị điện lạnh', path: '/products?categoryId=linh-kien' },
-    { name: 'Dịch vụ sửa chữa & Bảo dưỡng', path: '/services' },
+    { name: 'Sửa chữa điều hòa', path: '/service-booking?appliance=Điều hòa' },
+    { name: 'Sửa chữa tủ lạnh', path: '/service-booking?appliance=Tủ lạnh' },
+    { name: 'Sửa chữa máy giặt', path: '/service-booking?appliance=Máy giặt' },
+    { name: 'Sửa bình nóng lạnh', path: '/service-booking?appliance=Bình nóng lạnh' },
+    { name: 'Vệ sinh & bảo dưỡng', path: '/service-booking?appliance=Vệ sinh định kỳ' },
+    { name: 'Tất cả dịch vụ', path: '/services' },
   ];
 
   const supportLinks = [
     { name: 'Giới thiệu về Điện Lạnh 247', path: '/about' },
     { name: 'Đặt lịch thợ kỹ thuật nhanh', path: '/service-booking' },
     { name: 'Chính sách bảo hành dịch vụ', path: '/policy/warranty' },
-    { name: 'Chính sách lắp đặt giao nhận', path: '/policy/shipping' },
+    { name: 'Quy trình phục vụ tại nhà', path: '/policy/service-process' },
     { name: 'Chính sách bảo mật thông tin', path: '/policy/privacy' },
     { name: 'Gửi yêu cầu liên hệ / Góp ý', path: '/contact' },
   ];
@@ -41,8 +41,8 @@ export default function Footer() {
               <Award className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-white">Cam kết chính hãng 100%</h4>
-              <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">Đền bù gấp đôi nếu phát hiện hàng giả, hàng nhái kém chất lượng. Đầy đủ CO/CQ từ Daikin, Panasonic...</p>
+              <h4 className="text-xs font-bold text-white">Linh kiện minh bạch, đúng chuẩn</h4>
+              <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">Mọi linh kiện thay thế đều được tư vấn nguồn gốc, báo giá rõ ràng và chỉ lắp sau khi khách hàng đồng ý.</p>
             </div>
           </div>
           <div className="flex gap-4 items-start">
@@ -81,7 +81,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-3xs md:text-2xs text-slate-400 leading-relaxed">
-              Điện Lạnh 247 là hệ thống kỹ thuật điện lạnh toàn diện, cung cấp thiết bị chính hãng và dịch vụ sửa chữa, bảo dưỡng chuyên nghiệp hàng đầu tại Việt Nam.
+              Điện Lạnh 247 cung cấp dịch vụ kiểm tra, sửa chữa và bảo dưỡng điện lạnh tận nhà với quy trình minh bạch, chuyên nghiệp.
             </p>
             <div className="flex flex-col gap-2 mt-2">
               <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Khung giờ hoạt động</span>
@@ -94,13 +94,13 @@ export default function Footer() {
 
           {/* Column 2: Categories */}
           <div>
-            <h3 className="text-xs font-bold text-white tracking-wider uppercase mb-5">Danh mục nổi bật</h3>
+            <h3 className="text-sm font-bold text-white tracking-wider uppercase mb-5">Dịch vụ nổi bật</h3>
             <ul className="space-y-3">
               {categoriesLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.path}
-                    className="text-2xs text-slate-400 hover:text-cyan-400 transition-colors"
+                    className="text-sm text-slate-400 hover:text-cyan-400 transition-colors"
                   >
                     {link.name}
                   </Link>
@@ -111,13 +111,13 @@ export default function Footer() {
 
           {/* Column 3: Customer Support Links */}
           <div>
-            <h3 className="text-xs font-bold text-white tracking-wider uppercase mb-5">Hỗ trợ khách hàng</h3>
+            <h3 className="text-sm font-bold text-white tracking-wider uppercase mb-5">Hỗ trợ khách hàng</h3>
             <ul className="space-y-3">
               {supportLinks.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.path}
-                    className="text-2xs text-slate-400 hover:text-cyan-400 transition-colors"
+                    className="text-sm text-slate-400 hover:text-cyan-400 transition-colors"
                   >
                     {link.name}
                   </Link>
@@ -156,15 +156,15 @@ export default function Footer() {
 
             {/* Quick Service Tracking */}
             <div className="border-t border-slate-900/60 pt-4 flex flex-col gap-2.5">
-              <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Theo dõi đơn đặt của bạn</h4>
+              <h4 className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Theo dõi yêu cầu của bạn</h4>
               <div className="flex gap-2">
                 <Link to="/my-services" className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-white/5 border border-white/8 hover:bg-white/10 text-3xs font-extrabold text-white rounded-lg transition-all shrink-0">
                   <Calendar className="w-3 h-3 text-cyan-400" />
                   Lịch sửa chữa
                 </Link>
-                <Link to="/account?tab=orders" className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-white/5 border border-white/8 hover:bg-white/10 text-3xs font-extrabold text-white rounded-lg transition-all shrink-0">
-                  <FileText className="w-3 h-3 text-orange-400" />
-                  Đơn mua hàng
+                <Link to="/track-service" className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-white/5 border border-white/8 hover:bg-white/10 text-3xs font-extrabold text-white rounded-lg transition-all shrink-0">
+                  <Calendar className="w-3 h-3 text-orange-400" />
+                  Tra cứu yêu cầu
                 </Link>
               </div>
             </div>

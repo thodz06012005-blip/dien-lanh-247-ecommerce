@@ -1,0 +1,10 @@
+const technicianView = (request, db, includePhone = false) => {
+  const tech = (db.technicians || []).find(item => item.id === request.assignedTechnicianId);
+  return tech ? { id: tech.id, name: tech.name, ...(includePhone ? { phone: tech.phone } : {}), avatar: tech.avatar, rating: Number(tech.rating || 0), skills: tech.skills || [] } : null;
+};
+const core = request => ({ id: request.id, serviceCategoryId: request.serviceCategoryId, applianceType: request.applianceType, issueDescription: request.issueDescription, preferredDate: request.preferredDate, preferredTimeSlot: request.preferredTimeSlot, district: request.district, status: request.status, estimatedPrice: Number(request.estimatedPrice || 0), finalPrice: Number(request.finalPrice || 0), paymentStatus: request.paymentStatus, createdAt: request.createdAt, updatedAt: request.updatedAt });
+const customerDetail = (request, db) => ({ ...core(request), customerName: request.customerName, customerPhone: request.customerPhone, customerAddress: request.customerAddress, note: request.note, images: request.images || [], statusHistory: request.statusHistory || [], technician: technicianView(request, db, true) });
+const guestDetail = (request, db) => ({ ...core(request), technician: technicianView(request, db) });
+const adminList = (request, db) => ({ ...core(request), customerName: request.customerName, customerPhone: request.customerPhone, customerAddress: request.customerAddress, priority: request.priority, assignedTechnicianId: request.assignedTechnicianId, technician: technicianView(request, db, true) });
+const adminDetail = (request, db) => ({ ...adminList(request, db), note: request.note, images: request.images || [], mediaMetadata: request.mediaMetadata || [], inspectionNote: request.inspectionNote, customerApprovalStatus: request.customerApprovalStatus, customerApprovedAt: request.customerApprovedAt, statusHistory: request.statusHistory || [], activityLog: request.activityLog || [] });
+module.exports = { customerDetail, guestDetail, adminList, adminDetail };

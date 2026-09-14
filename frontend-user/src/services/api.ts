@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config/runtime';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v1',
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -24,7 +25,8 @@ api.interceptors.response.use(
         await api.post('/auth/refresh');
         return api(originalRequest);
       } catch (refreshError) {
-        window.location.hash = '#/login';
+        const { useAuthStore } = await import('../store/authStore');
+        useAuthStore.getState().clearAuth();
         return Promise.reject(refreshError);
       }
     }
@@ -33,4 +35,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-

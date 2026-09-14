@@ -1,5 +1,18 @@
 # HỢP ĐỒNG API (API CONTRACT) - ĐIỆN LẠNH 247 PLATFORM
 
+> **Phạm vi release 2026-09-13:** `SERVICE_ONLY=true`. Endpoint commerce được liệt kê trong tài liệu này chỉ là baseline/rollback contract và phải trả `404 FEATURE_DISABLED` ở Mock hoặc không được đăng ký ở Nest trong service-only mode. Không xóa dữ liệu commerce trong bước này.
+
+## 0. BASELINE ROUTE/API TRƯỚC KHI KHÓA PHẠM VI
+
+- Baseline commit: `65cddd2`; tag: `audit-service-only-baseline-20260913`.
+- Mock base: `http://localhost:3001/api/v1`; Nest base: `http://localhost:3000/api/v1`.
+- Public service: `GET /health`, `GET /settings/public`, `GET /service-categories`, `POST /service-requests`, tra cứu/theo dõi service request.
+- Admin service: auth, dashboard, service requests, technicians, settings, finance, audit logs và customers.
+- Technician: auth, jobs, decision, progress, inspection, completion và earnings.
+- Commerce baseline (inactive khi service-only): products, categories, brands, cart, orders và admin products/orders.
+
+Mock phản hồi header `X-DL247-Backend: MOCK`; Nest phản hồi `X-DL247-Backend: REAL`. Cả hai phản hồi `X-DL247-Service-Only` để QA xác định đúng backend và scope.
+
 Tài liệu này đặc tả toàn bộ hệ thống API hiện tại giữa cổng người dùng (`frontend-user`), cổng quản trị (`frontend-admin`) và máy chủ API mô phỏng (`mock-api`). Tài liệu này đóng vai trò làm tài liệu kỹ thuật chuẩn để xây dựng và migrate sang backend NestJS thật sau này.
 
 ---
@@ -21,7 +34,7 @@ Tài liệu này đặc tả toàn bộ hệ thống API hiện tại giữa c�
 * `assigned`: Đã phân công (Đã gán kỹ thuật viên phụ trách).
 * `completed`: Hoàn thành (Đã sửa chữa xong và thu tiền).
 * `cancelled`: Đã hủy.
-* *Lưu ý: Chưa áp dụng trạng thái `in_progress` ở thời điểm hiện tại.*
+* `in_progress`: Kỹ thuật viên đang kiểm tra hoặc sửa chữa; trạng thái này đang được áp dụng.
 
 ### 2.2 ServiceRequestPriority (Độ ưu tiên dịch vụ)
 * `low`: Thấp.
@@ -249,8 +262,8 @@ Mọi tên quận huyện đều phải dùng định dạng chuẩn hóa có ti
 * **Request Body:**
   ```json
   {
-    "email": "owner@dienlanh247.vn",
-    "password": "Admin@123"
+    "email": "<DEMO_ADMIN_EMAIL hoặc ADMIN_SEED_EMAIL>",
+    "password": "<secret từ environment>"
   }
   ```
 * **Response thành công (200):** Trả về Bearer Token để client sử dụng cho các request tiếp theo.
@@ -397,3 +410,37 @@ Khi tiến hành xây dựng backend thật bằng NestJS, cần lưu ý các đ
    * Endpoint tạo đơn hàng phải cho phép khách vãng lai đặt hàng mà không bắt buộc đính kèm JWT token của tài khoản người dùng.
 3. **Logic đồng bộ trạng thái tự động:**
    * Phân hệ Service Request và Technician yêu cầu cơ chế đồng bộ trạng thái tự động (Event-driven hoặc Transactional). Khi trạng thái của Service Request thay đổi, trạng thái của Technician tương ứng phải được cập nhật ngay lập tức trong cùng một transaction để tránh lệch dữ liệu.
+
+## Admin service-only surface (Stage 1)
+
+The active Admin runtime no longer exposes product or order management pages. Legacy Admin URLs under `/products` and `/orders` redirect to the service dispatch dashboard with a retirement notice.
+
+`GET /admin/dashboard` returns service operations only: `pending`, `overdue`, `unassigned`, `inProgress`, `completedToday`, `serviceRevenueToday`, `collectedToday`, and `techniciansAvailable`.
+
+`GET /admin/customers` returns only customers with at least one service request. Its active metrics are `serviceRequestCount`, `completedServiceCount`, `lastServiceAt`, `serviceRevenue`, and `serviceDebt`. Legacy customers that only have commerce orders are excluded from this view.
+
+## Customer and backend commerce retirement (Stage 1.4–1.6)
+
+The customer application no longer registers or bundles product browsing, product details, cart, checkout, or order-history screens. Legacy customer URLs are handled by the application fallback and never invoke commerce APIs.
+
+With `SERVICE_ONLY=true`, Nest does not load/register Products, Categories, Brands, Cart, Orders, or VNPay modules. Mock follows the same surface: commerce routers are not required or mounted, while an early retirement guard consistently returns HTTP `404` for all methods under `/products`, `/categories`, `/brands`, `/cart`, `/orders`, `/admin/products`, and `/admin/orders`.
+
+Legacy Prisma models, migrations, Mock route files, and JSON commerce records are intentionally retained for rollback and migration. They are not part of the active service-only runtime.
+
+## Authentication bootstrap and Admin authorization (Stage 2.4–2.5)
+
+`GET /auth/me` and `GET /admin/auth/me` are the authoritative session bootstrap endpoints. A cached browser profile is never proof of authentication. Missing, expired, revoked, inactive, or wrong-audience sessions return `401`; clients clear sensitive query/profile caches and enter the anonymous state without briefly rendering protected routes.
+
+Admin authorization is enforced by the API even when the UI hides an action. `STAFF` may read the service dashboard, requests, and technicians and perform permitted request status updates. `ADMIN` additionally manages assignment/technicians and reads customers and finance summaries. `SUPERADMIN` exclusively manages settings, finance corrections/settlements/audit access, technician deletion, PIN reset, and user-role administration. A role removed or changed in the database takes effect on the next protected request because Nest resolves the current account state in `RolesGuard`.
+
+## Service request ownership and guest lookup (Stage 3)
+
+Authenticated bookings derive nullable `ServiceRequest.userId` exclusively from the customer JWT. The request body never accepts ownership fields. Customer history uses `GET /me/service-requests` and `GET /me/service-requests/:id`, both filtered by the authenticated `userId`; phone remains a historical contact snapshot only. Guest bookings retain `userId=null` even if their phone matches an account.
+
+Public phone-based history and direct `GET /service-requests/:id?phone=...` access are retired. Guest lookup is request-scoped:
+
+1. `POST /service-requests/lookup/request-otp` with `{ requestCode, phone }` always returns the same generic `202` message. Issuance is throttled by IP and request code.
+2. `POST /service-requests/lookup/verify` with `{ requestCode, otp }` enforces expiry and five attempts, then returns a random, short-lived lookup token.
+3. `GET /service-requests/lookup/:id` requires `Authorization: Lookup <token>`. A token issued for request A cannot read request B.
+
+Responses are mapped explicitly by actor. Guest responses exclude customer phone/address, notes, media and internal history; customer detail includes only the customer's request snapshot; Admin list excludes heavy media/history; Admin detail and technician job views each use their own allowlist. New persistence fields are therefore private until deliberately added to a mapper.

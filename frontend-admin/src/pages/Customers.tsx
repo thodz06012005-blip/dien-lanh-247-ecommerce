@@ -15,8 +15,11 @@ interface Customer {
   name: string;
   phone: string;
   email: string;
-  orderCount: number;
-  totalSpent: number;
+  serviceRequestCount: number;
+  completedServiceCount: number;
+  lastServiceAt: string;
+  serviceRevenue: number;
+  serviceDebt: number;
   createdAt: string;
 }
 
@@ -68,28 +71,39 @@ export default function Customers() {
       render: (row) => row.email ? <span className="text-sm text-slate-500">{row.email}</span> : <span className="text-xs text-slate-400 italic">Không có</span>
     },
     {
-      title: 'Số đơn hàng',
-      key: 'orderCount',
-      render: (row) => <Badge variant="primary" pill>{row.orderCount || 0} đơn</Badge>
+      title: 'Yêu cầu dịch vụ',
+      key: 'serviceRequestCount',
+      render: (row) => <Badge variant="primary" pill>{row.serviceRequestCount || 0} yêu cầu</Badge>
     },
     {
-      title: 'Tổng chi tiêu',
-      key: 'totalSpent',
+      title: 'Đã hoàn thành',
+      key: 'completedServiceCount',
+      render: (row) => <Badge variant="success" pill>{row.completedServiceCount || 0} lần</Badge>
+    },
+    {
+      title: 'Doanh thu dịch vụ',
+      key: 'serviceRevenue',
       className: 'text-right',
       render: (row) => (
         <strong className="text-blue-600 font-bold text-sm">
-          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(row.totalSpent || 0)}
+          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(row.serviceRevenue || 0)}
         </strong>
       )
     },
     {
-      title: 'Ngày tham gia',
-      key: 'createdAt',
+      title: 'Công nợ',
+      key: 'serviceDebt',
+      className: 'text-right',
+      render: (row) => <strong className={row.serviceDebt ? 'text-amber-600' : 'text-slate-400'}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(row.serviceDebt || 0)}</strong>
+    },
+    {
+      title: 'Phục vụ gần nhất',
+      key: 'lastServiceAt',
       render: (row) => {
         try {
-          return <span className="text-slate-500 font-medium text-xs">{new Date(row.createdAt).toLocaleDateString('vi-VN')}</span>;
+          return <span className="text-slate-500 font-medium text-xs">{new Date(row.lastServiceAt).toLocaleDateString('vi-VN')}</span>;
         } catch {
-          return row.createdAt;
+          return row.lastServiceAt;
         }
       }
     }
@@ -116,7 +130,7 @@ export default function Customers() {
             Quản lý khách hàng
           </h1>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            Danh sách khách mua hàng trên hệ thống Điện Lạnh 247.
+            Danh sách khách đã gửi yêu cầu dịch vụ, tiến độ phục vụ và doanh thu thực tế.
           </p>
         </div>
 

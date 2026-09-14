@@ -7,16 +7,14 @@ async function main() {
   console.log('Seeding database...');
 
   // 1. Create Admins & Users
-  const seedEmail = process.env.ADMIN_SEED_EMAIL || 'admin@dienlanh247.vn';
-  const seedPassword = process.env.ADMIN_SEED_PASSWORD;
+  const demoEnabled = process.env.ENABLE_DEMO_ACCOUNTS === 'true' && process.env.NODE_ENV !== 'production';
+  const seedEmail = demoEnabled ? process.env.DEMO_ADMIN_EMAIL : process.env.ADMIN_SEED_EMAIL;
+  const seedPassword = demoEnabled ? process.env.DEMO_ADMIN_PASSWORD : process.env.ADMIN_SEED_PASSWORD;
 
-  if (!seedPassword) {
-    throw new Error('Missing required environment variable: ADMIN_SEED_PASSWORD');
+  if (!seedEmail || !seedPassword) {
+    throw new Error(`Missing ${demoEnabled ? 'DEMO_ADMIN_EMAIL/DEMO_ADMIN_PASSWORD' : 'ADMIN_SEED_EMAIL/ADMIN_SEED_PASSWORD'}`);
   }
-
-  if (seedPassword.length < 12) {
-    throw new Error('ADMIN_SEED_PASSWORD must be at least 12 characters long');
-  }
+  if (seedPassword.length < 12) throw new Error('Admin seed password must be at least 12 characters long');
 
   const adminPasswordHash = await bcrypt.hash(seedPassword, 10);
   const admin = await prisma.user.upsert({

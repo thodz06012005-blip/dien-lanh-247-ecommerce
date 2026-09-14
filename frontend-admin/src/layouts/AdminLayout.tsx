@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Package,
-  ShoppingBag,
   Users,
   Settings as SettingsIcon,
   Menu,
@@ -13,10 +11,12 @@ import {
   Search,
   Bell,
   ChevronDown,
-  Wrench
+  Wrench,
+  BadgeDollarSign
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAdminAuthStore } from '../store/adminAuthStore';
+import { can, type Permission } from '../auth/permissions';
 
 export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -45,46 +45,38 @@ export default function AdminLayout() {
     {
       title: 'Chính',
       items: [
-        { path: '/', label: 'Tổng quan', icon: <LayoutDashboard className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/orders', label: 'Đơn hàng', icon: <ShoppingBag className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/products', label: 'Sản phẩm', icon: <Package className="h-[18px] w-[18px] shrink-0" /> },
+        { path: '/', label: 'Tổng quan', permission: 'dashboard.read' as Permission, icon: <LayoutDashboard className="h-[18px] w-[18px] shrink-0" /> },
       ]
     },
     {
       title: 'Dịch vụ',
       items: [
-        { path: '/service-requests', label: 'Yêu cầu sửa chữa', icon: <Wrench className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/technicians', label: 'Quản lý thợ kỹ thuật', icon: <Users className="h-[18px] w-[18px] shrink-0" /> },
+        { path: '/service-requests', label: 'Yêu cầu sửa chữa', permission: 'requests.read' as Permission, icon: <Wrench className="h-[18px] w-[18px] shrink-0" /> },
+        { path: '/technicians', label: 'Quản lý thợ kỹ thuật', permission: 'technicians.read' as Permission, icon: <Users className="h-[18px] w-[18px] shrink-0" /> },
+        { path: '/finance', label: 'Doanh thu & đối soát', permission: 'finance.read' as Permission, icon: <BadgeDollarSign className="h-[18px] w-[18px] shrink-0" /> },
       ]
     },
     {
       title: 'Quản lý',
       items: [
-        { path: '/customers', label: 'Khách hàng', icon: <Users className="h-[18px] w-[18px] shrink-0" /> },
-        { path: '/settings', label: 'Cài đặt', icon: <SettingsIcon className="h-[18px] w-[18px] shrink-0" /> }
+        { path: '/customers', label: 'Khách hàng', permission: 'customers.read' as Permission, icon: <Users className="h-[18px] w-[18px] shrink-0" /> },
+        { path: '/settings', label: 'Cài đặt', permission: 'settings.manage' as Permission, icon: <SettingsIcon className="h-[18px] w-[18px] shrink-0" /> }
       ]
     }
   ];
 
   const breadcrumbs: Record<string, string> = {
     '/': 'Tổng quan hệ thống',
-    '/orders': 'Quản lý Đơn hàng',
-    '/products': 'Quản lý Sản phẩm',
     '/customers': 'Quản lý Khách hàng',
     '/settings': 'Cài đặt Hệ thống',
     '/service-requests': 'Yêu cầu dịch vụ sửa chữa',
     '/technicians': 'Quản lý Thợ kỹ thuật',
+    '/finance': 'Doanh thu & Đối soát dịch vụ',
   };
 
   const getBreadcrumbTitle = (pathname: string) => {
     if (pathname.startsWith('/service-requests/')) {
       return 'Yêu cầu sửa chữa / Chi tiết yêu cầu';
-    }
-    if (pathname.startsWith('/orders/')) {
-      return 'Quản lý Đơn hàng / Chi tiết đơn hàng';
-    }
-    if (pathname.startsWith('/products/')) {
-      return 'Quản lý Sản phẩm / Chi tiết sản phẩm';
     }
     if (pathname.startsWith('/technicians/')) {
       return 'Quản lý Thợ kỹ thuật / Chi tiết thợ';
@@ -121,7 +113,7 @@ export default function AdminLayout() {
                 {group.title}
               </span>
             )}
-            {group.items.map((item) => {
+            {group.items.filter(item => can(admin?.role, item.permission)).map((item) => {
               const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
               return (
                 <Link

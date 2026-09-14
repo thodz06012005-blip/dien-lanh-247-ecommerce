@@ -53,10 +53,10 @@ export default function About() {
             Hơn 10 năm đồng hành mang làn gió mát lành tới gia đình Việt
           </h2>
           <p>
-            Được thành lập từ năm 2016, khởi điểm từ một đội thợ sửa chữa điều hòa nhỏ tại Hà Nội, <strong>Điện Lạnh 247</strong> đã không ngừng nỗ lực, cải tiến quy trình phục vụ để vươn lên thành một trong những hệ thống cung cấp thiết bị điện máy và dịch vụ bảo trì uy tín hàng đầu tại Việt Nam.
+            Được thành lập từ năm 2016, khởi điểm từ một đội thợ sửa chữa điều hòa nhỏ tại Hà Nội, <strong>Điện Lạnh 247</strong> đã không ngừng nỗ lực, cải tiến quy trình phục vụ để vươn lên thành một trong những hệ thống sửa chữa và bảo trì điện lạnh uy tín tại Việt Nam.
           </p>
           <p>
-            Chúng tôi nhận thấy khách hàng khi mua điều hòa, tủ lạnh lớn thường gặp khó khăn trong khâu lắp đặt: thợ ngoài lắp sai kỹ thuật gây rò gas, chảy nước dàn lạnh, hoặc bảo hành chậm trễ trong những ngày nắng nóng đỉnh điểm. Vì vậy, Điện Lạnh 247 tiên phong mô hình <strong>"Sản phẩm chuẩn hãng - Lắp ráp chuẩn kỹ thuật - Bảo hành kép siêu tốc"</strong>.
+            Chúng tôi nhận thấy khách hàng thường khó tìm được thợ đúng chuyên môn, báo giá rõ ràng và hỗ trợ kịp thời. Vì vậy, Điện Lạnh 247 xây dựng quy trình <strong>"Đúng lịch hẹn - Đúng chẩn đoán - Minh bạch chi phí"</strong>.
           </p>
           <p>
             Đến nay, chúng tôi tự hào được phục vụ hàng vạn hộ gia đình, căn hộ trọ, văn phòng công ty và nhận được sự hài lòng tối đa của đối tác nhờ tay nghề kỹ thuật vững vàng và sự trung thực tuyệt đối của nhân viên.

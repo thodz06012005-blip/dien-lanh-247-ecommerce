@@ -1,198 +1,94 @@
-import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../services/api';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
+import { Building2, CheckCircle2, Save, Settings as SettingsIcon, SlidersHorizontal } from 'lucide-react';
+import api from '../services/api';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import LoadingState from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
-import { Save, Settings as SettingsIcon } from 'lucide-react';
+import BusinessConfigEditor from '../features/settings/components/BusinessConfigEditor';
+import type { SystemSettings } from '../types/businessConfig';
+
+type PageTab = 'business' | 'contact';
 
 export default function Settings() {
-  const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
-    storeName: '',
-    hotline: '',
-    zalo: '',
-    email: '',
-    address: '',
-    shippingFee: 30000,
-    freeShippingThreshold: 10000000
-  });
-
-  // Fetch settings
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin-settings'],
-    queryFn: async () => {
-      const res = await api.get('/admin/settings');
-      return res.data;
-    }
+    queryFn: async () => (await api.get('/admin/settings')).data,
   });
 
-  // Update settings mutation
+  if (isLoading) return <LoadingState message="Đang tải cấu hình nghiệp vụ..." />;
+  if (error || !data?.success || !data.data) return <EmptyState message="Lỗi kết nối dữ liệu" subMessage="Không thể tải cấu hình hệ thống từ máy chủ." />;
+
+  return <SettingsForm key={data.data.updatedAt || 'settings-form'} initialData={data.data} />;
+}
+
+function SettingsForm({ initialData }: { initialData: SystemSettings }) {
+  const queryClient = useQueryClient();
+  const [pageTab, setPageTab] = useState<PageTab>('business');
+  const [saved, setSaved] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [formData, setFormData] = useState<SystemSettings>(initialData);
   const updateSettings = useMutation({
-    mutationFn: async (values: typeof formData) => {
-      return api.patch('/admin/settings', values);
-    },
+    mutationFn: async (values: SystemSettings) => api.patch('/admin/settings', values),
     onSuccess: () => {
-      alert('Cập nhật cấu hình hệ thống thành công');
+      setSaved(true);
+      setErrorMessage('');
+      window.setTimeout(() => setSaved(false), 3500);
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
     },
-    onError: (err: AxiosError<{ message?: string }>) => {
-      alert(err.response?.data?.message || 'Có lỗi xảy ra khi lưu cấu hình');
-    }
+    onError: (err: AxiosError<{ message?: string; errors?: { message: string }[] }>) => {
+      const details = err.response?.data?.errors?.[0]?.message;
+      setErrorMessage(details || err.response?.data?.message || 'Không thể lưu cấu hình. Vui lòng kiểm tra lại dữ liệu.');
+    },
   });
 
-  // Populate form values when data loads
-  useEffect(() => {
-    if (data?.data) {
-      const timer = setTimeout(() => {
-        setFormData(data.data);
-      }, 0);
-      return () => clearTimeout(timer);
+  const setField = <K extends keyof SystemSettings>(key: K, value: SystemSettings[K]) => setFormData(prev => ({ ...prev, [key]: value }));
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!formData.storeName.trim() || !formData.hotline.trim() || !formData.zalo.trim()) {
+      setErrorMessage('Tên cửa hàng, Hotline và Zalo là các trường bắt buộc.');
+      return;
     }
-  }, [data]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === 'shippingFee' || name === 'freeShippingThreshold' ? Number(value || 0) : value
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.storeName || !formData.hotline || !formData.zalo) {
-      alert('Vui lòng nhập đầy đủ các trường bắt buộc (Tên cửa hàng, Hotline, Zalo)');
+    if (!formData.businessConfig.appliances.length || !formData.businessConfig.serviceAreas.length || !formData.businessConfig.timeSlots.length) {
+      setErrorMessage('Cần có ít nhất một thiết bị, khu vực và khung giờ phục vụ.');
       return;
     }
     updateSettings.mutate(formData);
   };
 
-  if (isLoading) {
-    return <LoadingState message="Đang tải cấu hình hệ thống..." />;
-  }
-
-  if (error || !data?.success) {
-    return (
-      <EmptyState
-        message="Lỗi kết nối dữ liệu"
-        subMessage="Không thể tải dữ liệu cấu hình hệ thống từ Mock API Server."
-      />
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-8 max-w-4xl mx-auto pb-10">
+  return <form onSubmit={handleSubmit} className="mx-auto flex max-w-7xl flex-col gap-6 pb-28">
+    <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-950 flex items-center gap-2">
-          <SettingsIcon className="w-6 h-6 text-blue-600" />
-          Cấu hình hệ thống
-        </h1>
-        <p className="mt-1 text-sm leading-6 text-slate-500">
-          Thiết lập các thông số liên hệ, địa chỉ và phí ship của Điện Lạnh 247.
-        </p>
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-blue-600"><SlidersHorizontal className="h-4 w-4" />Giai đoạn 0 · Chuẩn nghiệp vụ</div>
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-950"><SettingsIcon className="h-6 w-6 text-blue-600" />Cấu hình vận hành</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">Nguồn dữ liệu thống nhất cho website khách hàng, bộ phận điều phối và hệ thống báo cáo. Thay đổi chỉ có hiệu lực sau khi bấm lưu.</p>
       </div>
-
-      <div className="flex flex-col gap-6">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 md:p-8 flex flex-col gap-6">
-            
-            {/* Section 1: Thông tin chung */}
-            <div className="flex flex-col gap-4">
-              <h3 className="text-[15px] font-semibold text-slate-900 flex items-center gap-2 mb-1 border-b border-slate-100 pb-3">
-                <div className="w-1.5 h-4 bg-blue-600 rounded-full"></div>
-                Thông tin chung
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Tên cửa hàng (*)"
-                  name="storeName"
-                  value={formData.storeName}
-                  onChange={handleChange}
-                  required
-                />
-                <Input
-                  label="Email liên hệ"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-              <Input
-                label="Địa chỉ trụ sở chính"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* Section 2: Hotline & Zalo */}
-            <div className="flex flex-col gap-4 pt-4 mt-2">
-              <h3 className="text-[15px] font-semibold text-slate-900 flex items-center gap-2 mb-1 border-b border-slate-100 pb-3">
-                <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
-                Kênh liên hệ tư vấn
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Số điện thoại Hotline (*)"
-                  name="hotline"
-                  value={formData.hotline}
-                  onChange={handleChange}
-                  required
-                />
-                <Input
-                  label="Số điện thoại Zalo tư vấn (*)"
-                  name="zalo"
-                  value={formData.zalo}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Section 3: Vận chuyển */}
-            <div className="flex flex-col gap-4 pt-4 mt-2">
-              <h3 className="text-[15px] font-semibold text-slate-900 flex items-center gap-2 mb-1 border-b border-slate-100 pb-3">
-                <div className="w-1.5 h-4 bg-purple-500 rounded-full"></div>
-                Chính sách vận chuyển
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Phí vận chuyển mặc định (VNĐ)"
-                  name="shippingFee"
-                  type="number"
-                  value={formData.shippingFee}
-                  onChange={handleChange}
-                  required
-                />
-                <Input
-                  label="Ngưỡng miễn phí vận chuyển (VNĐ)"
-                  name="freeShippingThreshold"
-                  type="number"
-                  value={formData.freeShippingThreshold}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Submit */}
-            <div className="flex justify-end pt-6 mt-2 border-t border-slate-100">
-              <Button
-                type="submit"
-                isLoading={updateSettings.isPending}
-                leftIcon={<Save className="w-4 h-4" />}
-                className="py-2.5 px-6 rounded-xl font-bold flex items-center gap-2"
-              >
-                Lưu thay đổi
-              </Button>
-            </div>
-          </div>
-        </form>
+      <div className="flex items-center gap-3">
+        {saved && <span className="flex items-center gap-2 text-sm font-semibold text-emerald-700"><CheckCircle2 className="h-5 w-5" />Đã lưu thành công</span>}
+        <Button type="submit" isLoading={updateSettings.isPending} leftIcon={<Save className="h-4 w-4" />} className="min-h-11 px-6 font-bold">Lưu toàn bộ cấu hình</Button>
       </div>
     </div>
-  );
+
+    {errorMessage && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{errorMessage}</div>}
+
+    <div className="flex w-fit rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+      <button type="button" onClick={() => setPageTab('business')} className={`flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${pageTab === 'business' ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-50'}`}><SlidersHorizontal className="h-4 w-4" />Nghiệp vụ dịch vụ</button>
+      <button type="button" onClick={() => setPageTab('contact')} className={`flex min-h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold transition ${pageTab === 'contact' ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-50'}`}><Building2 className="h-4 w-4" />Thông tin cửa hàng</button>
+    </div>
+
+    {pageTab === 'business' ? <BusinessConfigEditor value={formData.businessConfig} onChange={businessConfig => setField('businessConfig', businessConfig)} /> : <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+      <div className="mb-6"><h2 className="text-lg font-bold text-slate-950">Thông tin cửa hàng và kênh liên hệ</h2><p className="mt-1 text-sm leading-6 text-slate-500">Thông tin này xuất hiện ở header, footer và các điểm hỗ trợ khách hàng.</p></div>
+      <div className="grid gap-5 md:grid-cols-2">
+        <Input label="Tên cửa hàng (*)" value={formData.storeName} onChange={e => setField('storeName', e.target.value)} required />
+        <Input label="Email liên hệ" type="email" value={formData.email} onChange={e => setField('email', e.target.value)} />
+        <Input label="Hotline (*)" type="tel" value={formData.hotline} onChange={e => setField('hotline', e.target.value)} required />
+        <Input label="Zalo tư vấn (*)" type="tel" value={formData.zalo} onChange={e => setField('zalo', e.target.value)} required />
+        <div className="md:col-span-2"><Input label="Địa chỉ trụ sở" value={formData.address} onChange={e => setField('address', e.target.value)} /></div>
+      </div>
+    </div>}
+
+    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-8px_24px_rgba(15,23,42,.06)] backdrop-blur md:hidden"><Button type="submit" isLoading={updateSettings.isPending} leftIcon={<Save className="h-4 w-4" />} className="min-h-12 w-full font-bold">Lưu toàn bộ cấu hình</Button></div>
+  </form>;
 }

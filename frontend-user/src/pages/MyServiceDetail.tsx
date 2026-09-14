@@ -18,6 +18,7 @@ const statusConfigs: Record<string, { label: string; colorClass: string; variant
   pending: { label: 'Chờ xác nhận', colorClass: 'bg-amber-50 text-amber-700 border-amber-200', variant: 'warning' },
   confirmed: { label: 'Đã xác nhận', colorClass: 'bg-sky-50 text-sky-700 border-sky-200', variant: 'info' },
   assigned: { label: 'Đã phân công', colorClass: 'bg-primary-50 text-primary-700 border-primary-100', variant: 'primary' },
+  in_progress: { label: 'Đang sửa chữa', colorClass: 'bg-cyan-50 text-cyan-700 border-cyan-100', variant: 'primary' },
   cancelled: { label: 'Đã hủy', colorClass: 'bg-slate-100 text-slate-500 border-slate-200', variant: 'neutral' },
   completed: { label: 'Hoàn thành', colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200', variant: 'success' },
 };
@@ -64,18 +65,16 @@ export default function MyServiceDetail() {
 
   const navigate = useNavigate();
   const { settings } = useSettings();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   // Fetch service request details
   const { data: requestRes, isLoading: isRequestLoading, error: requestError } = useQuery({
-    queryKey: ['service-request', id, user?.phone],
+    queryKey: ['service-request', id],
     queryFn: async () => {
-      const res = await api.get(`/service-requests/${id}`, {
-        params: { phone: user?.phone },
-      });
+      const res = await api.get(`/me/service-requests/${id}`);
       return res.data;
     },
-    enabled: !!id && isAuthenticated && !!user?.phone,
+    enabled: !!id && isAuthenticated,
   });
 
   // Fetch service categories to display names
@@ -112,24 +111,6 @@ export default function MyServiceDetail() {
     );
   }
 
-  if (isAuthenticated && !user?.phone) {
-    return (
-      <PageTransition>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center flex flex-col items-center justify-center min-h-[50vh]">
-          <div className="w-20 h-20 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-6 text-amber-500 border border-amber-100 mx-auto">
-            <ShieldAlert className="w-9 h-9" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800">Chưa có số điện thoại</h2>
-          <p className="text-xs text-slate-500 mt-2 max-w-sm leading-relaxed mx-auto">
-            Tài khoản của bạn chưa cập nhật số điện thoại. Vui lòng cập nhật số điện thoại trong mục thông tin tài khoản để tra cứu chi tiết yêu cầu.
-          </p>
-          <Button variant="primary" className="mt-6 rounded-xl text-xs py-2.5 px-6 font-bold" onClick={() => navigate('/account?tab=profile')}>
-            Cập nhật ngay
-          </Button>
-        </div>
-      </PageTransition>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -248,8 +229,9 @@ export default function MyServiceDetail() {
                         style={{
                           width:
                             currentStatus === 'pending' ? '0%' :
-                            currentStatus === 'confirmed' ? '33.33%' :
-                            currentStatus === 'assigned' ? '66.66%' :
+                            currentStatus === 'confirmed' ? '25%' :
+                            currentStatus === 'assigned' ? '50%' :
+                            currentStatus === 'in_progress' ? '75%' :
                             currentStatus === 'completed' ? '100%' : '0%'
                         }}
                       />
@@ -259,7 +241,7 @@ export default function MyServiceDetail() {
 
                 {/* Nodes */}
                 {(() => {
-                  const statusOrder = ['pending', 'confirmed', 'assigned', 'completed'];
+                  const statusOrder = ['pending', 'confirmed', 'assigned', 'in_progress', 'completed'];
                   const currentStatus = request.status;
                   const currentIdx = statusOrder.indexOf(currentStatus);
 
@@ -271,6 +253,7 @@ export default function MyServiceDetail() {
                     { label: 'Gửi yêu cầu', statusKey: 'pending' },
                     { label: 'Đã xác nhận', statusKey: 'confirmed' },
                     { label: 'Đã phân công', statusKey: 'assigned' },
+                    { label: 'Đang sửa', statusKey: 'in_progress' },
                     { label: 'Hoàn thành', statusKey: 'completed' }
                   ].map((step, idx) => {
                     const entry = getHistoryEntry(step.statusKey);
@@ -311,7 +294,7 @@ export default function MyServiceDetail() {
               {/* Mobile Timeline (Vertical) */}
               <div className="flex md:hidden flex-col gap-5 pl-4 relative before:absolute before:left-6 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
                 {(() => {
-                  const statusOrder = ['pending', 'confirmed', 'assigned', 'completed'];
+                  const statusOrder = ['pending', 'confirmed', 'assigned', 'in_progress', 'completed'];
                   const currentStatus = request.status;
                   const currentIdx = statusOrder.indexOf(currentStatus);
 
@@ -323,6 +306,7 @@ export default function MyServiceDetail() {
                     { label: 'Gửi yêu cầu', statusKey: 'pending', defaultDesc: 'Hệ thống đã tiếp nhận thông tin sự cố điện lạnh của khách hàng.' },
                     { label: 'Đã xác nhận', statusKey: 'confirmed', defaultDesc: 'Tổng đài viên đã kiểm tra thông tin và gọi điện chốt lịch hẹn sửa chữa.' },
                     { label: 'Đã phân công', statusKey: 'assigned', defaultDesc: 'Đã chỉ định kỹ thuật viên chuyên trách di chuyển đến địa chỉ sửa chữa.' },
+                    { label: 'Đang sửa chữa', statusKey: 'in_progress', defaultDesc: 'Kỹ thuật viên đang thực hiện công việc đã được khách hàng đồng ý.' },
                     { label: 'Hoàn tất dịch vụ', statusKey: 'completed', defaultDesc: 'Kiểm tra chạy thử ổn định, thanh toán và kích hoạt thời gian bảo hành.' }
                   ].map((step, idx) => {
                     const entry = getHistoryEntry(step.statusKey);

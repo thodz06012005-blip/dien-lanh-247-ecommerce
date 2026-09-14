@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Snowflake, AlertCircle, Loader2 } from 'lucide-react';
 import { useAdminAuthStore } from '../store/adminAuthStore';
+import axios from 'axios';
+import { API_BASE_URL } from '../config/runtime';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -9,6 +11,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [demoCredentials, setDemoCredentials] = useState<{ email: string; password: string } | null>(null);
+  const showDemoAccount = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'true';
   
   const navigate = useNavigate();
   const adminLogin = useAdminAuthStore((state) => state.login);
@@ -20,6 +24,13 @@ export default function Login() {
       navigate('/');
     }
   }, [isAuthenticated, checkAuth, navigate]);
+
+  React.useEffect(() => {
+    if (!showDemoAccount) return;
+    axios.get(`${API_BASE_URL}/dev/demo-credentials`)
+      .then((response) => setDemoCredentials(response.data.data))
+      .catch(() => setDemoCredentials(null));
+  }, [showDemoAccount]);
 
   const validateEmail = (val: string) => {
     return /\S+@\S+\.\S+/.test(val);
@@ -58,8 +69,9 @@ export default function Login() {
   };
 
   const fillCredentials = () => {
-    setEmail('owner@dienlanh247.vn');
-    setPassword('Admin@123');
+    if (!demoCredentials) return;
+    setEmail(demoCredentials.email);
+    setPassword(demoCredentials.password);
     setError(null);
   };
 
@@ -110,7 +122,7 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="owner@dienlanh247.vn"
+                  placeholder="admin@example.com"
                   className="block w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 hover:border-white/20 focus:border-cyan-400 focus:bg-white/[0.08] text-white rounded-xl text-sm placeholder-slate-500 outline-none transition duration-200"
                   autoComplete="email"
                   required
@@ -163,15 +175,15 @@ export default function Login() {
         </div>
 
         {/* Demo Credentials Box */}
-        {import.meta.env.DEV && (
+        {showDemoAccount && demoCredentials && (
           <div className="mt-6 bg-slate-900/40 backdrop-blur-sm border border-white/5 rounded-xl p-5 text-xs text-slate-400 text-center space-y-3">
             <p className="font-semibold text-slate-300">Tài khoản quản trị thử nghiệm (Security-1B):</p>
             <button
               onClick={fillCredentials}
               className="w-full max-w-xs mx-auto px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-cyan-500/20 rounded-lg text-slate-300 hover:text-cyan-300 transition text-[11px] font-medium text-center flex flex-col justify-center items-center cursor-pointer shadow-sm"
             >
-              <span className="font-bold text-white">owner@dienlanh247.vn</span>
-              <span>Mật khẩu: Admin@123</span>
+              <span className="font-bold text-white">{demoCredentials.email}</span>
+              <span>Mật khẩu: {demoCredentials.password}</span>
             </button>
           </div>
         )}

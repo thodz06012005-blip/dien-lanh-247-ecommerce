@@ -4,6 +4,7 @@ const STATUS_VARIANT_MAP: Record<string, 'warning' | 'info' | 'primary' | 'neutr
   pending: 'warning',
   confirmed: 'info',
   assigned: 'primary',
+  in_progress: 'primary',
   cancelled: 'neutral',
   completed: 'success',
 };
@@ -12,6 +13,7 @@ const STATUS_LABEL_MAP: Record<string, string> = {
   pending: 'Chờ xác nhận',
   confirmed: 'Đã xác nhận',
   assigned: 'Đã phân công',
+  in_progress: 'Đang sửa chữa',
   cancelled: 'Đã hủy',
   completed: 'Hoàn thành',
 };

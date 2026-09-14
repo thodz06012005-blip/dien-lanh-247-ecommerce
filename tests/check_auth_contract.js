@@ -1,0 +1,17 @@
+const assert = require('assert');
+const fs = require('fs');
+const read = (file) => fs.readFileSync(file, 'utf8');
+const access = read('backend/src/modules/auth/strategies/jwt.strategy.ts');
+const refresh = read('backend/src/modules/auth/strategies/jwt-refresh.strategy.ts');
+const cookies = read('backend/src/modules/auth/auth-cookie.ts');
+const adminApi = read('frontend-admin/src/services/api.ts');
+const login = read('frontend-admin/src/pages/Login.tsx');
+assert.match(access, /payload\.aud !== expectedAudience/);
+assert.match(refresh, /payload\.aud !== audience/);
+for (const name of ['customer_access', 'customer_refresh', 'admin_access', 'admin_refresh']) assert.ok(cookies.includes('`${audience}_') || cookies.includes(name));
+assert.match(adminApi, /let refreshPromise: Promise<void> \| null = null/);
+assert.match(adminApi, /!request\._retry && !isAuthEndpoint/);
+assert.doesNotMatch(login, /Admin@123|owner@dienlanh247\.vn/);
+const disabled = require('child_process').spawnSync(process.execPath, ['-e', "const auth=require('./mock-api/utils/auth'); if(auth.adminUsers.length) process.exit(1)"], { cwd: process.cwd(), env: { ...process.env, NODE_ENV: 'development', ENABLE_DEMO_ACCOUNTS: 'false', MOCK_ENABLE_DEMO_ACCOUNTS: 'false' } });
+assert.strictEqual(disabled.status, 0, 'disabled demo policy must create no Mock accounts');
+console.log('PASS: Nest audience/cookie, disabled demo and Admin single-flight source contract');

@@ -32,6 +32,7 @@ model User {
   orders         Order[]
   cart           Cart?
   reviews        Review[]
+  serviceRequests ServiceRequest[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -413,14 +414,33 @@ model ServiceRequest {
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 
+  userId               Int?
+  user                 User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   serviceCategoryId    String
   serviceCategory      ServiceCategory        @relation(fields: [serviceCategoryId], references: [id])
   assignedTechnicianId String?
   assignedTechnician   Technician?            @relation(fields: [assignedTechnicianId], references: [id])
+  lookupGrants         ServiceLookupGrant[]
 
   @@index([status])
   @@index([serviceCategoryId])
   @@index([assignedTechnicianId])
+  @@index([userId, createdAt])
+}
+
+model ServiceLookupGrant {
+  id               String         @id @default(cuid())
+  serviceRequestId String
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  tokenHash        String?        @unique
+  otpHash          String
+  attempts         Int            @default(0)
+  expiresAt        DateTime
+  usedAt           DateTime?
+  createdAt        DateTime       @default(now())
+
+  @@index([serviceRequestId, expiresAt])
 }
 
 model SystemSetting {
@@ -443,4 +463,3 @@ model Contact {
   message     String   @db.Text
   createdAt   DateTime @default(now())
 }
-

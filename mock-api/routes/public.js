@@ -39,26 +39,6 @@ const mapProductToUser = (p) => {
   };
 };
 
-// GET /api/v1
-router.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Điện Lạnh 247 Mock API v1 đang hoạt động ổn định!'
-  });
-});
-
-// GET /health
-router.get('/health', (req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: 'Mock API is running',
-    data: {
-      service: 'dl247-mock-api',
-      time: new Date().toISOString()
-    }
-  });
-});
-
 // GET /categories
 router.get('/categories', (req, res) => {
   const db = readDB();
@@ -234,26 +214,6 @@ router.get('/products', (req, res) => {
     total,
     totalPages
   });
-});
-
-// GET /settings/public
-router.get('/settings/public', (req, res) => {
-  const db = readDB();
-  const pub = {
-    hotline: db.settings.hotline,
-    zalo: db.settings.zalo,
-    email: db.settings.email,
-    address: db.settings.address,
-    shippingFee: db.settings.shippingFee,
-    freeShippingThreshold: db.settings.freeShippingThreshold
-  };
-  return respondSuccess(res, pub);
-});
-
-// GET /service-categories
-router.get('/service-categories', (req, res) => {
-  const db = readDB();
-  return respondSuccess(res, db.serviceCategories || []);
 });
 
 module.exports = router;

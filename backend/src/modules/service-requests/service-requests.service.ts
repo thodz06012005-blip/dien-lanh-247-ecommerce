@@ -1,10 +1,11 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { UpdateServiceRequestStatusDto } from './dto/update-service-request-status.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { ServiceRequestQueryDto } from './dto/service-request-query.dto';
 import { ServiceRequestStatus, ServiceRequestPriority, TechnicianStatus } from '@prisma/client';
+import { toAdminDetail, toAdminList, toCustomerDetail } from '../service-operations/job-view';
 
 @Injectable()
 export class ServiceRequestsService {
@@ -34,7 +35,7 @@ export class ServiceRequestsService {
     });
   }
 
-  async create(dto: CreateServiceRequestDto) {
+  async create(dto: CreateServiceRequestDto, authenticatedUserId: number | null = null) {
     // 1. Validate serviceCategoryId exists
     const category = await this.prisma.serviceCategory.findUnique({
       where: { id: dto.serviceCategoryId },
@@ -74,6 +75,7 @@ export class ServiceRequestsService {
 
     const request = await this.prisma.serviceRequest.create({
       data: {
+        userId: authenticatedUserId,
         id: requestId,
         customerName: dto.customerName.trim(),
         customerPhone: dto.customerPhone.replace(/\s+/g, '').trim(),
@@ -102,13 +104,13 @@ export class ServiceRequestsService {
     return {
       success: true,
       message: 'Đặt lịch dịch vụ thành công',
-      data: request,
+      data: toCustomerDetail(request as any),
     };
   }
 
-  async findOneCustomer(id: string, phone: string) {
-    const request = await this.prisma.serviceRequest.findUnique({
-      where: { id },
+  async findOneCustomer(id: string, userId: number) {
+    const request = await this.prisma.serviceRequest.findFirst({
+      where: { id, userId },
       include: {
         serviceCategory: true,
         assignedTechnician: true,
@@ -118,21 +120,15 @@ export class ServiceRequestsService {
       throw new NotFoundException('Không tìm thấy yêu cầu dịch vụ');
     }
 
-    const normalizedPhone = phone.replace(/\s+/g, '').trim();
-    if (request.customerPhone !== normalizedPhone) {
-      throw new ForbiddenException('Bạn không có quyền xem yêu cầu dịch vụ này');
-    }
-
     return {
       success: true,
-      data: request,
+      data: toCustomerDetail(request as any),
     };
   }
 
-  async findMyRequests(phone: string) {
-    const normalizedPhone = phone.replace(/\s+/g, '').trim();
+  async findMyRequests(userId: number) {
     const list = await this.prisma.serviceRequest.findMany({
-      where: { customerPhone: normalizedPhone },
+      where: { userId },
       include: {
         serviceCategory: true,
         assignedTechnician: true,
@@ -142,7 +138,7 @@ export class ServiceRequestsService {
 
     return {
       success: true,
-      data: list,
+      data: list.map(item => toCustomerDetail(item as any)),
     };
   }
 
@@ -224,7 +220,7 @@ export class ServiceRequestsService {
 
     return {
       success: true,
-      data: list,
+      data: list.map(item => toAdminList(item as any)),
     };
   }
 
@@ -241,7 +237,7 @@ export class ServiceRequestsService {
     }
     return {
       success: true,
-      data: request,
+      data: toAdminDetail(request as any),
     };
   }
 
@@ -330,7 +326,7 @@ export class ServiceRequestsService {
     return {
       success: true,
       message: 'Cập nhật trạng thái thành công',
-      data: updatedRequest,
+      data: toAdminDetail(updatedRequest as any),
     };
   }
 
@@ -412,7 +408,7 @@ export class ServiceRequestsService {
     return {
       success: true,
       message: 'Phân công kỹ thuật viên thành công',
-      data: updatedRequest,
+      data: toAdminDetail(updatedRequest as any),
     };
   }
 }

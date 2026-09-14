@@ -5,8 +5,11 @@
   "scripts": {
     "dev:user": "npm --prefix frontend-user run dev",
     "dev:admin": "npm --prefix frontend-admin run dev",
-    "dev:mock": "npm --prefix mock-api run dev",
-    "dev:all": "concurrently \"npm run dev:mock\" \"npm run dev:user\" \"npm run dev:admin\"",
+    "dev:mock": "SERVICE_ONLY=true npm --prefix mock-api run dev",
+    "dev:mock:rollback": "SERVICE_ONLY=false npm --prefix mock-api run dev",
+    "dev:real": "SERVICE_ONLY=true npm --prefix backend run start:dev",
+    "dev:mock:all": "concurrently -k -n mock,user,admin \"npm run dev:mock\" \"VITE_BACKEND_MODE=MOCK VITE_SERVICE_ONLY=true VITE_API_BASE_URL=http://localhost:3001/api/v1 npm run dev:user\" \"VITE_BACKEND_MODE=MOCK VITE_SERVICE_ONLY=true VITE_API_BASE_URL=http://localhost:3001/api/v1 npm run dev:admin\"",
+    "dev:real:all": "concurrently -k -n nest,user,admin \"npm run dev:real\" \"VITE_BACKEND_MODE=REAL VITE_SERVICE_ONLY=true VITE_API_BASE_URL=http://localhost:3000/api/v1 npm run dev:user\" \"VITE_BACKEND_MODE=REAL VITE_SERVICE_ONLY=true VITE_API_BASE_URL=http://localhost:3000/api/v1 npm run dev:admin\"",
     "build:user": "npm --prefix frontend-user run build",
     "build:admin": "npm --prefix frontend-admin run build",
     "build:all": "npm run build:user && npm run build:admin",
@@ -15,10 +18,18 @@
     "typecheck:admin": "npm --prefix frontend-admin run typecheck",
     "lint:user": "npm --prefix frontend-user run lint",
     "lint:admin": "npm --prefix frontend-admin run lint",
+    "quality:user": "VITE_API_BASE_URL=http://localhost:3000/api/v1 VITE_BACKEND_MODE=REAL VITE_SERVICE_ONLY=true npm run build:user && node tests/check_frontend_quality.js",
     "check:all": "npm run check:mock && npm run typecheck:user && npm run typecheck:admin && npm run lint:user && npm run lint:admin",
     "db:reset": "npm --prefix mock-api run reset-db",
-    "test:mock": "node tests/test_order_pricing.js && node tests/test_service_request_lifecycle.js && node tests/test_technician_rules.js && node tests/test_enum_contract.js",
-    "test:backend": "node tests/test_nestjs_api.js"
+    "test:mock": "node tests/test_order_pricing.js && node tests/test_service_request_lifecycle.js && node tests/test_technician_rules.js && node tests/test_enum_contract.js && node tests/test_finance_report.js",
+    "test:service-only": "node tests/test_service_only_scope.js",
+    "test:backend": "node tests/test_nestjs_api.js",
+    "test:service-admin": "node tests/test_service_admin_metrics.js",
+    "test:service-surface:mock": "node tests/test_service_only_scope.js",
+    "test:service-surface:nest": "node tests/check_nest_service_scope.js",
+    "test:service-surface": "npm run test:service-surface:mock && npm run test:service-surface:nest",
+    "test:auth": "node tests/test_auth_isolation.js && node tests/check_auth_contract.js && node tests/check_session_bootstrap.js",
+    "test:service-contract": "node tests/test_service_ownership_lookup.js && node tests/check_service_contract_stage3.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -1,4 +1,5 @@
 const getInitialData = () => {
+  const { DEFAULT_BUSINESS_CONFIG } = require('../businessConfig');
   const categories = [
     { id: 'dieu-hoa', name: 'Điều hòa', slug: 'dieu-hoa', icon: 'Wind', productCount: 15 },
     { id: 'tu-lanh', name: 'Tủ lạnh', slug: 'tu-lanh', icon: 'Snowflake', productCount: 12 },
@@ -29,7 +30,8 @@ const getInitialData = () => {
     email: 'support@dienlanh247.vn',
     address: '123 Đường Cầu Giấy, Hà Nội',
     shippingFee: 30000,
-    freeShippingThreshold: 10000000
+    freeShippingThreshold: 10000000,
+    businessConfig: DEFAULT_BUSINESS_CONFIG
   };
 
   const rawProducts = [
@@ -764,6 +766,10 @@ const getInitialData = () => {
       createdAt: new Date().toISOString()
     }
   ];
+
+  // Explicit fixture migration by reviewed request ids; runtime never infers ownership from phone.
+  const migratedRequestIds = new Set(['SR-240601']);
+  serviceRequests.forEach(request => { request.userId = migratedRequestIds.has(request.id) ? 1 : null; });
 
   return {
     categories,

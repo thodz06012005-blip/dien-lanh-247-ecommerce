@@ -149,6 +149,9 @@ export default function ServiceCaseGallery() {
                     alt={item.title}
                     className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.08]"
                     loading="lazy"
+                    decoding="async"
+                    width="640"
+                    height="416"
                   />
                   {/* Category label badge */}
                   <span className="absolute top-4 left-4 z-20 px-3 py-1 bg-blue-600/90 backdrop-blur-xs text-white text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-sm">

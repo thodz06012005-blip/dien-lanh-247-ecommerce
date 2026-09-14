@@ -1,6 +1,3 @@
-const adminEmail = process.env.ADMIN_EMAIL || 'owner@dienlanh247.vn';
-const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
-
 // ================================================================
 // ENV HELPERS FOR SECURITY & PRODUCTION SAFETY
 // ================================================================
@@ -19,32 +16,32 @@ const isDemoAccountsEnabled = () => {
 // ADMIN USER REGISTRY (mock — replace with DB in production)
 // Role hierarchy: superadmin > admin > staff
 // ================================================================
-const adminUsers = [
+const adminUsers = isDemoAccountsEnabled() ? [
   {
     id: 'ADM-001',
     name: 'Owner Điện Lạnh 247',
-    email: adminEmail,
-    password: adminPassword,
-    role: 'superadmin', // upgraded from 'owner' to align with RBAC
+    email: process.env.DEMO_ADMIN_EMAIL || '',
+    password: process.env.DEMO_ADMIN_PASSWORD || '',
+    role: 'superadmin',
     status: 'active'
   },
   {
     id: 'ADM-002',
     name: 'Admin Vận hành',
-    email: 'admin@dienlanh247.vn',
-    password: process.env.ADMIN2_PASSWORD || 'Admin@456',
+    email: process.env.DEMO_ADMIN2_EMAIL || '',
+    password: process.env.DEMO_ADMIN2_PASSWORD || '',
     role: 'admin',
     status: 'active'
   },
   {
     id: 'ADM-003',
     name: 'Staff Chăm sóc khách hàng',
-    email: 'staff@dienlanh247.vn',
-    password: process.env.STAFF_PASSWORD || 'Staff@789',
+    email: process.env.DEMO_STAFF_EMAIL || '',
+    password: process.env.DEMO_STAFF_PASSWORD || '',
     role: 'staff',
     status: 'active'
   }
-];
+].filter(user => user.email && user.password) : [];
 
 const adminSessions = [];
 
@@ -56,12 +53,6 @@ const adminSessions = [];
 const ROLE_PERMISSIONS = {
   superadmin: [
     'dashboard:read',
-    'products:read',
-    'products:create',
-    'products:update',
-    'products:delete',
-    'orders:read',
-    'orders:update',
     'customers:read',
     'customers:update',
     'settings:read',
@@ -73,29 +64,24 @@ const ROLE_PERMISSIONS = {
     'technicians:update',
     'technicians:delete',
     'technicians:assign',
-    'adminUsers:manage'
+    'adminUsers:manage',
+    'finance:read',
+    'finance:update',
+    'finance:audit'
   ],
   admin: [
     'dashboard:read',
-    'products:read',
-    'products:create',
-    'products:update',
-    'orders:read',
-    'orders:update',
     'customers:read',
-    'settings:read',
     'serviceRequests:read',
     'serviceRequests:update',
     'technicians:read',
     'technicians:create',
     'technicians:update',
-    'technicians:assign'
+    'technicians:assign',
+    'finance:read'
   ],
   staff: [
     'dashboard:read',
-    'products:read',
-    'orders:read',
-    'orders:update',
     'serviceRequests:read',
     'serviceRequests:update',
     'technicians:read'
@@ -136,7 +122,7 @@ const requireAdminAuth = (req, res, next) => {
     token = authHeader.split(' ')[1];
   } else if (req.headers.cookie) {
     const cookies = parseCookies(req.headers.cookie);
-    token = cookies['accessToken'];
+    token = cookies.admin_access;
   }
 
   if (!token) {

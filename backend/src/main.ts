@@ -6,8 +6,15 @@ import { AppModule } from './app.module';
 import { HttpErrorFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
+  const serviceOnly = process.env.SERVICE_ONLY !== 'false';
   // Disable default bodyParser to allow custom limits and pre-parsing Content-Type checks
   const app = await NestFactory.create(AppModule, { bodyParser: false });
+
+  app.use((_req: any, res: any, next: any) => {
+    res.setHeader('X-DL247-Backend', 'REAL');
+    res.setHeader('X-DL247-Service-Only', String(serviceOnly));
+    next();
+  });
 
   app.setGlobalPrefix('api/v1');
 
@@ -77,6 +84,8 @@ async function bootstrap() {
     transform: true,
   }));
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`[DL247] Nest API listening on ${port} · SERVICE_ONLY=${serviceOnly}`);
 }
 bootstrap();

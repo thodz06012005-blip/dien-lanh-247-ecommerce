@@ -5,6 +5,7 @@ const { respondSuccess } = require('../utils/response');
 const { requirePermission } = require('../utils/auth');
 const { isValidEmail } = require('../utils/validators');
 const { auditSuccess } = require('../utils/auditLog');
+const { DEFAULT_BUSINESS_CONFIG } = require('../businessConfig');
 const {
   validateOptionalString,
   validateNumber,
@@ -20,7 +21,7 @@ router.get('/admin/settings', requirePermission('settings:read'), (req, res) => 
     return sendValidationError(res, errors);
   }
   const db = readDB();
-  return respondSuccess(res, db.settings);
+  return respondSuccess(res, { ...db.settings, businessConfig: db.settings.businessConfig || DEFAULT_BUSINESS_CONFIG });
 });
 
 // PATCH /admin/settings — requires: settings:update (superadmin ONLY)
@@ -35,7 +36,8 @@ router.patch('/admin/settings', requirePermission('settings:update'), (req, res)
     'email',
     'address',
     'shippingFee',
-    'freeShippingThreshold'
+    'freeShippingThreshold',
+    'businessConfig'
   ];
 
   // Forbid non-whitelisted keys
@@ -63,6 +65,25 @@ router.patch('/admin/settings', requirePermission('settings:update'), (req, res)
     validateOptionalString(body.email, 'email', errors, 100);
     if (!isValidEmail(body.email.trim())) {
       errors.push({ field: 'email', message: 'Email không đúng định dạng' });
+    }
+  }
+
+  if (body.businessConfig !== undefined) {
+    const config = body.businessConfig;
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      errors.push({ field: 'businessConfig', message: 'Cấu hình nghiệp vụ không hợp lệ' });
+    } else {
+      for (const key of ['appliances', 'serviceAreas', 'timeSlots', 'requestStatuses', 'roles']) {
+        if (!Array.isArray(config[key]) || config[key].length === 0 || config[key].length > 50) {
+          errors.push({ field: `businessConfig.${key}`, message: `${key} phải có từ 1 đến 50 mục` });
+        }
+      }
+      if (!config.pricing || typeof config.pricing !== 'object') errors.push({ field: 'businessConfig.pricing', message: 'Thiếu cấu hình giá tham khảo' });
+      if (!config.finance || typeof config.finance !== 'object') errors.push({ field: 'businessConfig.finance', message: 'Thiếu cấu hình tài chính' });
+      for (const [index, appliance] of (config.appliances || []).entries()) {
+        if (!appliance.id || !appliance.name || !Array.isArray(appliance.issues) || appliance.issues.length === 0) errors.push({ field: `businessConfig.appliances[${index}]`, message: 'Thiết bị phải có mã, tên và ít nhất một lỗi phổ biến' });
+        if (Number(appliance.priceMin) < 0 || Number(appliance.priceMax) < Number(appliance.priceMin)) errors.push({ field: `businessConfig.appliances[${index}].priceMax`, message: 'Khoảng giá thiết bị không hợp lệ' });
+      }
     }
   }
 

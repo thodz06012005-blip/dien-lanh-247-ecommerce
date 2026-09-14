@@ -1,4 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Res, Req } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -7,6 +8,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { Request, Response } from 'express';
+import { clearAuthCookies, setAuthCookies } from './auth-cookie';
 import { AuditLogService } from '../audit/audit-log.service';
 
 @Controller('admin/auth')
@@ -25,21 +27,7 @@ export class AdminAuthController {
   ) {
     const result = await this.authService.loginAdmin(loginDto, req);
 
-    // Set HttpOnly Cookies for Admin Access Token and Refresh Token
-    res.cookie('accessToken', result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    });
-
-    res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/api/v1/admin/auth/refresh', // path constraint
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    setAuthCookies(res, 'admin', { accessToken: result.token, refreshToken: result.refreshToken });
 
     // Strip refreshToken from the JSON response
     const { refreshToken, ...responsePayload } = result;
@@ -49,6 +37,16 @@ export class AdminAuthController {
       message: 'Đăng nhập thành công',
       data: responsePayload,
     };
+  }
+
+  @UseGuards(AuthGuard('jwt-refresh'))
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refreshAdmin(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const user = req.user as any;
+    const tokens = await this.authService.refreshTokens(user.userId, user.refreshToken, 'admin');
+    setAuthCookies(res, 'admin', tokens);
+    return { success: true, message: 'Làm mới phiên quản trị thành công' };
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -63,18 +61,7 @@ export class AdminAuthController {
     await this.authService.logoutAdmin(user.userId);
     this.auditLogService.auditSuccess(req, 'AUTH_LOGOUT', 'auth', String(user.userId), null, 'Admin logout successful');
 
-    res.clearCookie('accessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    });
-
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/api/v1/admin/auth/refresh',
-    });
+    clearAuthCookies(res, 'admin');
 
     return {
       success: true,

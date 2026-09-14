@@ -4,8 +4,8 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
+    "dev": "node --env-file-if-exists=.env server.js",
+    "start": "node --env-file-if-exists=.env server.js",
     "reset-db": "node scripts/reset-db.js"
   },
   "dependencies": {

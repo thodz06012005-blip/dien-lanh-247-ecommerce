@@ -13,6 +13,8 @@ import { DISTRICT_OPTIONS } from '../constants/areas';
 import TechnicianFilters from '../features/technicians/components/TechnicianFilters';
 import TechnicianTable from '../features/technicians/components/TechnicianTable';
 import TechnicianFormModal from '../features/technicians/components/TechnicianFormModal';
+import { can } from '../auth/permissions';
+import { useAdminAuthStore } from '../store/adminAuthStore';
 
 // Standardized options
 const SKILLS_OPTIONS = [
@@ -33,6 +35,9 @@ const STATUS_OPTIONS = [
 
 export default function Technicians() {
   const queryClient = useQueryClient();
+  const role = useAdminAuthStore(state => state.admin?.role);
+  const canManage = can(role, 'technicians.manage');
+  const canDelete = can(role, 'technicians.delete');
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -171,10 +176,10 @@ export default function Technicians() {
             Quản lý hồ sơ, kỹ năng, khu vực hoạt động và trạng thái phân công của đội ngũ thợ sửa chữa.
           </p>
         </div>
-        <Button onClick={handleOpenAddModal} className="shrink-0 flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+        {canManage && <Button onClick={handleOpenAddModal} className="shrink-0 flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold">
           <Plus className="w-4 h-4" />
           <span>Thêm thợ mới</span>
-        </Button>
+        </Button>}
       </div>
 
       {/* KPI Stats Widgets */}
@@ -241,11 +246,13 @@ export default function Technicians() {
           onEdit={handleOpenEditModal}
           onDelete={setDeleteConfirmId}
           onStatusChange={handleStatusChange}
+          canManage={canManage}
+          canDelete={canDelete}
         />
       </Card>
 
       {/* Form Dialog Modal */}
-      {isModalOpen && (
+      {canManage && isModalOpen && (
         <TechnicianFormModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -260,7 +267,7 @@ export default function Technicians() {
 
       {/* Delete Confirmation Modal Dialog */}
       <ConfirmDialog
-        isOpen={deleteConfirmId !== null}
+        isOpen={canDelete && deleteConfirmId !== null}
         onClose={() => setDeleteConfirmId(null)}
         onConfirm={() => {
           if (deleteConfirmId) {

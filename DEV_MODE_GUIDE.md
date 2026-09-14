@@ -1,108 +1,163 @@
-# Hướng Dẫn Chạy Các Chế Độ Phát Triển (DEV MODE & FALLBACK GUIDE)
+# Hướng dẫn chạy Mock và Nest tách biệt
 
-Tài liệu này hướng dẫn cách vận hành hệ thống Điện Lạnh 247 ở hai chế độ: **Mock API Mode** (Chạy mô phỏng nhanh) và **Backend NestJS Mode** (Chạy với cơ sở dữ liệu và máy chủ thật).
+## Quy tắc release
 
----
+- Release mặc định: `SERVICE_ONLY=true`.
+- Mock chạy cổng `3001`; Nest chạy cổng `3000`.
+- User chạy cổng `5173`; Admin chạy cổng `5174`.
+- Không dùng một script `dev:all` mơ hồ.
+- Không commit `.env.local` hoặc secret.
+- Không xóa dữ liệu commerce; feature flag chỉ đóng bề mặt runtime.
 
-## 1. Tổng Quan 2 Chế Độ Chạy
+## Cài đặt
 
-| Đặc tính | Chế độ 1: Mock API Mode | Chế độ 2: Backend NestJS Mode |
-| :--- | :--- | :--- |
-| **Mục đích** | Demo nhanh giao diện, kiểm thử giao diện tĩnh, dự phòng an toàn. | Kiểm thử tích hợp thật, chạy E2E thật, chuẩn bị sản xuất. |
-| **API Base URL** | `http://localhost:3001/api/v1` | `http://localhost:3000/api/v1` |
-| **Cơ sở dữ liệu** | Tệp tin JSON tĩnh (`mock-db.json`) | Hệ quản trị MySQL thật (local/XAMPP) |
-| **Yêu cầu dịch vụ nền**| Không yêu cầu gì thêm. | Yêu cầu bật MySQL (XAMPP) và dịch vụ NestJS. |
-| **Trạng thái E2E** | **PASS 100%** | **PASS 100%** |
+```bash
+npm install
+npm --prefix frontend-user install
+npm --prefix frontend-admin install
+npm --prefix mock-api install
+npm --prefix backend install
+```
 
----
+Nest cần database và Prisma được cấu hình theo `backend/.env.example`. Mock chỉ cần file JSON có sẵn.
 
-## 2. Chế Độ 1: Mock API Mode (Mặc định)
+## Mode A — Mock API
 
-Đây là chế độ mặc định của dự án. Toàn bộ cấu hình trong `.env.example` và `.env` của các ứng dụng Frontend đều trỏ về Mock API.
+Một lệnh duy nhất:
 
-### Các bước khởi chạy:
-1. **Khởi động Mock API Server** (cổng 3001):
-   ```bash
-   npm run dev:mock
-   ```
-2. **Khởi động Frontend User** (cổng 5173):
-   ```bash
-   npm run dev:user
-   ```
-3. **Khởi động Frontend Admin** (cổng 5174):
-   ```bash
-   npm run dev:admin
-   ```
+```bash
+npm run dev:mock:all
+```
 
-### Khi nào nên dùng:
-* Khi cần chạy thử nhanh giao diện mà không muốn bật MySQL/XAMPP.
-* Khi viết các bài test giao diện hoặc kiểm tra lỗi regression.
+Kết quả mong đợi:
 
----
+| Process | URL |
+| --- | --- |
+| Mock API | `http://localhost:3001/api/v1` |
+| User | `http://localhost:5173` |
+| Admin | `http://localhost:5174` |
 
-## 3. Chế Độ 2: Backend NestJS Mode (Thật)
+Banner development phải hiện `MOCK · SERVICE ONLY · http://localhost:3001/api/v1`. Header API trả `X-DL247-Backend: MOCK` và `X-DL247-Service-Only: true`.
 
-Chế độ này kết nối trực tiếp giao diện Frontend với máy chủ NestJS thật và lưu trữ dữ liệu vào database MySQL.
+Kiểm tra:
 
-### Các bước khởi chạy:
-1. **Bật dịch vụ MySQL** trên bảng điều khiển XAMPP Control Panel.
-2. **Khởi động máy chủ NestJS** (cổng 3000):
-   ```bash
-   cd backend
-   npm run start
-   ```
-3. **Cấu hình cục bộ cho các Frontend** (để trỏ sang cổng 3000):
-   Tạo tệp tin `.env.local` ở cả hai thư mục `frontend-user/` và `frontend-admin/` với nội dung:
-   ```env
-   VITE_API_BASE_URL=http://localhost:3000/api/v1
-   ```
-   *(Lưu ý: Tệp `.env.local` đã được cấu hình trong `.gitignore` nên sẽ không bị commit lên Git).*
-4. **Khởi động các dự án Frontend**:
-   * **User App:** `npm run dev:user`
-   * **Admin App:** `npm run dev:admin`
+```bash
+curl -i http://localhost:3001/api/v1/health
+curl -i http://localhost:3001/api/v1/service-categories
+curl -i http://localhost:3001/api/v1/products
+```
 
-### Khi nào nên dùng:
-* Khi cần test các nghiệp vụ thật: Tính toán giá tiền phía máy chủ (Server-side Pricing), trừ kho sản phẩm khi đặt hàng và hoàn trả khi hủy đơn, phân công thợ theo kỹ năng/địa bàn, thu hồi/khóa trạng thái thợ bận.
+Hai lệnh đầu trả `200`; endpoint commerce cuối trả `404 FEATURE_DISABLED`.
 
----
+## Mode B — NestJS thật
 
-## 4. Tài Khoản Quản Trị Cục Bộ (Admin Test Account)
-Sử dụng tài khoản seed dưới đây để đăng nhập vào phân hệ quản trị (`frontend-admin`) ở cả 2 chế độ:
-* **Email:** `admin@dienlanh247.vn`
-* **Mật khẩu:** `admin123`
-*(Lưu ý: Tài khoản này chỉ dùng cho môi trường phát triển cục bộ và môi trường thử nghiệm).*
+Chuẩn bị `backend/.env`, database và Prisma, sau đó:
 
----
+```bash
+npm run dev:real:all
+```
 
-## 5. Các Lệnh Kiểm Tra & Bảo Trì Chất Lượng
+Kết quả mong đợi:
 
-Luôn chạy các lệnh dưới đây trước khi commit code để đảm bảo dự án không bị lỗi cú pháp hoặc lỗi nghiệp vụ:
+| Process | URL |
+| --- | --- |
+| Nest API | `http://localhost:3000/api/v1` |
+| User | `http://localhost:5173` |
+| Admin | `http://localhost:5174` |
 
-### A. Kiểm tra cú pháp & Kiểu dữ liệu (Root)
+Banner development phải hiện `REAL · SERVICE ONLY · http://localhost:3000/api/v1`. Header API trả `X-DL247-Backend: REAL` và `X-DL247-Service-Only: true`. Không frontend nào được gửi request tới cổng `3001` trong mode này.
+
+## Chạy từng process
+
+```bash
+# API
+npm run dev:mock
+npm run dev:real
+
+# Chỉ kiểm tra rollback commerce, không dùng cho release mặc định
+npm run dev:mock:rollback
+
+# Frontend trỏ Mock
+VITE_BACKEND_MODE=MOCK VITE_SERVICE_ONLY=true VITE_API_BASE_URL=http://localhost:3001/api/v1 npm run dev:user
+VITE_BACKEND_MODE=MOCK VITE_SERVICE_ONLY=true VITE_API_BASE_URL=http://localhost:3001/api/v1 npm run dev:admin
+
+# Frontend trỏ Nest
+VITE_BACKEND_MODE=REAL VITE_SERVICE_ONLY=true VITE_API_BASE_URL=http://localhost:3000/api/v1 npm run dev:user
+VITE_BACKEND_MODE=REAL VITE_SERVICE_ONLY=true VITE_API_BASE_URL=http://localhost:3000/api/v1 npm run dev:admin
+```
+
+## Production build
+
+`VITE_API_BASE_URL` là bắt buộc; Vite chủ động fail nếu thiếu. Production không có localhost fallback.
+
+```bash
+VITE_API_BASE_URL=https://api.example.com/api/v1 VITE_BACKEND_MODE=REAL VITE_SERVICE_ONLY=true npm run build:user
+VITE_API_BASE_URL=https://api.example.com/api/v1 VITE_BACKEND_MODE=REAL VITE_SERVICE_ONLY=true npm run build:admin
+npm --prefix backend run build
+```
+
+## Tài khoản local
+
+Không có credential mặc định trong source runtime. Sao chép `mock-api/.env.example` thành `mock-api/.env`, sau đó dùng đúng `DEMO_ADMIN_EMAIL`/`DEMO_ADMIN_PASSWORD` trong file này. Demo account chỉ tồn tại khi `ENABLE_DEMO_ACCOUNTS=true` và không bao giờ tồn tại trong production.
+
+Nest local demo seed dùng cùng tên biến. Khi demo bị tắt, seed bắt buộc dùng `ADMIN_SEED_EMAIL`/`ADMIN_SEED_PASSWORD` do người vận hành tự cấp.
+
+## Quality gate
+
 ```bash
 npm run check:all
-```
-*(Lệnh này tự động chạy kiểm tra typecheck và lint trên cả hai phân hệ frontend-user và frontend-admin).*
-
-### B. Kiểm thử nghiệp vụ Mock API (Root)
-```bash
-node scratch/test_order_pricing.js
-node scratch/test_service_request_lifecycle.js
-node scratch/test_technician_rules.js
-node scratch/test_enum_contract.js
+npm run test:service-only
+# Regression commerce: chạy dev:mock:rollback ở terminal khác trước khi chạy test:mock
+npm run test:mock
+VITE_API_BASE_URL=https://api.example.com/api/v1 VITE_BACKEND_MODE=REAL VITE_SERVICE_ONLY=true npm run build:all
+npm --prefix backend run build
 ```
 
-### C. Kiểm thử tích hợp Backend NestJS thật (MySQL phải bật)
-```bash
-node scratch/test_nestjs_api.js
-```
+Nếu backend baseline fail vì dependency/database chưa sẵn sàng, phải ghi rõ là lỗi baseline/môi trường; không quy lỗi đó cho thay đổi feature flag.
 
----
+## Stage 1 service-only Admin verification
 
-## 6. Cảnh Báo An Toàn & Quy Tắc Phát Triển
-> [!WARNING]
-> **Quy tắc tuyệt đối không được vi phạm:**
-> 1. **Không commit tệp `.env.local`:** Tệp này chứa cấu hình môi trường local của máy cá nhân, tuyệt đối không được đưa lên hệ thống kiểm soát phiên bản.
-> 2. **Không commit mật khẩu production:** Mọi thông tin nhạy cảm của môi trường production phải được cấu hình qua biến môi trường của hệ thống hosting.
-> 3. **Không xóa Mock API:** Mock API là chốt chặn an toàn và phục vụ việc chạy thử nghiệm độc lập của Frontend, tuyệt đối giữ nguyên vẹn.
-> 4. **Không đổi `.env.example` mặc định:** Giữ nguyên địa chỉ Mock API ở `.env.example` làm mặc định để các lập trình viên khác tải về có thể khởi chạy được ngay mà không cần cài đặt MySQL.
+The Admin navigation and production bundle no longer include Products or Orders. Commerce data remains in the database solely for rollback/migration and is not queried by the active Dashboard or Customers services.
+
+After building Admin, verify old URLs (`#/products`, `#/products/new`, `#/orders`, `#/orders/<id>`) redirect to `#/` and show the retirement notice. Verify `frontend-admin/dist/assets` contains no Products/Orders chunks.
+
+### Service-only surface gate
+
+Run `npm run test:service-surface` before merging. The Mock check exercises active service endpoints and retired ecommerce URLs (including mutations). The Nest scope check verifies commerce modules are lazy and absent from the service-only module graph while legacy Prisma tables remain intact.
+
+## Stage 2 authentication source of truth
+
+### Mock Admin
+
+1. Copy `mock-api/.env.example` to `mock-api/.env`.
+2. Start with `npm --prefix mock-api run dev`; the script loads only that `.env` via Node `--env-file-if-exists`.
+3. Demo credentials use `DEMO_ADMIN_EMAIL` and `DEMO_ADMIN_PASSWORD`. They exist only when `NODE_ENV` is not `production` and `ENABLE_DEMO_ACCOUNTS=true`.
+4. Admin UI shows the autofill box only in a Vite development build with `VITE_ENABLE_DEMO_ACCOUNTS=true`, and obtains the values from `GET /dev/demo-credentials`. It does not embed passwords in its source or production bundle.
+
+When the demo flag is false, the endpoint returns 404 and the Mock demo user registry is empty.
+
+### Nest Admin seed
+
+For an explicitly enabled local demo seed, Nest uses the same `DEMO_ADMIN_EMAIL`/`DEMO_ADMIN_PASSWORD` names. Non-demo environments require `ADMIN_SEED_EMAIL`/`ADMIN_SEED_PASSWORD`; no production password has a source-code default.
+
+### Isolated sessions and refresh
+
+Customer cookies are `customer_access` and `customer_refresh`; Admin cookies are `admin_access` and `admin_refresh`. JWTs carry `aud=customer` or `aud=admin`, and the strategy rejects a token whose audience does not match the requested surface. Admin 401 recovery uses one shared in-flight request to `POST /admin/auth/refresh`, retries each original request at most once, and clears the Admin session without touching Customer cookies if refresh fails.
+
+### Session bootstrap và phân quyền Admin
+
+Khi khởi động, cả hai frontend giữ trạng thái xác thực ở `unknown/loading` và gọi `GET /auth/me` hoặc `GET /admin/auth/me` trước khi render router. Profile trong `localStorage` chỉ là cache hiển thị; cookie server mới quyết định phiên hợp lệ. Khi bootstrap/refresh nhận 401, frontend xóa profile cache và query cache nhạy cảm rồi chuyển sang `anonymous`.
+
+Ma trận quyền của cổng Admin:
+
+| Role | Quyền chính |
+| --- | --- |
+| `STAFF` | Xem dashboard, hàng đợi/yêu cầu và kỹ thuật viên; cập nhật các bước xử lý được controller cho phép |
+| `ADMIN` | Toàn bộ quyền STAFF, xem khách hàng/tài chính, phân công yêu cầu và quản lý kỹ thuật viên |
+| `SUPERADMIN` | Toàn bộ quyền ADMIN, cấu hình, điều chỉnh/quyết toán tài chính, audit, xóa kỹ thuật viên và quản trị đặc quyền |
+
+Frontend dùng permission literals để ẩn route/menu/action, nhưng backend luôn là lớp quyết định cuối. `RolesGuard` đọc lại role và trạng thái active từ database cho mỗi request được bảo vệ, vì vậy thay đổi role hoặc vô hiệu hóa tài khoản không chờ access token cũ hết hạn.
+
+## Stage 3 ownership và OTP local
+
+Chạy `npm run test:service-contract` để kiểm tra cách ly ownership giữa hai customer, guest booking không tự liên kết theo số điện thoại, lookup token chỉ dùng được cho một request và DTO guest không lộ PII. Test tự đặt `LOOKUP_TEST_OTP`; endpoint không bao giờ trả OTP trong response. Production phải cấu hình `OTP_DELIVERY_WEBHOOK_URL`, `OTP_DELIVERY_WEBHOOK_SECRET` và `LOOKUP_TOKEN_PEPPER` riêng; `LOOKUP_TEST_OTP` bị bỏ qua khi `NODE_ENV=production`.

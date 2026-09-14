@@ -4,41 +4,30 @@ const { readDB } = require('../utils/db');
 const { respondSuccess } = require('../utils/response');
 const { requirePermission } = require('../utils/auth');
 
-// GET /admin/dashboard — requires: dashboard:read (superadmin, admin, staff)
-router.get('/admin/dashboard', requirePermission('dashboard:read'), (req, res) => {
-  const db = readDB();
-  const todayStr = new Date().toISOString().split('T')[0];
+function buildServiceDashboard(db, now = Date.now()) {
+  const requests = db.serviceRequests || [];
+  const today = new Date(now).toISOString().slice(0, 10);
+  const completedToday = requests.filter((request) => request.status === 'completed' && String(request.updatedAt).startsWith(today));
+  const serviceRevenueToday = completedToday.reduce((sum, request) => sum + Number(request.finalPrice || 0), 0);
+  const collectedToday = completedToday
+    .filter((request) => request.paymentStatus === 'paid')
+    .reduce((sum, request) => sum + Number(request.finalPrice || 0), 0);
 
-  const todayRevenue = db.orders
-    .filter(o => o.status === 'delivered' && o.deliveredAt && o.deliveredAt.startsWith(todayStr))
-    .reduce((sum, o) => sum + o.total, 0);
-
-  const pendingOrders = db.orders.filter(o => o.status === 'pending').length;
-
-  const newCustomers = db.customers.filter(c => c.createdAt && c.createdAt.startsWith(todayStr)).length;
-
-  const totalProducts = db.products.length;
-  const totalOrders = db.orders.length;
-
-  const recentOrders = db.orders.slice(0, 5).map(o => ({
-    key: o.id,
-    orderNumber: o.code,
-    customer: o.customerName,
-    total: o.total,
-    status: o.status,
-    date: new Date(o.createdAt).toLocaleDateString('vi-VN')
-  }));
-
-  const stats = {
-    todayRevenue,
-    pendingOrders,
-    newCustomers,
-    totalProducts,
-    totalOrders,
-    recentOrders
+  return {
+    pending: requests.filter((request) => request.status === 'pending').length,
+    overdue: requests.filter((request) => request.status === 'pending' && now - new Date(request.createdAt).getTime() > 30 * 60 * 1000).length,
+    unassigned: requests.filter((request) => request.status === 'confirmed' && !request.assignedTechnicianId).length,
+    inProgress: requests.filter((request) => ['assigned', 'in_progress'].includes(request.status)).length,
+    completedToday: completedToday.length,
+    serviceRevenueToday,
+    collectedToday,
+    techniciansAvailable: (db.technicians || []).filter((technician) => technician.status === 'available').length,
   };
+}
 
-  return respondSuccess(res, stats);
+router.get('/admin/dashboard', requirePermission('dashboard:read'), (req, res) => {
+  return respondSuccess(res, buildServiceDashboard(readDB()));
 });
 
+router.buildServiceDashboard = buildServiceDashboard;
 module.exports = router;

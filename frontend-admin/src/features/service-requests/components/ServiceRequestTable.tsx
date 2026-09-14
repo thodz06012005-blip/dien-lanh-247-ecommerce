@@ -6,12 +6,15 @@ import { formatServiceRequestId } from '../../../utils/format';
 import ServiceRequestStatusBadge from './ServiceRequestStatusBadge';
 import ServiceRequestPriorityBadge from './ServiceRequestPriorityBadge';
 import ServiceRequestSlaBadge from './ServiceRequestSlaBadge';
+import { can } from '../../../auth/permissions';
+import { useAdminAuthStore } from '../../../store/adminAuthStore';
 
 interface ServiceRequestTableProps {
   requests: ServiceRequestWithKey[];
   categoryMap: Map<string, string>;
   todayStr: string;
   tomorrowStr: string;
+  nowMs?: number;
   isConfirming: boolean;
   confirmingId: string | null;
   onConfirm: (id: string) => void;
@@ -24,12 +27,15 @@ export default function ServiceRequestTable({
   categoryMap,
   todayStr,
   tomorrowStr,
+  nowMs,
   isConfirming,
   confirmingId,
   onConfirm,
   onAssign,
   onDetail
 }: ServiceRequestTableProps) {
+  const role = useAdminAuthStore((state) => state.admin?.role);
+  const canAssign = can(role, 'assignment.manage');
   const columns: TableColumn<ServiceRequestWithKey>[] = [
     {
       title: 'Mã yêu cầu',
@@ -110,6 +116,8 @@ export default function ServiceRequestTable({
           status={row.status}
           todayStr={todayStr}
           tomorrowStr={tomorrowStr}
+          createdAt={row.createdAt}
+          nowMs={nowMs}
         />
       ),
     },
@@ -138,7 +146,7 @@ export default function ServiceRequestTable({
               Xác nhận
             </button>
           )}
-          {!row.assignedTechnicianId && ['pending', 'confirmed'].includes(row.status) && (
+          {canAssign && !row.assignedTechnicianId && ['pending', 'confirmed'].includes(row.status) && (
             <button
               className="inline-flex h-7 items-center justify-center px-2.5 rounded-lg text-[11px] font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.97] transition-all cursor-pointer shadow-sm border-none shrink-0"
               onClick={(e) => {

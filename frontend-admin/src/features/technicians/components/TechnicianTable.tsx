@@ -18,6 +18,8 @@ interface TechnicianTableProps {
   onEdit: (t: Technician) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, newStatus: string) => void;
+  canManage: boolean;
+  canDelete: boolean;
 }
 
 export default function TechnicianTable({
@@ -25,7 +27,9 @@ export default function TechnicianTable({
   skillsOptions,
   onEdit,
   onDelete,
-  onStatusChange
+  onStatusChange,
+  canManage,
+  canDelete
 }: TechnicianTableProps) {
   const navigate = useNavigate();
 
@@ -185,6 +189,7 @@ export default function TechnicianTable({
         return (
           <select
             value={row.status}
+            disabled={!canManage}
             onChange={(e) => onStatusChange(row.id, e.target.value)}
             className={clsx(
               "px-2.5 py-1 text-xs font-bold rounded-xl border focus:outline-none focus:ring-4 cursor-pointer transition-all bg-white",
@@ -205,7 +210,7 @@ export default function TechnicianTable({
       className: 'text-right',
       render: (row) => (
         <div className="flex items-center justify-end gap-1.5">
-          <Button
+          {canManage && <Button
             variant="outline"
             size="sm"
             onClick={() => onEdit(row)}
@@ -213,8 +218,8 @@ export default function TechnicianTable({
             title="Chỉnh sửa thợ"
           >
             <Edit2 className="w-4 h-4" />
-          </Button>
-          <Button
+          </Button>}
+          {canDelete && <Button
             variant="outline"
             size="sm"
             onClick={() => onDelete(row.id)}
@@ -222,7 +227,7 @@ export default function TechnicianTable({
             title="Xóa thợ"
           >
             <Trash2 className="w-4 h-4" />
-          </Button>
+          </Button>}
         </div>
       )
     }

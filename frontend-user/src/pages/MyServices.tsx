@@ -15,6 +15,7 @@ const statusConfigs: Record<string, { label: string; colorClass: string; variant
   pending: { label: 'Chờ xác nhận', colorClass: 'bg-amber-50 text-amber-700 border-amber-200', variant: 'warning' },
   confirmed: { label: 'Đã xác nhận', colorClass: 'bg-sky-50 text-sky-700 border-sky-200', variant: 'info' },
   assigned: { label: 'Đã phân công', colorClass: 'bg-primary-50 text-primary-700 border-primary-100', variant: 'primary' },
+  in_progress: { label: 'Đang sửa chữa', colorClass: 'bg-cyan-50 text-cyan-700 border-cyan-100', variant: 'primary' },
   cancelled: { label: 'Đã hủy', colorClass: 'bg-slate-100 text-slate-500 border-slate-200', variant: 'neutral' },
   completed: { label: 'Hoàn thành', colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200', variant: 'success' },
 };
@@ -25,18 +26,16 @@ const formatCurrency = (value: number) =>
 export default function MyServices() {
   useDocumentTitle('Lịch sử sửa chữa', 'Xem lịch sử yêu cầu sửa chữa thiết bị điện lạnh tại Điện Lạnh 247.');
 
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   const { data: requestsData, isLoading, error, refetch } = useQuery({
-    queryKey: ['my-service-requests', user?.phone],
+    queryKey: ['my-service-requests'],
     queryFn: async () => {
-      const res = await api.get('/my-service-requests', {
-        params: { phone: user?.phone },
-      });
+      const res = await api.get('/me/service-requests');
       return res.data;
     },
-    enabled: isAuthenticated && !!user?.phone,
+    enabled: isAuthenticated,
   });
 
   const requests: ServiceRequest[] = requestsData?.data || [];
@@ -60,24 +59,6 @@ export default function MyServices() {
     );
   }
 
-  if (isAuthenticated && !user?.phone) {
-    return (
-      <PageTransition>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center flex flex-col items-center justify-center min-h-[50vh]">
-          <div className="w-20 h-20 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-6 text-amber-500 border border-amber-100">
-            <ClipboardList className="w-9 h-9" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800">Chưa có số điện thoại</h2>
-          <p className="text-xs text-slate-500 mt-2 max-w-sm leading-relaxed">
-            Tài khoản của bạn chưa cập nhật số điện thoại. Vui lòng cập nhật số điện thoại trong mục thông tin tài khoản để tra cứu lịch sử sửa chữa.
-          </p>
-          <Button variant="primary" className="mt-6 rounded-xl text-xs py-2.5 px-6 font-bold" onClick={() => navigate('/account?tab=profile')}>
-            Cập nhật ngay
-          </Button>
-        </div>
-      </PageTransition>
-    );
-  }
 
   return (
     <PageTransition>

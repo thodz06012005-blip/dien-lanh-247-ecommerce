@@ -7,7 +7,6 @@ import { useForm } from 'react-hook-form';
 import Breadcrumb from '../components/common/Breadcrumb';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
-import Orders from './Orders';
 
 interface ProfileFormInput {
   firstName: string;
@@ -30,9 +29,9 @@ export default function Account() {
 
   // Tab validation and fallback
   const rawTab = searchParams.get('tab') || 'profile';
-  const activeTab = (rawTab === 'profile' || rawTab === 'address' || rawTab === 'orders') ? rawTab : 'profile';
+  const activeTab = (rawTab === 'profile' || rawTab === 'address') ? rawTab : 'profile';
 
-  const setActiveTab = (tab: 'profile' | 'address' | 'orders') => {
+  const setActiveTab = (tab: 'profile' | 'address') => {
     setSearchParams({ tab });
   };
 
@@ -89,13 +88,13 @@ export default function Account() {
         ...data,
       };
       setUser(updatedUser);
-      showSuccess('Cập nhật sổ địa chỉ giao hàng thành công!');
+      showSuccess('Cập nhật địa chỉ dịch vụ thành công!');
       setIsUpdating(false);
     }, 400);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     showSuccess('Đăng xuất tài khoản thành công!');
     navigate('/');
   };
@@ -108,7 +107,7 @@ export default function Account() {
         </div>
         <h2 className="text-xl font-bold text-slate-800">Bạn chưa đăng nhập</h2>
         <p className="text-sm text-slate-500 mt-2 max-w-sm leading-relaxed">
-          Vui lòng đăng nhập tài khoản của bạn để quản lý hồ sơ cá nhân, sổ địa chỉ và theo dõi lịch sử đơn hàng.
+          Vui lòng đăng nhập tài khoản của bạn để quản lý hồ sơ, địa chỉ dịch vụ và theo dõi lịch sử sửa chữa.
         </p>
         <div className="flex gap-4 mt-6">
           <Button variant="outline" onClick={() => navigate('/')}>
@@ -166,19 +165,15 @@ export default function Account() {
               }`}
             >
               <MapPin className="w-4.5 h-4.5" />
-              <span>Sổ địa chỉ giao hàng</span>
+              <span>Địa chỉ dịch vụ</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('orders')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left cursor-pointer transition-all ${
-                activeTab === 'orders'
-                  ? 'bg-primary-50 text-primary-600'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
+              onClick={() => navigate('/my-services')}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-left cursor-pointer transition-all text-slate-600 hover:bg-slate-50"
             >
               <ClipboardList className="w-4.5 h-4.5" />
-              <span>Lịch sử đơn hàng</span>
+              <span>Lịch sử sửa chữa</span>
             </button>
 
             <button
@@ -251,7 +246,7 @@ export default function Account() {
           {activeTab === 'address' && (
             <div className="flex flex-col gap-6">
               <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
-                Địa chỉ giao hàng mặc định
+                Địa chỉ dịch vụ mặc định
               </h2>
 
               <form onSubmit={handleAddressSubmit(onSubmitAddress)} className="flex flex-col gap-4">
@@ -284,18 +279,13 @@ export default function Account() {
                     leftIcon={<Save className="w-4 h-4" />}
                     className="py-2.5 px-6 rounded-xl font-bold"
                   >
-                    Lưu sổ địa chỉ
+                    Lưu địa chỉ dịch vụ
                   </Button>
                 </div>
               </form>
             </div>
           )}
 
-          {activeTab === 'orders' && (
-            <div className="flex flex-col gap-6">
-              <Orders isEmbed={true} />
-            </div>
-          )}
         </div>
       </div>
     </div>

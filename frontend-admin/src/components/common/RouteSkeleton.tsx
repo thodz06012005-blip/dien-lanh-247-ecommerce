@@ -1,0 +1,1 @@
+export default function RouteSkeleton() { return <div role="status" aria-label="Đang xác thực phiên" className="flex min-h-screen items-center justify-center bg-slate-950"><div className="h-10 w-10 animate-spin rounded-full border-4 border-cyan-400/20 border-t-cyan-400" /></div>; }

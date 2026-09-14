@@ -30,9 +30,11 @@ export default function ImageWithFallback({
   return (
     <img
       src={imgSrc}
-      alt={alt || 'Sản phẩm'}
+      alt={alt || 'Hình ảnh dịch vụ'}
       onError={handleError}
       className={className}
+      loading={props.loading || 'lazy'}
+      decoding={props.decoding || 'async'}
       {...props}
     />
   );
