@@ -9,10 +9,11 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import LoadingState from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
-import { Search, RotateCw, AlertTriangle, Radio, X } from 'lucide-react';
+import { Search, RotateCw, X } from 'lucide-react';
 import type { ServiceRequest, ServiceCategory, ServiceRequestWithKey } from '../features/service-requests/types';
-import ServiceRequestFilterCards from '../features/service-requests/components/ServiceRequestFilterCards';
 import ServiceRequestTable from '../features/service-requests/components/ServiceRequestTable';
+import useDebouncedValue from '../hooks/useDebouncedValue';
+import { DISTRICTS } from '../constants/areas';
 
 export default function ServiceRequests() {
   const navigate = useNavigate();
@@ -21,9 +22,9 @@ export default function ServiceRequests() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [areaFilter, setAreaFilter] = useState('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [activeQuickFilter, setActiveQuickFilter] = useState<string>('all');
+  const [createdFrom, setCreatedFrom] = useState(''); const [createdTo, setCreatedTo] = useState('');
+  const [scheduledFrom, setScheduledFrom] = useState(''); const [scheduledTo, setScheduledTo] = useState('');
+  const [page, setPage] = useState(1); const limit = 10; const debouncedSearch = useDebouncedValue(searchText);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
@@ -52,10 +53,15 @@ export default function ServiceRequests() {
 
   // Fetch service requests
   const { data, isLoading, error, refetch, isRefetching, dataUpdatedAt } = useQuery({
-    queryKey: ['admin-service-requests', categoryFilter],
+    queryKey: ['admin-service-requests', { page, limit, q: debouncedSearch, statusFilter, categoryFilter, areaFilter, createdFrom, createdTo, scheduledFrom, scheduledTo }],
     queryFn: async () => {
-      const params: Record<string, string> = {};
+      const params: Record<string, string | number> = { page, limit };
+      if (debouncedSearch) params.q = debouncedSearch;
+      if (statusFilter !== 'all') params.status = statusFilter;
       if (categoryFilter !== 'all') params.serviceCategoryId = categoryFilter;
+      if (areaFilter !== 'all') params.district = areaFilter;
+      if (createdFrom) params.createdFrom = createdFrom; if (createdTo) params.createdTo = createdTo;
+      if (scheduledFrom) params.scheduledFrom = scheduledFrom; if (scheduledTo) params.scheduledTo = scheduledTo;
       const res = await api.get('/admin/service-requests', { params });
       return res.data;
     },
@@ -103,56 +109,7 @@ export default function ServiceRequests() {
   const todayStr = getTodayStr();
   const tomorrowStr = getTomorrowStr();
 
-  // Filter items for quick statistic cards count
-  const pendingRequests = requestsList.filter((r) => r.status === 'pending');
-  const unassignedRequests = requestsList.filter(
-    (r) => r.status === 'confirmed' && !r.assignedTechnicianId
-  );
-  const upcomingRequests = requestsList.filter(
-    (r) => r.status === 'assigned' && (r.preferredDate === todayStr || r.preferredDate === tomorrowStr)
-  );
-  const overdueRequests = requestsList.filter((r) => r.status === 'pending' && dataUpdatedAt - new Date(r.createdAt).getTime() > 30 * 60 * 1000);
-  const areas = [...new Set(requestsList.map((request) => request.district))].sort();
-
-  const handleStatusFilterChange = (val: string) => {
-    setStatusFilter(val);
-    setActiveQuickFilter('all'); // Reset quick filter when dropdown status changes
-  };
-
-  const handleQuickFilterClick = (id: string) => {
-    if (activeQuickFilter === id) {
-      setActiveQuickFilter('all');
-    } else {
-      setActiveQuickFilter(id);
-      setStatusFilter('all');
-    }
-  };
-
-  const filteredRequests = requestsWithKeys.filter((r) => {
-    const matchesSearch =
-      r.customerName.toLowerCase().includes(searchText.toLowerCase()) ||
-      r.customerPhone.includes(searchText) ||
-      r.id.toLowerCase().includes(searchText.toLowerCase());
-
-    if (!matchesSearch) return false;
-
-    // Quick Filter Card vs Status Dropdown filter
-    if (activeQuickFilter !== 'all') {
-      const matchesQuickFilter =
-        (activeQuickFilter === 'pending' && r.status === 'pending') ||
-        (activeQuickFilter === 'unassigned' && r.status === 'confirmed' && !r.assignedTechnicianId) ||
-        (activeQuickFilter === 'upcoming' && ['assigned', 'in_progress'].includes(r.status) && (r.preferredDate === todayStr || r.preferredDate === tomorrowStr)) ||
-        (activeQuickFilter === 'overdue' && r.status === 'pending' && dataUpdatedAt - new Date(r.createdAt).getTime() > 30 * 60 * 1000);
-      if (!matchesQuickFilter) return false;
-    } else if (statusFilter !== 'all') {
-      if (r.status !== statusFilter) return false;
-    }
-
-    if (areaFilter !== 'all' && r.district !== areaFilter) return false;
-    if (dateFrom && r.preferredDate < dateFrom) return false;
-    if (dateTo && r.preferredDate > dateTo) return false;
-    return true;
-  });
+  const total = Number(data?.meta?.total || 0);
 
   const handleConfirmRequest = (id: string) => {
     confirmMutation.mutate(id);
@@ -202,18 +159,6 @@ export default function ServiceRequests() {
         </Button>
       </div>
 
-      {overdueRequests.length > 0 && <button type="button" onClick={() => handleQuickFilterClick('overdue')} className="group flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-md shadow-red-600/20"><AlertTriangle className="h-5 w-5" /></span><div><p className="font-bold text-red-950">{overdueRequests.length} yêu cầu đã quá SLA xác nhận 30 phút</p><p className="mt-0.5 text-sm text-red-700">Ưu tiên liên hệ ngay để không bỏ sót khách hàng.</p></div></div><span className="hidden items-center gap-2 text-sm font-bold text-red-700 sm:flex"><Radio className="h-4 w-4 animate-pulse" />Xem ngay</span></button>}
-
-      {/* Quick Filter Cards */}
-      <ServiceRequestFilterCards
-        activeQuickFilter={activeQuickFilter}
-        onQuickFilterChange={handleQuickFilterClick}
-        pendingCount={pendingRequests.length}
-        unassignedCount={unassignedRequests.length}
-        upcomingCount={upcomingRequests.length}
-        overdueCount={overdueRequests.length}
-      />
-
       {/* Filters Search Form Panel */}
       <Card className="p-4 shadow-sm border-slate-200/60">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -221,7 +166,7 @@ export default function ServiceRequests() {
             <Input
               placeholder="Tìm theo tên hoặc SĐT..."
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
               className="pl-10 h-10 w-full bg-slate-50 border-slate-200"
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -229,7 +174,7 @@ export default function ServiceRequests() {
           <div>
             <Select
               value={statusFilter}
-              onChange={(e) => handleStatusFilterChange(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
               className="h-10 w-full bg-slate-50 border-slate-200"
               options={[
                 { value: 'all', label: 'Tất cả trạng thái' },
@@ -245,7 +190,7 @@ export default function ServiceRequests() {
           <div>
             <Select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
               className="h-10 w-full bg-slate-50 border-slate-200"
               options={[
                 { value: 'all', label: 'Tất cả loại dịch vụ' },
@@ -253,17 +198,19 @@ export default function ServiceRequests() {
               ]}
             />
           </div>
-          <Select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} className="h-10 w-full bg-slate-50 border-slate-200" options={[{ value: 'all', label: 'Tất cả khu vực' }, ...areas.map((area) => ({ value: area, label: area }))]} />
-          <Input type="date" aria-label="Từ ngày" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 bg-slate-50" />
-          <Input type="date" aria-label="Đến ngày" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 bg-slate-50" />
+          <Select value={areaFilter} onChange={(e) => { setAreaFilter(e.target.value); setPage(1); }} className="h-10 w-full bg-slate-50 border-slate-200" options={[{ value: 'all', label: 'Tất cả khu vực' }, ...DISTRICTS.map((area) => ({ value: area, label: area }))]} />
+          <label className="text-xs font-semibold text-slate-600">Ngày tạo từ<Input type="date" aria-label="Ngày tạo từ" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} className="mt-1 h-10 bg-slate-50" /></label>
+          <label className="text-xs font-semibold text-slate-600">Ngày tạo đến<Input type="date" aria-label="Ngày tạo đến" value={createdTo} onChange={(e) => { setCreatedTo(e.target.value); setPage(1); }} className="mt-1 h-10 bg-slate-50" /></label>
+          <label className="text-xs font-semibold text-slate-600">Lịch hẹn từ<Input type="date" aria-label="Lịch hẹn từ" value={scheduledFrom} onChange={(e) => { setScheduledFrom(e.target.value); setPage(1); }} className="mt-1 h-10 bg-slate-50" /></label>
+          <label className="text-xs font-semibold text-slate-600">Lịch hẹn đến<Input type="date" aria-label="Lịch hẹn đến" value={scheduledTo} onChange={(e) => { setScheduledTo(e.target.value); setPage(1); }} className="mt-1 h-10 bg-slate-50" /></label>
         </div>
-        {(searchText || statusFilter !== 'all' || categoryFilter !== 'all' || areaFilter !== 'all' || dateFrom || dateTo || activeQuickFilter !== 'all') && <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs font-medium text-slate-500">Tìm thấy <strong className="text-slate-900">{filteredRequests.length}</strong> yêu cầu phù hợp</p><button type="button" onClick={() => { setSearchText(''); setStatusFilter('all'); setCategoryFilter('all'); setAreaFilter('all'); setDateFrom(''); setDateTo(''); setActiveQuickFilter('all'); }} className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800"><X className="h-3.5 w-3.5" />Xóa bộ lọc</button></div>}
+        {(searchText || statusFilter !== 'all' || categoryFilter !== 'all' || areaFilter !== 'all' || createdFrom || createdTo || scheduledFrom || scheduledTo) && <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3"><p className="text-xs font-medium text-slate-500">Tìm thấy <strong className="text-slate-900">{total}</strong> yêu cầu phù hợp</p><button type="button" onClick={() => { setSearchText(''); setStatusFilter('all'); setCategoryFilter('all'); setAreaFilter('all'); setCreatedFrom(''); setCreatedTo(''); setScheduledFrom(''); setScheduledTo(''); }} className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800"><X className="h-3.5 w-3.5" />Xóa bộ lọc</button></div>}
       </Card>
 
       {/* Table List View */}
       <Card noPadding className="overflow-hidden shadow-sm border-slate-200/60">
         <ServiceRequestTable
-          requests={filteredRequests}
+          requests={requestsWithKeys}
           categoryMap={categoryMap}
           todayStr={todayStr}
           tomorrowStr={tomorrowStr}
@@ -273,6 +220,7 @@ export default function ServiceRequests() {
           onConfirm={handleConfirmRequest}
           onAssign={handleAssignRequest}
           onDetail={handleDetailRequest}
+          pagination={{ current: page, pageSize: limit, total, onChange: setPage }}
         />
       </Card>
 

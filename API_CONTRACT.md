@@ -444,3 +444,11 @@ Public phone-based history and direct `GET /service-requests/:id?phone=...` acce
 3. `GET /service-requests/lookup/:id` requires `Authorization: Lookup <token>`. A token issued for request A cannot read request B.
 
 Responses are mapped explicitly by actor. Guest responses exclude customer phone/address, notes, media and internal history; customer detail includes only the customer's request snapshot; Admin list excludes heavy media/history; Admin detail and technician job views each use their own allowlist. New persistence fields are therefore private until deliberately added to a mapper.
+
+## List pagination and date filters (Stage 3.4–3.5)
+
+Admin list endpoints for service requests, technicians and customers return `{ success, data, meta }`, where `meta` always contains `page`, `limit`, `total` and `totalPages`. Search/filter/sort are applied before pagination. Clients must use `meta.total`, never the current page's `data.length`, as the matching-record total.
+
+`GET /admin/service-requests` accepts `createdFrom`/`createdTo` for creation timestamps and `scheduledFrom`/`scheduledTo` for the `preferredDate` appointment. Creation-day ranges use the `Asia/Ho_Chi_Minh` business day and `[start, nextDay)` boundaries. Appointment ranges compare date-only values and are inclusive from the caller's perspective. The ambiguous `dateFrom`/`dateTo` parameters and nonexistent `scheduledAt` sort key are no longer accepted; use `sortBy=preferredDate` for appointment ordering.
+
+All list screens debounce search, include every server parameter in the React Query key, and reset to page 1 whenever a filter changes. The temporary Mock `pagination` response alias remains for retired clients, while `meta` is the canonical contract.

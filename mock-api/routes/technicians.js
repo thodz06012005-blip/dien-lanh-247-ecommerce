@@ -30,7 +30,7 @@ router.get('/admin/technicians', requirePermission('technicians:read'), (req, re
   ], errors);
 
   validatePaginationStrict(req.query, errors);
-  validateSortStrict(req.query, ['name', 'phone', 'status', 'rating', 'currentJobs', 'createdAt', 'updatedAt'], errors);
+  validateSortStrict(req.query, ['name', 'phone', 'status', 'rating', 'createdAt', 'updatedAt'], errors);
 
   if (req.query.q !== undefined) validateSearchQuery(req.query, 'q', errors, 100);
   if (req.query.search !== undefined) validateSearchQuery(req.query, 'search', errors, 100);
@@ -105,8 +105,11 @@ router.get('/admin/technicians', requirePermission('technicians:read'), (req, re
       currentJob: currentJob
     };
   });
-  
-  return respondSuccess(res, enrichedList);
+  const sortBy = req.query.sortBy || 'createdAt';
+  const direction = String(req.query.sortOrder || 'desc').toLowerCase() === 'asc' ? 1 : -1;
+  enrichedList.sort((a, b) => { const first = a[sortBy]; const second = b[sortBy]; if (typeof first === 'string' && typeof second === 'string') return first.localeCompare(second) * direction; return (Number(first || 0) - Number(second || 0)) * direction; });
+  const page = Number(req.query.page || 1); const limit = Number(req.query.limit || 10); const total = enrichedList.length;
+  return respondSuccess(res, enrichedList.slice((page - 1) * limit, page * limit), 'Thành công', { page, limit, total, totalPages: Math.ceil(total / limit) });
 });
 
 // GET /admin/technicians/:id — requires: technicians:read (superadmin, admin, staff)

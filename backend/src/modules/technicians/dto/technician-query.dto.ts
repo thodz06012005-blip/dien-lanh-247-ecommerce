@@ -19,7 +19,7 @@ export class TechnicianQueryDto extends PaginationDto {
 
   @IsOptional()
   @IsString()
-  @IsEnum(['name', 'phone', 'status', 'rating', 'currentJobs', 'createdAt', 'updatedAt'], {
+  @IsEnum(['name', 'phone', 'status', 'rating', 'createdAt', 'updatedAt'], {
     message: 'Trường sắp xếp không hợp lệ'
   })
   sortBy?: string;

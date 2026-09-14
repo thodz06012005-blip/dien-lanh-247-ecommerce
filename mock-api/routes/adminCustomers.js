@@ -63,7 +63,7 @@ router.get('/admin/customers', requirePermission('customers:read'), (req, res) =
   });
   const page = Number(req.query.page || 1);
   const limit = Number(req.query.limit || 10);
-  return respondSuccess(res, customers.slice((page - 1) * limit, page * limit), 'Thành công', { page, limit, total: customers.length });
+  return respondSuccess(res, customers.slice((page - 1) * limit, page * limit), 'Thành công', { page, limit, total: customers.length, totalPages: Math.ceil(customers.length / limit) });
 });
 
 router.buildServiceCustomers = buildServiceCustomers;

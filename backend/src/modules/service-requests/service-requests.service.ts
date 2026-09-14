@@ -172,15 +172,23 @@ export class ServiceRequestsService {
     if (query?.technicianId) {
       whereClause.assignedTechnicianId = query.technicianId;
     }
-    if (query?.dateFrom || query?.dateTo) {
+    if (query?.createdFrom || query?.createdTo) {
       const dateFilter: any = {};
-      if (query.dateFrom) dateFilter.gte = new Date(query.dateFrom);
-      if (query.dateTo) dateFilter.lte = new Date(query.dateTo);
+      // Business timezone Asia/Ho_Chi_Minh: [start of day, start of next day).
+      if (query.createdFrom) dateFilter.gte = new Date(`${query.createdFrom.slice(0, 10)}T00:00:00+07:00`);
+      if (query.createdTo) { const next = new Date(`${query.createdTo.slice(0, 10)}T00:00:00+07:00`); next.setUTCDate(next.getUTCDate() + 1); dateFilter.lt = next; }
       whereClause.createdAt = dateFilter;
+    }
+    if (query?.scheduledFrom || query?.scheduledTo) {
+      const scheduled: any = {};
+      if (query.scheduledFrom) scheduled.gte = query.scheduledFrom.slice(0, 10);
+      if (query.scheduledTo) { const next = new Date(`${query.scheduledTo.slice(0, 10)}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + 1); scheduled.lt = next.toISOString().slice(0, 10); }
+      whereClause.preferredDate = scheduled;
     }
     if (query?.q) {
       const q = query.q.toLowerCase().trim();
       whereClause.OR = [
+        { id: { contains: q } },
         { customerName: { contains: q } },
         { customerPhone: { contains: q } },
       ];
@@ -190,7 +198,7 @@ export class ServiceRequestsService {
     const sortBy = query?.sortBy || 'createdAt';
     let orderBy: any = { createdAt: sortOrder };
 
-    const allowedSortFields = ['createdAt', 'updatedAt', 'status', 'priority', 'scheduledAt', 'district', 'customerName'];
+    const allowedSortFields = ['createdAt', 'updatedAt', 'status', 'priority', 'preferredDate', 'district', 'customerName'];
     if (allowedSortFields.includes(sortBy)) {
       if (sortBy === 'createdAt') {
         orderBy = { createdAt: sortOrder };
@@ -204,23 +212,20 @@ export class ServiceRequestsService {
         orderBy = { district: sortOrder };
       } else if (sortBy === 'customerName') {
         orderBy = { customerName: sortOrder };
+      } else if (sortBy === 'preferredDate') {
+        orderBy = { preferredDate: sortOrder };
       }
     }
 
-    const list = await this.prisma.serviceRequest.findMany({
-      where: whereClause,
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
-      orderBy,
-      skip,
-      take: limit,
-    });
+    const [list, total] = await this.prisma.$transaction([
+      this.prisma.serviceRequest.findMany({ where: whereClause, include: { serviceCategory: true, assignedTechnician: true }, orderBy, skip, take: limit }),
+      this.prisma.serviceRequest.count({ where: whereClause }),
+    ]);
 
     return {
       success: true,
       data: list.map(item => toAdminList(item as any)),
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 

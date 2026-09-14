@@ -20,6 +20,7 @@ interface TechnicianTableProps {
   onStatusChange: (id: string, newStatus: string) => void;
   canManage: boolean;
   canDelete: boolean;
+  pagination: { current: number; pageSize: number; total: number; onChange: (page: number) => void };
 }
 
 export default function TechnicianTable({
@@ -29,7 +30,8 @@ export default function TechnicianTable({
   onDelete,
   onStatusChange,
   canManage,
-  canDelete
+  canDelete,
+  pagination,
 }: TechnicianTableProps) {
   const navigate = useNavigate();
 
@@ -238,6 +240,7 @@ export default function TechnicianTable({
       columns={columns}
       dataSource={technicians.map((t, index) => ({ ...t, key: t.id || String(index) }))}
       emptyText="Không tìm thấy kỹ thuật viên nào thỏa mãn bộ lọc."
+      pagination={pagination}
     />
   );
 }

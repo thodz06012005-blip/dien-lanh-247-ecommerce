@@ -5,7 +5,8 @@ const respondSuccess = (res, data = {}, message = 'Thành công', pagination = n
     data,
   };
   if (pagination) {
-    payload.pagination = pagination;
+    payload.meta = pagination;
+    payload.pagination = pagination; // Deprecated compatibility alias; remove after legacy clients migrate.
   }
   return res.status(200).json(payload);
 };

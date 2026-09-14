@@ -8,6 +8,7 @@ import EmptyState from '../components/ui/EmptyState';
 import Badge from '../components/ui/Badge';
 import Input from '../components/ui/Input';
 import { Search } from 'lucide-react';
+import useDebouncedValue from '../hooks/useDebouncedValue';
 
 interface Customer {
   key: string;
@@ -25,27 +26,20 @@ interface Customer {
 
 export default function Customers() {
   const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(1); const limit = 10; const debouncedSearch = useDebouncedValue(searchText);
 
   // Fetch customers
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin-customers'],
+    queryKey: ['admin-customers', { page, limit, q: debouncedSearch }],
     queryFn: async () => {
-      const res = await api.get('/admin/customers');
+      const res = await api.get('/admin/customers', { params: { page, limit, q: debouncedSearch || undefined, sortBy: 'lastServiceAt', sortOrder: 'desc' } });
       return res.data;
     }
   });
 
   const customersList = data?.data || [];
 
-  // Filter customers based on search text
-  const filteredCustomers = customersList.filter((c: Customer) => {
-    const searchLower = searchText.toLowerCase();
-    return (
-      (c.name || '').toLowerCase().includes(searchLower) ||
-      (c.phone || '').includes(searchText) ||
-      (c.email || '').toLowerCase().includes(searchLower)
-    );
-  });
+  const total = Number(data?.meta?.total || 0);
 
   const columns: TableColumn<Customer>[] = [
     {
@@ -138,7 +132,7 @@ export default function Customers() {
           <Input
             placeholder="Tìm theo tên, SĐT, Email..."
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
             className="pl-10 h-10 bg-white shadow-sm border-slate-200"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -148,8 +142,9 @@ export default function Customers() {
       <Card noPadding className="overflow-hidden shadow-sm border-slate-200/60">
         <Table
           columns={columns}
-          dataSource={filteredCustomers.map((c: Customer, index: number) => ({ ...c, key: c.id || index }))}
+          dataSource={customersList.map((c: Customer, index: number) => ({ ...c, key: c.id || index }))}
           emptyText="Không tìm thấy khách hàng nào khớp với tìm kiếm."
+          pagination={{ current: page, pageSize: limit, total, onChange: setPage }}
         />
       </Card>
     </div>

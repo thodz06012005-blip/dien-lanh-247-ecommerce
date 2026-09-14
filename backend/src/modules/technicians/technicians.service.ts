@@ -114,16 +114,15 @@ export class TechniciansService {
       else if (sortBy === 'updatedAt') orderBy = { updatedAt: sortOrder };
     }
 
-    const list = await this.prisma.technician.findMany({
-      where,
-      orderBy,
-      skip,
-      take: limit,
-    });
+    const [list, total] = await this.prisma.$transaction([
+      this.prisma.technician.findMany({ where, orderBy, skip, take: limit }),
+      this.prisma.technician.count({ where }),
+    ]);
 
     return {
       success: true,
       data: list,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 

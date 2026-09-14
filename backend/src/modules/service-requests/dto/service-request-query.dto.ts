@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEnum, Length } from 'class-validator';
+import { IsOptional, IsString, IsEnum, Length, IsDateString } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class ServiceRequestQueryDto extends PaginationDto {
@@ -30,15 +30,25 @@ export class ServiceRequestQueryDto extends PaginationDto {
 
   @IsOptional()
   @IsString()
-  dateFrom?: string;
+  @IsDateString()
+  createdFrom?: string;
 
   @IsOptional()
   @IsString()
-  dateTo?: string;
+  @IsDateString()
+  createdTo?: string;
+
+  @IsOptional()
+  @IsDateString()
+  scheduledFrom?: string;
+
+  @IsOptional()
+  @IsDateString()
+  scheduledTo?: string;
 
   @IsOptional()
   @IsString()
-  @IsEnum(['createdAt', 'updatedAt', 'status', 'priority', 'scheduledAt', 'district', 'customerName'], {
+  @IsEnum(['createdAt', 'updatedAt', 'status', 'priority', 'preferredDate', 'district', 'customerName'], {
     message: 'Trường sắp xếp không hợp lệ'
   })
   sortBy?: string;

@@ -6,7 +6,7 @@ import Button from '../components/ui/Button';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import LoadingState from '../components/ui/LoadingState';
 import EmptyState from '../components/ui/EmptyState';
-import { Plus, Users, Briefcase, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { Technician } from '../features/technicians/types';
 import { AxiosError } from 'axios';
 import { DISTRICT_OPTIONS } from '../constants/areas';
@@ -15,6 +15,7 @@ import TechnicianTable from '../features/technicians/components/TechnicianTable'
 import TechnicianFormModal from '../features/technicians/components/TechnicianFormModal';
 import { can } from '../auth/permissions';
 import { useAdminAuthStore } from '../store/adminAuthStore';
+import useDebouncedValue from '../hooks/useDebouncedValue';
 
 // Standardized options
 const SKILLS_OPTIONS = [
@@ -66,37 +67,20 @@ export default function Technicians() {
   const [selectedArea, setSelectedArea] = useState('');
   const [selectedSkill, setSelectedSkill] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [page, setPage] = useState(1); const limit = 10; const debouncedSearch = useDebouncedValue(searchText);
 
   // Fetch Technicians List
   const { data: techniciansData, isLoading, error } = useQuery({
-    queryKey: ['admin-technicians'],
+    queryKey: ['admin-technicians', { page, limit, q: debouncedSearch, selectedArea, selectedSkill, selectedStatus }],
     queryFn: async () => {
-      const res = await api.get('/admin/technicians');
+      const res = await api.get('/admin/technicians', { params: { page, limit, q: debouncedSearch || undefined, workingArea: selectedArea || undefined, skill: selectedSkill || undefined, status: selectedStatus || undefined } });
       return res.data;
     }
   });
 
   const techniciansList = techniciansData?.data || [];
 
-  // Filter List locally for responsiveness
-  const filteredTechnicians = techniciansList.filter((tech: Technician) => {
-    const matchesSearch = 
-      (tech.name || '').toLowerCase().includes(searchText.toLowerCase()) ||
-      (tech.phone || '').includes(searchText) ||
-      (tech.email || '').toLowerCase().includes(searchText.toLowerCase());
-
-    const matchesArea = selectedArea ? tech.workingAreas?.includes(selectedArea) : true;
-    const matchesSkill = selectedSkill ? tech.skills?.includes(selectedSkill) : true;
-    const matchesStatus = selectedStatus ? tech.status === selectedStatus : true;
-
-    return matchesSearch && matchesArea && matchesSkill && matchesStatus;
-  });
-
-  // Calculate statistics
-  const totalTechs = techniciansList.length;
-  const availableTechs = techniciansList.filter((t: Technician) => t.status === 'available').length;
-  const busyTechs = techniciansList.filter((t: Technician) => t.status === 'busy').length;
-  const inactiveTechs = techniciansList.filter((t: Technician) => t.status === 'inactive').length;
+  const totalTechs = Number(techniciansData?.meta?.total || 0);
 
   // Mutation to Create or Update Technician
   const saveTechMutation = useMutation({
@@ -182,57 +166,19 @@ export default function Technicians() {
         </Button>}
       </div>
 
-      {/* KPI Stats Widgets */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-slate-200/60 p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-            <Users className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tổng số thợ</span>
-            <strong className="text-2xl font-bold text-slate-900 mt-1">{totalTechs}</strong>
-          </div>
-        </Card>
-        <Card className="shadow-sm border-slate-200/60 p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <CheckCircle className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Thợ sẵn sàng</span>
-            <strong className="text-2xl font-bold text-emerald-600 mt-1">{availableTechs}</strong>
-          </div>
-        </Card>
-        <Card className="shadow-sm border-slate-200/60 p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
-            <Briefcase className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Đang bận việc</span>
-            <strong className="text-2xl font-bold text-amber-600 mt-1">{busyTechs}</strong>
-          </div>
-        </Card>
-        <Card className="shadow-sm border-slate-200/60 p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ngừng hoạt động</span>
-            <strong className="text-2xl font-bold text-slate-600 mt-1">{inactiveTechs}</strong>
-          </div>
-        </Card>
-      </div>
+      <p className="text-sm font-semibold text-slate-600">Tổng số kỹ thuật viên phù hợp: <strong className="text-slate-950">{totalTechs}</strong></p>
 
       {/* Filters Panel */}
       <Card className="shadow-sm border-slate-200/60 p-4">
         <TechnicianFilters
           searchText={searchText}
-          onSearchChange={setSearchText}
+          onSearchChange={value => { setSearchText(value); setPage(1); }}
           selectedArea={selectedArea}
-          onAreaChange={setSelectedArea}
+          onAreaChange={value => { setSelectedArea(value); setPage(1); }}
           selectedSkill={selectedSkill}
-          onSkillChange={setSelectedSkill}
+          onSkillChange={value => { setSelectedSkill(value); setPage(1); }}
           selectedStatus={selectedStatus}
-          onStatusChange={setSelectedStatus}
+          onStatusChange={value => { setSelectedStatus(value); setPage(1); }}
           skillsOptions={SKILLS_OPTIONS}
           districtOptions={DISTRICT_OPTIONS}
         />
@@ -241,13 +187,14 @@ export default function Technicians() {
       {/* Main Table Grid */}
       <Card noPadding className="overflow-hidden shadow-sm border-slate-200/60">
         <TechnicianTable
-          technicians={filteredTechnicians}
+          technicians={techniciansList}
           skillsOptions={SKILLS_OPTIONS}
           onEdit={handleOpenEditModal}
           onDelete={setDeleteConfirmId}
           onStatusChange={handleStatusChange}
           canManage={canManage}
           canDelete={canDelete}
+          pagination={{ current: page, pageSize: limit, total: totalTechs, onChange: setPage }}
         />
       </Card>
 

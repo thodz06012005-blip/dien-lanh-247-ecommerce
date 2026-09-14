@@ -89,6 +89,6 @@ export class CustomersService {
       lastServiceAt: customer.lastServiceAt.toISOString(),
     }));
 
-    return { success: true, data, meta: { page, limit, total: result.length } };
+    return { success: true, data, meta: { page, limit, total: result.length, totalPages: Math.ceil(result.length / limit) } };
   }
 }

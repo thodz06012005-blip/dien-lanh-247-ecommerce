@@ -20,6 +20,7 @@ interface ServiceRequestTableProps {
   onConfirm: (id: string) => void;
   onAssign: (id: string) => void;
   onDetail: (id: string) => void;
+  pagination: { current: number; pageSize: number; total: number; onChange: (page: number) => void };
 }
 
 export default function ServiceRequestTable({
@@ -32,7 +33,8 @@ export default function ServiceRequestTable({
   confirmingId,
   onConfirm,
   onAssign,
-  onDetail
+  onDetail,
+  pagination,
 }: ServiceRequestTableProps) {
   const role = useAdminAuthStore((state) => state.admin?.role);
   const canAssign = can(role, 'assignment.manage');
@@ -177,6 +179,7 @@ export default function ServiceRequestTable({
       columns={columns}
       dataSource={requests}
       emptyText="Không tìm thấy yêu cầu dịch vụ nào phù hợp"
+      pagination={pagination}
     />
   );
 }

@@ -266,11 +266,11 @@ router.get('/admin/service-requests', requirePermission('serviceRequests:read'),
   const errors = [];
   
   validateAllowedQueryKeys(req.query, [
-    'page', 'limit', 'q', 'search', 'status', 'priority', 'serviceCategoryId', 'district', 'technicianId', 'dateFrom', 'dateTo', 'sortBy', 'sortOrder'
+    'page', 'limit', 'q', 'search', 'status', 'priority', 'serviceCategoryId', 'district', 'technicianId', 'createdFrom', 'createdTo', 'scheduledFrom', 'scheduledTo', 'sortBy', 'sortOrder'
   ], errors);
 
   validatePaginationStrict(req.query, errors);
-  validateSortStrict(req.query, ['createdAt', 'updatedAt', 'status', 'priority', 'scheduledAt', 'district', 'customerName'], errors);
+  validateSortStrict(req.query, ['createdAt', 'updatedAt', 'status', 'priority', 'preferredDate', 'district', 'customerName'], errors);
 
   if (req.query.q !== undefined) validateSearchQuery(req.query, 'q', errors, 100);
   if (req.query.search !== undefined) validateSearchQuery(req.query, 'search', errors, 100);
@@ -289,7 +289,8 @@ router.get('/admin/service-requests', requirePermission('serviceRequests:read'),
   if (req.query.technicianId !== undefined) {
     validateOptionalString(req.query.technicianId, 'technicianId', errors, 50);
   }
-  validateDateRangeQuery(req.query, 'dateFrom', 'dateTo', errors);
+  validateDateRangeQuery(req.query, 'createdFrom', 'createdTo', errors);
+  validateDateRangeQuery(req.query, 'scheduledFrom', 'scheduledTo', errors);
 
   if (errors.length > 0) {
     return sendValidationError(res, errors);
@@ -316,12 +317,21 @@ router.get('/admin/service-requests', requirePermission('serviceRequests:read'),
   if (req.query.q) {
     const q = req.query.q.toLowerCase().trim();
     list = list.filter(r => 
+      r.id.toLowerCase().includes(q) ||
       r.customerName.toLowerCase().includes(q) || 
       r.customerPhone.includes(q)
     );
   }
-  const populatedList = list.map(r => adminList(r, db));
-  return respondSuccess(res, populatedList);
+  const vnStart = value => new Date(`${String(value).slice(0, 10)}T00:00:00+07:00`).getTime();
+  if (req.query.createdFrom) list = list.filter(r => new Date(r.createdAt).getTime() >= vnStart(req.query.createdFrom));
+  if (req.query.createdTo) list = list.filter(r => new Date(r.createdAt).getTime() < vnStart(req.query.createdTo) + 86400000);
+  if (req.query.scheduledFrom) list = list.filter(r => r.preferredDate >= String(req.query.scheduledFrom).slice(0, 10));
+  if (req.query.scheduledTo) list = list.filter(r => r.preferredDate <= String(req.query.scheduledTo).slice(0, 10));
+  const sortBy = req.query.sortBy || 'createdAt'; const direction = String(req.query.sortOrder || 'desc').toLowerCase() === 'asc' ? 1 : -1;
+  list.sort((a, b) => String(a[sortBy] || '').localeCompare(String(b[sortBy] || '')) * direction);
+  const page = Number(req.query.page || 1); const limit = Number(req.query.limit || 10); const total = list.length;
+  const populatedList = list.slice((page - 1) * limit, page * limit).map(r => adminList(r, db));
+  return respondSuccess(res, populatedList, 'Thành công', { page, limit, total, totalPages: Math.ceil(total / limit) });
 });
 
 // GET /admin/service-requests/:id — requires: serviceRequests:read
