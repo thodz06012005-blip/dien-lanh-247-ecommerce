@@ -14,4 +14,10 @@ export class ServiceCategoriesService {
       data: categories,
     };
   }
+
+  async findAreas() {
+    const data = await (this.prisma as any).serviceArea.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+    return { success: true, data };
+  }
+
 }

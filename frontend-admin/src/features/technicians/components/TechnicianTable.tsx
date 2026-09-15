@@ -15,6 +15,7 @@ interface Option {
 interface TechnicianTableProps {
   technicians: Technician[];
   skillsOptions: Option[];
+  areaOptions: Option[];
   onEdit: (t: Technician) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, newStatus: string) => void;
@@ -26,6 +27,7 @@ interface TechnicianTableProps {
 export default function TechnicianTable({
   technicians,
   skillsOptions,
+  areaOptions,
   onEdit,
   onDelete,
   onStatusChange,
@@ -93,9 +95,9 @@ export default function TechnicianTable({
     },
     {
       title: 'Khu vực hoạt động',
-      key: 'workingAreas',
+      key: 'workingAreaIds',
       render: (row) => {
-        const displayAreas = row.workingAreas || [];
+        const displayAreas = (row.workingAreaIds || []).map(id => areaOptions.find(option => option.value === id)?.label || id);
         const firstThree = displayAreas.slice(0, 3);
         const extraCount = displayAreas.length - 3;
         return (
@@ -179,7 +181,7 @@ export default function TechnicianTable({
     },
     {
       title: 'Trạng thái',
-      key: 'status',
+      key: 'operationalStatus',
       render: (row) => {
         const statusColors: Record<string, string> = {
           available: 'bg-emerald-50 text-emerald-700 border-emerald-200/60 focus:ring-emerald-500/10',
@@ -189,20 +191,10 @@ export default function TechnicianTable({
         };
         
         return (
-          <select
-            value={row.status}
-            disabled={!canManage}
-            onChange={(e) => onStatusChange(row.id, e.target.value)}
-            className={clsx(
-              "px-2.5 py-1 text-xs font-bold rounded-xl border focus:outline-none focus:ring-4 cursor-pointer transition-all bg-white",
-              statusColors[row.status] || 'bg-slate-50 text-slate-600'
-            )}
-          >
-            <option value="available" className="bg-white text-emerald-700">Sẵn sàng</option>
-            <option value="busy" className="bg-white text-amber-700">Đang bận</option>
-            <option value="offline" className="bg-white text-blue-700">Ngoại tuyến</option>
-            <option value="inactive" className="bg-white text-slate-600">Ngừng hoạt động</option>
-          </select>
+          <div className="flex flex-col gap-1.5">
+            <span className={clsx('rounded-xl border px-2.5 py-1 text-center text-xs font-bold', statusColors[row.operationalStatus])}>{row.operationalStatus === 'busy' ? 'Đang bận' : row.operationalStatus === 'available' ? 'Sẵn sàng' : row.operationalStatus === 'offline' ? 'Ngoại tuyến' : 'Ngừng hoạt động'}</span>
+            {canManage && row.accountStatus === 'active' && <select value={row.presence} onChange={(e) => onStatusChange(row.id, e.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold"><option value="on_shift">Trong ca</option><option value="offline">Ngoại tuyến</option></select>}
+          </div>
         );
       }
     },

@@ -20,6 +20,14 @@ const {
   validateSearchQuery,
   sendValidationError
 } = require('../utils/validation');
+const activeStatuses = ['assigned', 'in_progress', 'waiting_customer_approval'];
+const areaIdsFor = (tech, db) => tech.workingAreaIds || (tech.workingAreas || []).map(name => db.settings?.businessConfig?.serviceAreas?.find(area => area.name === name)?.id).filter(Boolean);
+const operational = (tech, db) => {
+  const accountStatus=tech.accountStatus||(tech.status==='inactive'?'inactive':'active'),presence=tech.presence||(tech.status==='offline'?'offline':'on_shift');
+  const activeJobs=(db.serviceRequests||[]).filter(job=>job.assignedTechnicianId===tech.id&&activeStatuses.includes(job.status));
+  return {...tech,workingAreaIds:areaIdsFor(tech,db),accountStatus,presence,busy:activeJobs.length>0,operationalStatus:accountStatus==='inactive'?'inactive':presence==='offline'?'offline':activeJobs.length?'busy':'available'};
+};
+const validReferences = (body, db) => (body.skills || []).every(id => (db.serviceCategories || []).some(category => category.id === id)) && (body.workingAreaIds || []).every(id => db.settings?.businessConfig?.serviceAreas?.some(area => area.active && area.id === id));
 
 // GET /admin/technicians — requires: technicians:read (superadmin, admin, staff)
 router.get('/admin/technicians', requirePermission('technicians:read'), (req, res) => {
@@ -53,14 +61,11 @@ router.get('/admin/technicians', requirePermission('technicians:read'), (req, re
   
   const { status, skill, workingArea, q } = req.query;
   
-  if (status) {
-    list = list.filter(t => t.status === status);
-  }
   if (skill) {
     list = list.filter(t => t.skills && t.skills.includes(skill));
   }
   if (workingArea) {
-    list = list.filter(t => t.workingAreas && t.workingAreas.includes(workingArea));
+    list = list.filter(t => areaIdsFor(t, db).includes(workingArea));
   }
   if (q) {
     const searchVal = q.toLowerCase().trim();
@@ -74,7 +79,7 @@ router.get('/admin/technicians', requirePermission('technicians:read'), (req, re
   const todayStr = new Date().toISOString().split('T')[0];
   const serviceRequests = db.serviceRequests || [];
   
-  const enrichedList = list.map(t => {
+  let enrichedList = list.map(t => {
     const todayJobsCount = serviceRequests.filter(r => 
       r.assignedTechnicianId === t.id &&
       r.preferredDate === todayStr &&
@@ -82,7 +87,7 @@ router.get('/admin/technicians', requirePermission('technicians:read'), (req, re
     ).length;
 
     let currentJob = null;
-    if (t.status === 'busy') {
+    if (operational(t, db).busy) {
       const activeRequests = serviceRequests.filter(r => 
         r.assignedTechnicianId === t.id &&
         (r.status === 'assigned' || r.status === 'confirmed')
@@ -100,11 +105,12 @@ router.get('/admin/technicians', requirePermission('technicians:read'), (req, re
     }
 
     return {
-      ...t,
+      ...operational(t, db),
       todayJobs: todayJobsCount,
       currentJob: currentJob
     };
   });
+  if (status) enrichedList = enrichedList.filter(t => t.operationalStatus === status);
   const sortBy = req.query.sortBy || 'createdAt';
   const direction = String(req.query.sortOrder || 'desc').toLowerCase() === 'asc' ? 1 : -1;
   enrichedList.sort((a, b) => { const first = a[sortBy]; const second = b[sortBy]; if (typeof first === 'string' && typeof second === 'string') return first.localeCompare(second) * direction; return (Number(first || 0) - Number(second || 0)) * direction; });
@@ -119,13 +125,14 @@ router.get('/admin/technicians/:id', requirePermission('technicians:read'), (req
   if (!tech) {
     return respondError(res, 404, 'Không tìm thấy kỹ thuật viên', 'TECHNICIAN_NOT_FOUND');
   }
-  return respondSuccess(res, tech);
+  return respondSuccess(res, operational(tech, db));
 });
 
 // POST /admin/technicians — requires: technicians:create (superadmin, admin)
 router.post('/admin/technicians', requirePermission('technicians:create'), (req, res) => {
   const body = req.body;
   const errors = [];
+  if (body.status !== undefined || body.workingAreas !== undefined) return respondError(res,400,'busy/status và workingAreas legacy không thể cập nhật','DERIVED_STATUS');
   
   validateRequiredString(body.name, 'name', errors, 2, 100);
   validateRequiredString(body.phone, 'phone', errors, 9, 20);
@@ -133,19 +140,14 @@ router.post('/admin/technicians', requirePermission('technicians:create'), (req,
   if (body.email !== undefined && body.email !== '') {
     validateOptionalString(body.email, 'email', errors, 100);
   }
-  if (body.status !== undefined) {
-    validateEnum(body.status, VALID_TECHNICIAN_STATUSES, 'status', errors);
-  }
+  if (body.accountStatus !== undefined) validateEnum(body.accountStatus, ['active','inactive'], 'accountStatus', errors);
+  if (body.presence !== undefined) validateEnum(body.presence, ['on_shift','offline'], 'presence', errors);
   if (body.skills !== undefined) {
     validateArrayOfStrings(body.skills, 'skills', errors, 1, 50);
   } else {
     errors.push({ field: 'skills', message: 'Kỹ năng chuyên môn không được để trống' });
   }
-  if (body.workingAreas !== undefined) {
-    validateArrayOfStrings(body.workingAreas, 'workingAreas', errors, 1, 50);
-  } else {
-    errors.push({ field: 'workingAreas', message: 'Địa bàn hoạt động không được để trống' });
-  }
+  if (body.workingAreaIds !== undefined) validateArrayOfStrings(body.workingAreaIds, 'workingAreaIds', errors, 1, 50); else errors.push({ field: 'workingAreaIds', message: 'Địa bàn hoạt động không được để trống' });
   if (body.rating !== undefined) {
     validateNumber(body.rating, 'rating', errors, 0, 5);
   }
@@ -187,15 +189,7 @@ router.post('/admin/technicians', requirePermission('technicians:create'), (req,
     return sendValidationError(res, errors);
   }
 
-  if (!body.workingAreas || !Array.isArray(body.workingAreas) || body.workingAreas.length === 0) {
-    return respondError(res, 400, 'Kỹ thuật viên phải có ít nhất một địa bàn hoạt động', 'INVALID_WORKING_AREAS');
-  }
-
-  const allowedStatuses = VALID_TECHNICIAN_STATUSES;
-  const status = body.status || 'available';
-  if (!allowedStatuses.includes(status)) {
-    return respondError(res, 400, 'Trạng thái hoạt động không hợp lệ', 'INVALID_STATUS');
-  }
+  if (!validReferences(body, db)) return respondError(res,400,'Kỹ năng hoặc khu vực không tồn tại','INVALID_TECHNICIAN_REFERENCE');
 
   let rating = 5.0;
   if (body.rating !== undefined && body.rating !== null) {
@@ -214,8 +208,10 @@ router.post('/admin/technicians', requirePermission('technicians:create'), (req,
     avatar: body.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(body.name.trim())}&background=f1f5f9&color=0f172a`,
     rating: rating,
     skills: body.skills,
-    workingAreas: body.workingAreas.map(area => area.startsWith('Quận ') ? area : `Quận ${area}`),
-    status: status,
+    workingAreaIds: body.workingAreaIds,
+    workingAreas: [],
+    accountStatus: body.accountStatus || 'active',
+    presence: body.presence || 'on_shift',
     completedCount: 0,
     createdAt: new Date().toISOString()
   };
@@ -237,6 +233,7 @@ router.patch('/admin/technicians/:id', requirePermission('technicians:update'), 
   }
 
   const body = req.body;
+  if (body.status !== undefined || body.workingAreas !== undefined) return respondError(res,400,'busy/status và workingAreas legacy không thể cập nhật','DERIVED_STATUS');
   const errors = [];
 
   if (body.name !== undefined) validateRequiredString(body.name, 'name', errors, 2, 100);
@@ -244,15 +241,12 @@ router.patch('/admin/technicians/:id', requirePermission('technicians:update'), 
   if (body.email !== undefined && body.email !== '') {
     validateOptionalString(body.email, 'email', errors, 100);
   }
-  if (body.status !== undefined) {
-    validateEnum(body.status, VALID_TECHNICIAN_STATUSES, 'status', errors);
-  }
+  if (body.accountStatus !== undefined) validateEnum(body.accountStatus, ['active','inactive'], 'accountStatus', errors);
+  if (body.presence !== undefined) validateEnum(body.presence, ['on_shift','offline'], 'presence', errors);
   if (body.skills !== undefined) {
     validateArrayOfStrings(body.skills, 'skills', errors, 1, 50);
   }
-  if (body.workingAreas !== undefined) {
-    validateArrayOfStrings(body.workingAreas, 'workingAreas', errors, 1, 50);
-  }
+  if (body.workingAreaIds !== undefined) validateArrayOfStrings(body.workingAreaIds, 'workingAreaIds', errors, 1, 50);
   if (body.rating !== undefined) {
     validateNumber(body.rating, 'rating', errors, 0, 5);
   }
@@ -290,6 +284,7 @@ router.patch('/admin/technicians/:id', requirePermission('technicians:update'), 
   }
   
   const existing = db.technicians[techIndex];
+  if (!validReferences({ skills: body.skills || existing.skills, workingAreaIds: body.workingAreaIds || areaIdsFor(existing, db) }, db)) return respondError(res,400,'Kỹ năng hoặc khu vực không tồn tại','INVALID_TECHNICIAN_REFERENCE');
 
   if (emailNormalized) {
     const emailDup = (db.technicians || []).some(t => t.id !== id && t.email && t.email.trim().toLowerCase() === emailNormalized);
@@ -314,21 +309,10 @@ router.patch('/admin/technicians/:id', requirePermission('technicians:update'), 
   if (body.avatar !== undefined) updates.avatar = body.avatar;
   if (body.rating !== undefined) updates.rating = Number(body.rating);
   if (body.skills !== undefined) updates.skills = body.skills;
-  if (body.workingAreas !== undefined) {
-    updates.workingAreas = body.workingAreas.map(area => area.startsWith('Quận ') ? area : `Quận ${area}`);
-  }
+  if (body.workingAreaIds !== undefined) updates.workingAreaIds = body.workingAreaIds;
+  if (body.accountStatus !== undefined) updates.accountStatus = body.accountStatus;
+  if (body.presence !== undefined) updates.presence = body.presence;
 
-  if (body.status !== undefined) {
-    // Check if technician has active job
-    const hasActiveJob = (db.serviceRequests || []).some(r => 
-      r.assignedTechnicianId === id && 
-      ACTIVE_SERVICE_REQUEST_STATUSES.includes(r.status)
-    );
-    if (hasActiveJob && body.status !== 'busy') {
-      return respondError(res, 400, 'Không thể thay đổi trạng thái của kỹ thuật viên khi đang có lịch sửa chữa chưa hoàn thành!', 'TECHNICIAN_HAS_ACTIVE_JOB');
-    }
-    updates.status = body.status;
-  }
 
   const updatedTech = {
     ...existing,
@@ -340,41 +324,11 @@ router.patch('/admin/technicians/:id', requirePermission('technicians:update'), 
   writeDB(db);
   auditSuccess(req, 'TECHNICIAN_UPDATED', 'technician', updatedTech.id, { name: updatedTech.name }, 'Technician updated successfully');
 
-  return respondSuccess(res, updatedTech, 'Cập nhật thông tin kỹ thuật viên thành công');
+  return respondSuccess(res, operational(updatedTech, db), 'Cập nhật thông tin kỹ thuật viên thành công');
 });
 
 // PATCH /admin/technicians/:id/status — requires: technicians:update (superadmin, admin)
-router.patch('/admin/technicians/:id/status', requirePermission('technicians:update'), (req, res) => {
-  const db = readDB();
-  const id = req.params.id;
-  const techIndex = (db.technicians || []).findIndex(t => t.id === id);
-  
-  if (techIndex === -1) {
-    return respondError(res, 404, 'Không tìm thấy kỹ thuật viên', 'TECHNICIAN_NOT_FOUND');
-  }
-  
-  const { status } = req.body;
-  const allowedStatuses = VALID_TECHNICIAN_STATUSES;
-  if (!status || !allowedStatuses.includes(status)) {
-    return respondError(res, 400, 'Trạng thái hoạt động không hợp lệ', 'INVALID_STATUS');
-  }
-
-  // Check if technician has active job
-  const hasActiveJob = (db.serviceRequests || []).some(r => 
-    r.assignedTechnicianId === id && 
-    ACTIVE_SERVICE_REQUEST_STATUSES.includes(r.status)
-  );
-  if (hasActiveJob && status !== 'busy') {
-    return respondError(res, 400, 'Không thể thay đổi trạng thái của kỹ thuật viên khi đang có lịch sửa chữa chưa hoàn thành!', 'TECHNICIAN_HAS_ACTIVE_JOB');
-  }
-  
-  db.technicians[techIndex].status = status;
-  db.technicians[techIndex].updatedAt = new Date().toISOString();
-  
-  writeDB(db);
-  auditSuccess(req, 'TECHNICIAN_STATUS_UPDATED', 'technician', id, { status }, 'Technician status updated successfully');
-  return respondSuccess(res, db.technicians[techIndex], 'Cập nhật trạng thái kỹ thuật viên thành công');
-});
+router.patch('/admin/technicians/:id/status', requirePermission('technicians:update'), (req,res)=>{const db=readDB(),tech=(db.technicians||[]).find(item=>item.id===req.params.id);if(!tech)return respondError(res,404,'Không tìm thấy kỹ thuật viên','TECHNICIAN_NOT_FOUND');if(req.body?.status!==undefined)return respondError(res,400,'busy là trạng thái dẫn xuất','DERIVED_STATUS');const {accountStatus,presence}=req.body||{};if(accountStatus!==undefined&&!['active','inactive'].includes(accountStatus)||presence!==undefined&&!['on_shift','offline'].includes(presence)||accountStatus===undefined&&presence===undefined)return respondError(res,400,'Trạng thái không hợp lệ','INVALID_STATUS');if(accountStatus!==undefined)tech.accountStatus=accountStatus;if(presence!==undefined)tech.presence=presence;tech.updatedAt=new Date().toISOString();writeDB(db);auditSuccess(req,'TECHNICIAN_AVAILABILITY_UPDATED','technician',tech.id,{accountStatus,presence},'Technician account/presence updated');return respondSuccess(res,operational(tech,db),'Cập nhật trạng thái kỹ thuật viên thành công');});
 
 // DELETE /admin/technicians/:id — requires: technicians:delete (superadmin ONLY)
 router.delete('/admin/technicians/:id', requirePermission('technicians:delete'), (req, res) => {
@@ -421,7 +375,8 @@ router.delete('/admin/technicians/:id', requirePermission('technicians:delete'),
   technician.deletedAt = new Date().toISOString();
   technician.deletedBy = req.admin ? req.admin.id : 'unknown';
   technician.deleteReason = reason;
-  technician.status = 'inactive';
+  technician.accountStatus = 'inactive';
+  technician.presence = 'offline';
 
   writeDB(db);
   auditSuccess(req, 'TECHNICIAN_SOFT_DELETED', 'technician', id, { id, reason }, 'Technician soft deleted successfully');

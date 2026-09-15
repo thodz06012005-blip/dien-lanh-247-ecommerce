@@ -71,6 +71,7 @@ export default function TechnicianFilters({
           { label: 'Tất cả trạng thái', value: '' },
           { label: 'Sẵn sàng', value: 'available' },
           { label: 'Đang bận', value: 'busy' },
+          { label: 'Ngoại tuyến', value: 'offline' },
           { label: 'Ngừng hoạt động', value: 'inactive' }
         ]}
         className="h-10 bg-[#fafafa] border-slate-200 shadow-none rounded-xl"

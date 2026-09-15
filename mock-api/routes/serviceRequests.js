@@ -25,29 +25,11 @@ const {
   sendValidationError
 } = require('../utils/validation');
 
-// Helper to dynamically update technician status based on active assigned jobs
-const updateTechnicianStatusAfterJobChange = (techId, db, excludeRequestId = null) => {
-  const tech = (db.technicians || []).find(t => t.id === techId);
-  if (!tech) return;
-
-  const activeJobs = (db.serviceRequests || []).filter(r => 
-    r.assignedTechnicianId === techId && 
-    ACTIVE_SERVICE_REQUEST_STATUSES.includes(r.status) && 
-    r.id !== excludeRequestId
-  );
-
-  if (activeJobs.length > 0) {
-    tech.status = 'busy';
-  } else {
-    tech.status = 'available';
-  }
-};
-
 // POST /service-requests (Customer creates new service request)
 router.post('/service-requests', (req, res) => {
   const db = readDB();
   const body = req.body;
-  const allowedBodyKeys = ['customerName', 'customerPhone', 'customerAddress', 'district', 'serviceCategoryId', 'applianceType', 'issueDescription', 'preferredDate', 'preferredTimeSlot', 'note', 'priority', 'images', 'mediaMetadata'];
+  const allowedBodyKeys = ['customerName', 'customerPhone', 'customerAddress', 'district', 'areaId', 'serviceCategoryId', 'applianceType', 'issueDescription', 'preferredDate', 'preferredTimeSlot', 'note', 'priority', 'images', 'mediaMetadata'];
   const unknownKey = Object.keys(body).find(key => !allowedBodyKeys.includes(key));
   if (unknownKey) return respondError(res, 400, `Trường ${unknownKey} không được phép`, 'UNKNOWN_FIELD');
 
@@ -57,6 +39,7 @@ router.post('/service-requests', (req, res) => {
     'customerPhone',
     'customerAddress',
     'district',
+    'areaId',
     'serviceCategoryId',
     'applianceType',
     'issueDescription',
@@ -80,11 +63,12 @@ router.post('/service-requests', (req, res) => {
   const preferredDate = body.preferredDate.trim();
   const preferredTimeSlot = body.preferredTimeSlot.trim();
   const businessConfig = db.settings?.businessConfig;
+  const area = businessConfig?.serviceAreas?.find(item => item.active && item.id === body.areaId);
 
   if (businessConfig) {
     const appliance = businessConfig.appliances.find(item => item.active && item.name === applianceType);
     if (!appliance) return respondError(res, 400, 'Thiết bị không nằm trong danh sách đang phục vụ', 'INVALID_APPLIANCE');
-    if (!businessConfig.serviceAreas.some(item => item.active && item.name === district)) return respondError(res, 400, 'Khu vực hiện chưa được phục vụ', 'INVALID_SERVICE_AREA');
+    if (!area) return respondError(res, 400, 'Khu vực hiện chưa được phục vụ', 'INVALID_SERVICE_AREA');
     if (!businessConfig.timeSlots.some(item => item.active && item.label === preferredTimeSlot)) return respondError(res, 400, 'Khung giờ hiện không còn khả dụng', 'INVALID_TIME_SLOT');
   }
 
@@ -133,7 +117,7 @@ router.post('/service-requests', (req, res) => {
   const now = new Date().toISOString();
   const requestId = `SR-${Date.now().toString().slice(-6)}`;
 
-  const districtNormalized = district.startsWith('Quận ') ? district : `Quận ${district}`;
+  const districtNormalized = area.name;
 
   const newRequest = {
     id: requestId,
@@ -142,6 +126,7 @@ router.post('/service-requests', (req, res) => {
     customerPhone,
     customerAddress,
     district: districtNormalized,
+    areaId: area.id,
     serviceCategoryId,
     applianceType,
     issueDescription,
@@ -282,7 +267,7 @@ router.get('/admin/service-requests', requirePermission('serviceRequests:read'),
   const errors = [];
   
   validateAllowedQueryKeys(req.query, [
-    'page', 'limit', 'q', 'search', 'status', 'priority', 'serviceCategoryId', 'district', 'technicianId', 'createdFrom', 'createdTo', 'scheduledFrom', 'scheduledTo', 'sortBy', 'sortOrder'
+    'page', 'limit', 'q', 'search', 'status', 'priority', 'serviceCategoryId', 'district', 'areaId', 'technicianId', 'createdFrom', 'createdTo', 'scheduledFrom', 'scheduledTo', 'sortBy', 'sortOrder'
   ], errors);
 
   validatePaginationStrict(req.query, errors);
@@ -302,6 +287,7 @@ router.get('/admin/service-requests', requirePermission('serviceRequests:read'),
   if (req.query.district !== undefined) {
     validateOptionalString(req.query.district, 'district', errors, 100);
   }
+  if (req.query.areaId !== undefined) validateOptionalString(req.query.areaId, 'areaId', errors, 100);
   if (req.query.technicianId !== undefined) {
     validateOptionalString(req.query.technicianId, 'technicianId', errors, 50);
   }
@@ -327,6 +313,7 @@ router.get('/admin/service-requests', requirePermission('serviceRequests:read'),
   if (req.query.district) {
     list = list.filter(r => r.district === req.query.district);
   }
+  if (req.query.areaId) list = list.filter(r => r.areaId === req.query.areaId);
   if (req.query.technicianId) {
     list = list.filter(r => r.assignedTechnicianId === req.query.technicianId);
   }
@@ -456,10 +443,6 @@ router.patch('/admin/service-requests/:id/status', requirePermission('serviceReq
     if (!request.activityLog) request.activityLog = [];
     request.activityLog.unshift({ action: 'STATUS_UPDATED', label: `Cập nhật trạng thái thành ${request.status}`, actor: req.admin.name, detail: logNote, createdAt: now });
 
-    // Release technician if completed/cancelled
-    if ((status === 'completed' || status === 'cancelled') && request.assignedTechnicianId) {
-      updateTechnicianStatusAfterJobChange(request.assignedTechnicianId, db, request.id);
-    }
   }
 
   if (note && !status) {
@@ -510,15 +493,15 @@ router.patch('/admin/service-requests/:id/assign-technician', requirePermission(
     return respondError(res, 404, 'Không tìm thấy kỹ thuật viên', 'TECHNICIAN_NOT_FOUND');
   }
 
-  if (tech.status !== 'available' && request.assignedTechnicianId !== technicianId) {
-    return respondError(res, 400, `Kỹ thuật viên ${tech.name} hiện đang bận hoặc ngừng hoạt động!`, 'TECHNICIAN_NOT_AVAILABLE');
-  }
+  if ((tech.accountStatus || (tech.status === 'inactive' ? 'inactive' : 'active')) !== 'active' || (tech.presence || (tech.status === 'offline' ? 'offline' : 'on_shift')) !== 'on_shift') return respondError(res,400,`Kỹ thuật viên ${tech.name} hiện không trong ca hoạt động`,'TECHNICIAN_NOT_AVAILABLE');
+  const overlap=(db.serviceRequests||[]).find(item=>item.id!==request.id&&item.assignedTechnicianId===technicianId&&item.preferredDate===request.preferredDate&&item.preferredTimeSlot===request.preferredTimeSlot&&['assigned','in_progress','waiting_customer_approval'].includes(item.status));if(overlap)return respondError(res,400,`Kỹ thuật viên ${tech.name} đã có lịch trùng khung giờ`,'TECHNICIAN_SCHEDULE_CONFLICT');
 
   if (!tech.skills || !tech.skills.includes(request.serviceCategoryId)) {
     return respondError(res, 400, `Kỹ thuật viên ${tech.name} không có kỹ năng sửa chữa loại thiết bị này!`, 'SKILL_MISMATCH');
   }
 
-  if (!tech.workingAreas || !tech.workingAreas.includes(request.district)) {
+  const configuredAreas=db.settings?.businessConfig?.serviceAreas||[],requestAreaId=request.areaId||configuredAreas.find(area=>area.name===request.district)?.id,areaIds=tech.workingAreaIds||(tech.workingAreas||[]).map(name=>configuredAreas.find(area=>area.name===name)?.id).filter(Boolean);
+  if (!requestAreaId || !areaIds.includes(requestAreaId)) {
     return respondError(res, 400, `Kỹ thuật viên ${tech.name} không hỗ trợ hoạt động tại khu vực ${request.district}!`, 'AREA_MISMATCH');
   }
 
@@ -540,12 +523,6 @@ router.patch('/admin/service-requests/:id/assign-technician', requirePermission(
     createdAt: now
   });
   
-  tech.status = 'busy';
-
-  // Release old technician if they have no other active jobs
-  if (oldTechnicianId && oldTechnicianId !== technicianId) {
-    updateTechnicianStatusAfterJobChange(oldTechnicianId, db, request.id);
-  }
   
   writeDB(db);
   auditSuccess(req, 'SERVICE_REQUEST_ASSIGNED', 'serviceRequest', id, { oldTechnicianId, newTechnicianId: technicianId }, 'Technician assigned to service request');
@@ -553,7 +530,4 @@ router.patch('/admin/service-requests/:id/assign-technician', requirePermission(
   return respondSuccess(res, populated, 'Phân công kỹ thuật viên thành công');
 });
 
-module.exports = {
-  router,
-  updateTechnicianStatusAfterJobChange
-};
+module.exports = { router };

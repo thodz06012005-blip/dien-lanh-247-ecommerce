@@ -20,6 +20,10 @@ export class CreateServiceRequestDto {
   district: string;
 
   @IsString()
+  @IsNotEmpty({ message: 'Trường areaId là bắt buộc' })
+  areaId: string;
+
+  @IsString()
   @IsNotEmpty({ message: 'Trường serviceCategoryId là bắt buộc' })
   serviceCategoryId: string;
 

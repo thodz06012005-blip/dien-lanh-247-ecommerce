@@ -9,30 +9,12 @@ import EmptyState from '../components/ui/EmptyState';
 import { Plus } from 'lucide-react';
 import type { Technician } from '../features/technicians/types';
 import { AxiosError } from 'axios';
-import { DISTRICT_OPTIONS } from '../constants/areas';
 import TechnicianFilters from '../features/technicians/components/TechnicianFilters';
 import TechnicianTable from '../features/technicians/components/TechnicianTable';
 import TechnicianFormModal from '../features/technicians/components/TechnicianFormModal';
 import { can } from '../auth/permissions';
 import { useAdminAuthStore } from '../store/adminAuthStore';
 import useDebouncedValue from '../hooks/useDebouncedValue';
-
-// Standardized options
-const SKILLS_OPTIONS = [
-  { value: 'sua-dieu-hoa', label: 'Sửa điều hòa' },
-  { value: 've-sinh-dieu-hoa', label: 'Vệ sinh điều hòa' },
-  { value: 'lap-dat-dieu-hoa', label: 'Lắp đặt điều hòa' },
-  { value: 'sua-tu-lanh', label: 'Sửa tủ lạnh' },
-  { value: 'sua-may-giat', label: 'Sửa máy giặt' },
-  { value: 'bao-tri-dinh-ky', label: 'Bảo trì định kỳ' }
-];
-
-const STATUS_OPTIONS = [
-  { value: 'available', label: 'Sẵn sàng (Available)' },
-  { value: 'busy', label: 'Đang bận (Busy)' },
-  { value: 'offline', label: 'Ngoại tuyến (Offline)' },
-  { value: 'inactive', label: 'Ngừng hoạt động (Inactive)' }
-];
 
 export default function Technicians() {
   const queryClient = useQueryClient();
@@ -49,7 +31,7 @@ export default function Technicians() {
 
   const handleStatusChange = async (techId: string, newStatus: string) => {
     try {
-      await api.patch(`/admin/technicians/${techId}/status`, { status: newStatus });
+      await api.patch(`/admin/technicians/${techId}/status`, { presence: newStatus });
       queryClient.invalidateQueries({ queryKey: ['admin-technicians'] });
       showToast('Cập nhật trạng thái thợ thành công', 'success');
     } catch (e: unknown) {
@@ -68,6 +50,10 @@ export default function Technicians() {
   const [selectedSkill, setSelectedSkill] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [page, setPage] = useState(1); const limit = 10; const debouncedSearch = useDebouncedValue(searchText);
+  const { data: categoriesData } = useQuery({ queryKey: ['service-categories'], queryFn: async () => (await api.get('/service-categories')).data });
+  const { data: areasData } = useQuery({ queryKey: ['service-areas'], queryFn: async () => (await api.get('/service-areas')).data });
+  const skillsOptions = (categoriesData?.data || []).map((item: { id: string; name: string }) => ({ value: item.id, label: item.name }));
+  const areaOptions = (areasData?.data || []).map((item: { id: string; name: string }) => ({ value: item.id, label: item.name }));
 
   // Fetch Technicians List
   const { data: techniciansData, isLoading, error } = useQuery({
@@ -179,8 +165,8 @@ export default function Technicians() {
           onSkillChange={value => { setSelectedSkill(value); setPage(1); }}
           selectedStatus={selectedStatus}
           onStatusChange={value => { setSelectedStatus(value); setPage(1); }}
-          skillsOptions={SKILLS_OPTIONS}
-          districtOptions={DISTRICT_OPTIONS}
+          skillsOptions={skillsOptions}
+          districtOptions={areaOptions}
         />
       </Card>
 
@@ -188,7 +174,8 @@ export default function Technicians() {
       <Card noPadding className="overflow-hidden shadow-sm border-slate-200/60">
         <TechnicianTable
           technicians={techniciansList}
-          skillsOptions={SKILLS_OPTIONS}
+          skillsOptions={skillsOptions}
+          areaOptions={areaOptions}
           onEdit={handleOpenEditModal}
           onDelete={setDeleteConfirmId}
           onStatusChange={handleStatusChange}
@@ -204,9 +191,8 @@ export default function Technicians() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           editingTech={editingTech}
-          skillsOptions={SKILLS_OPTIONS}
-          districtOptions={DISTRICT_OPTIONS}
-          statusOptions={STATUS_OPTIONS}
+          skillsOptions={skillsOptions}
+          districtOptions={areaOptions}
           isSaving={saveTechMutation.isPending}
           onSave={handleSaveSubmit}
         />

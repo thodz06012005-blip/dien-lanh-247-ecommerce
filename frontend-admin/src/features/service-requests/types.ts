@@ -11,6 +11,7 @@ export interface ServiceRequest {
   customerPhone: string;
   customerAddress: string;
   district: string;
+  areaId?: string;
   serviceCategoryId: string;
   applianceType: string;
   issueDescription: string;

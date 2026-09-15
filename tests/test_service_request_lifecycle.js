@@ -151,6 +151,7 @@ async function runTests() {
     customerPhone: '0911111111',
     customerAddress: '123 Test St',
     district: 'Quận Cầu Giấy',
+    areaId: 'cau-giay',
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa',
     issueDescription: 'Vệ sinh máy',

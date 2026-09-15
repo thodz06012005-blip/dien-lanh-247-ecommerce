@@ -1,0 +1,23 @@
+CREATE TABLE `ServiceArea` (`id` VARCHAR(191) NOT NULL,`name` VARCHAR(191) NOT NULL,`isActive` BOOLEAN NOT NULL DEFAULT true,`createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),`updatedAt` DATETIME(3) NOT NULL,PRIMARY KEY (`id`)) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+INSERT INTO `ServiceArea` (`id`,`name`,`updatedAt`) VALUES
+('cau-giay','Quận Cầu Giấy',CURRENT_TIMESTAMP(3)),('dong-da','Quận Đống Đa',CURRENT_TIMESTAMP(3)),('ba-dinh','Quận Ba Đình',CURRENT_TIMESTAMP(3)),('hai-ba-trung','Quận Hai Bà Trưng',CURRENT_TIMESTAMP(3)),('hoan-kiem','Quận Hoàn Kiếm',CURRENT_TIMESTAMP(3)),('thanh-xuan','Quận Thanh Xuân',CURRENT_TIMESTAMP(3)),('tay-ho','Quận Tây Hồ',CURRENT_TIMESTAMP(3)),('long-bien','Quận Long Biên',CURRENT_TIMESTAMP(3)),('nam-tu-liem','Quận Nam Từ Liêm',CURRENT_TIMESTAMP(3)),('bac-tu-liem','Quận Bắc Từ Liêm',CURRENT_TIMESTAMP(3)),('ha-dong','Quận Hà Đông',CURRENT_TIMESTAMP(3)),('hoang-mai','Quận Hoàng Mai',CURRENT_TIMESTAMP(3));
+ALTER TABLE `Technician` ADD COLUMN `workingAreaIds` JSON NULL, ADD COLUMN `accountStatus` ENUM('active','inactive') NOT NULL DEFAULT 'active', ADD COLUMN `presence` ENUM('on_shift','offline') NOT NULL DEFAULT 'on_shift';
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY();
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'cau-giay') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Cầu Giấy'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'dong-da') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Đống Đa'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'ba-dinh') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Ba Đình'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'hai-ba-trung') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Hai Bà Trưng'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'hoan-kiem') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Hoàn Kiếm'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'thanh-xuan') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Thanh Xuân'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'tay-ho') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Tây Hồ'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'long-bien') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Long Biên'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'nam-tu-liem') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Nam Từ Liêm'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'bac-tu-liem') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Bắc Từ Liêm'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'ha-dong') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Hà Đông'));
+UPDATE `Technician` SET `workingAreaIds`=JSON_ARRAY_APPEND(`workingAreaIds`, '$', 'hoang-mai') WHERE JSON_CONTAINS(`workingAreas`, JSON_QUOTE('Quận Hoàng Mai'));
+ALTER TABLE `Technician` MODIFY `workingAreaIds` JSON NOT NULL;
+ALTER TABLE `ServiceRequest` ADD COLUMN `areaId` VARCHAR(191) NULL;
+UPDATE `ServiceRequest` r JOIN `ServiceArea` a ON a.`name`=r.`district` SET r.`areaId`=a.`id`;
+CREATE INDEX `ServiceRequest_areaId_idx` ON `ServiceRequest`(`areaId`);
+ALTER TABLE `ServiceRequest` ADD CONSTRAINT `ServiceRequest_areaId_fkey` FOREIGN KEY (`areaId`) REFERENCES `ServiceArea`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `SystemSetting` ADD COLUMN `businessConfig` JSON NULL;

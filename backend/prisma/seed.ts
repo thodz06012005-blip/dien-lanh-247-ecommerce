@@ -230,6 +230,15 @@ async function main() {
   }
   console.log('Seeded service categories.');
 
+  const serviceAreas = [
+    ['cau-giay', 'Quận Cầu Giấy'], ['dong-da', 'Quận Đống Đa'], ['ba-dinh', 'Quận Ba Đình'],
+    ['hai-ba-trung', 'Quận Hai Bà Trưng'], ['thanh-xuan', 'Quận Thanh Xuân'], ['tay-ho', 'Quận Tây Hồ'],
+    ['nam-tu-liem', 'Quận Nam Từ Liêm'], ['hoang-mai', 'Quận Hoàng Mai'],
+  ];
+  for (const [id, name] of serviceAreas) {
+    await (prisma as any).serviceArea.upsert({ where: { id }, update: { name, isActive: true }, create: { id, name, isActive: true } });
+  }
+
   // 7. Create Technicians
   const techs = [
     {
@@ -241,6 +250,8 @@ async function main() {
       rating: 4.8,
       skills: ['sua-dieu-hoa', 've-sinh-dieu-hoa'],
       workingAreas: ['Quận Cầu Giấy', 'Quận Nam Từ Liêm'],
+      workingAreaIds: ['cau-giay', 'nam-tu-liem'],
+      accountStatus: 'active', presence: 'on_shift',
       status: TechnicianStatus.available,
       completedCount: 24,
     },
@@ -253,6 +264,8 @@ async function main() {
       rating: 4.7,
       skills: ['sua-tu-lanh', 'sua-may-giat', 'sua-dieu-hoa'],
       workingAreas: ['Quận Đống Đa', 'Quận Thanh Xuân'],
+      workingAreaIds: ['dong-da', 'thanh-xuan'],
+      accountStatus: 'active', presence: 'on_shift',
       status: TechnicianStatus.available,
       completedCount: 18,
     },
@@ -265,6 +278,8 @@ async function main() {
       rating: 4.9,
       skills: ['sua-dieu-hoa', 'lap-dat-dieu-hoa'],
       workingAreas: ['Quận Ba Đình', 'Quận Tây Hồ'],
+      workingAreaIds: ['ba-dinh', 'tay-ho'],
+      accountStatus: 'active', presence: 'on_shift',
       status: TechnicianStatus.busy,
       completedCount: 35,
     },
@@ -277,6 +292,8 @@ async function main() {
       rating: 4.5,
       skills: ['bao-tri-dinh-ky', 've-sinh-dieu-hoa'],
       workingAreas: ['Quận Hai Bà Trưng', 'Quận Hoàng Mai'],
+      workingAreaIds: ['hai-ba-trung', 'hoang-mai'],
+      accountStatus: 'active', presence: 'on_shift',
       status: TechnicianStatus.available,
       completedCount: 12,
     }

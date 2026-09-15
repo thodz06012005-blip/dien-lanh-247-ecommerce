@@ -37,6 +37,8 @@ function SettingsForm({ initialData }: { initialData: SystemSettings }) {
       setErrorMessage('');
       window.setTimeout(() => setSaved(false), 3500);
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['service-areas'] });
+      queryClient.invalidateQueries({ queryKey: ['service-categories'] });
     },
     onError: (err: AxiosError<{ message?: string; errors?: { message: string }[] }>) => {
       const details = err.response?.data?.errors?.[0]?.message;

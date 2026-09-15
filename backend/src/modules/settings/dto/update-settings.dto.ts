@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, Min, IsEmail, Length } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, IsEmail, Length, IsObject } from 'class-validator';
 
 export class UpdateSettingsDto {
   @IsString()
@@ -34,4 +34,8 @@ export class UpdateSettingsDto {
   @Min(0)
   @IsOptional()
   freeShippingThreshold?: number;
+
+  @IsObject()
+  @IsOptional()
+  businessConfig?: Record<string, any>;
 }

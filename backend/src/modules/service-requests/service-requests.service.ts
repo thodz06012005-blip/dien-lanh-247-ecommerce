@@ -4,36 +4,13 @@ import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { UpdateServiceRequestStatusDto } from './dto/update-service-request-status.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { ServiceRequestQueryDto } from './dto/service-request-query.dto';
-import { ServiceRequestStatus, ServiceRequestPriority, TechnicianStatus } from '@prisma/client';
+import { ServiceRequestStatus, ServiceRequestPriority } from '@prisma/client';
 import { toAdminDetail, toAdminList, toCustomerDetail } from '../service-operations/job-view';
 
 @Injectable()
 export class ServiceRequestsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Helper to dynamically update technician status based on active assigned jobs
-  private async updateTechnicianStatusAfterJobChange(techId: string, excludeRequestId: string | null = null) {
-    const tech = await this.prisma.technician.findUnique({ where: { id: techId } });
-    if (!tech) return;
-
-    // Active jobs are those assigned to this technician and in 'confirmed' or 'assigned' status
-    const activeJobsCount = await this.prisma.serviceRequest.count({
-      where: {
-        assignedTechnicianId: techId,
-        status: {
-          in: [ServiceRequestStatus.confirmed, ServiceRequestStatus.assigned],
-        },
-        ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
-      },
-    });
-
-    await this.prisma.technician.update({
-      where: { id: techId },
-      data: {
-        status: activeJobsCount > 0 ? TechnicianStatus.busy : TechnicianStatus.available,
-      },
-    });
-  }
 
   async create(dto: CreateServiceRequestDto, authenticatedUserId: number | null = null) {
     // 1. Validate serviceCategoryId exists
@@ -57,8 +34,10 @@ export class ServiceRequestsService {
       throw new BadRequestException('Ngày hẹn không được ở quá khứ');
     }
 
-    // 3. Normalize district
-    const districtNormalized = dto.district.startsWith('Quận ') ? dto.district : `Quận ${dto.district}`;
+    // Stable ID authorizes/matches; name is retained only as a historical display snapshot.
+    const area = await (this.prisma as any).serviceArea.findFirst({ where: { id: dto.areaId, isActive: true } });
+    if (!area) throw new BadRequestException('Khu vực dịch vụ không tồn tại hoặc đã ngừng');
+    const districtNormalized = area.name;
 
     // 4. Generate String ID (SR-xxxxxx)
     const requestId = `SR-${Date.now().toString().slice(-6)}`;
@@ -81,6 +60,7 @@ export class ServiceRequestsService {
         customerPhone: dto.customerPhone.replace(/\s+/g, '').trim(),
         customerAddress: dto.customerAddress.trim(),
         district: districtNormalized,
+        areaId: area.id,
         serviceCategoryId: dto.serviceCategoryId,
         applianceType: dto.applianceType.trim(),
         issueDescription: dto.issueDescription.trim(),
@@ -171,6 +151,9 @@ export class ServiceRequestsService {
     }
     if (query?.district) {
       whereClause.district = query.district;
+    }
+    if (query?.areaId) {
+      whereClause.areaId = query.areaId;
     }
     if (query?.technicianId) {
       whereClause.assignedTechnicianId = query.technicianId;
@@ -350,11 +333,6 @@ export class ServiceRequestsService {
       return updated;
     });
 
-    // Giải phóng thợ nếu hoàn thành hoặc hủy
-    if ((newStatus === ServiceRequestStatus.completed || newStatus === ServiceRequestStatus.cancelled) && request.assignedTechnicianId) {
-      await this.updateTechnicianStatusAfterJobChange(request.assignedTechnicianId, request.id);
-    }
-
     return {
       success: true,
       message: 'Cập nhật trạng thái thành công',
@@ -381,10 +359,9 @@ export class ServiceRequestsService {
       throw new NotFoundException('Không tìm thấy kỹ thuật viên');
     }
 
-    // Kiểm tra thợ rảnh
-    if (tech.status !== TechnicianStatus.available && request.assignedTechnicianId !== dto.technicianId) {
-      throw new BadRequestException(`Kỹ thuật viên ${tech.name} hiện đang bận hoặc ngừng hoạt động!`);
-    }
+    if ((tech as any).accountStatus !== 'active' || (tech as any).presence !== 'on_shift') throw new BadRequestException(`Kỹ thuật viên ${tech.name} hiện không trong ca hoạt động`);
+    const overlapping = await this.prisma.serviceRequest.findFirst({ where: { id: { not: request.id }, assignedTechnicianId: dto.technicianId, preferredDate: request.preferredDate, preferredTimeSlot: request.preferredTimeSlot, status: { in: ['assigned', 'in_progress', 'waiting_customer_approval'] as any } } });
+    if (overlapping) throw new BadRequestException(`Kỹ thuật viên ${tech.name} đã có lịch trùng khung giờ`);
 
     // Kiểm tra kỹ năng (skills là Json chứa mảng các ID danh mục dịch vụ)
     const skills = (tech.skills as string[]) || [];
@@ -392,13 +369,11 @@ export class ServiceRequestsService {
       throw new BadRequestException(`Kỹ thuật viên ${tech.name} không có kỹ năng sửa chữa loại thiết bị này!`);
     }
 
-    // Kiểm tra địa bàn (workingAreas là Json chứa mảng tên các quận)
-    const workingAreas = (tech.workingAreas as string[]) || [];
-    if (!workingAreas.includes(request.district)) {
+    const workingAreaIds = ((tech as any).workingAreaIds as string[]) || [];
+    if (!request.areaId || !workingAreaIds.includes(request.areaId)) {
       throw new BadRequestException(`Kỹ thuật viên ${tech.name} không hỗ trợ hoạt động tại khu vực ${request.district}!`);
     }
 
-    const oldTechnicianId = request.assignedTechnicianId;
     const now = new Date().toISOString();
     const logNote = `Phân công kỹ thuật viên ${tech.name}`;
     const oldHistory = (request.statusHistory as any[]) || [];
@@ -425,17 +400,6 @@ export class ServiceRequestsService {
         assignedTechnician: true,
       },
     });
-
-    // Chuyển trạng thái thợ mới sang busy
-    await this.prisma.technician.update({
-      where: { id: dto.technicianId },
-      data: { status: TechnicianStatus.busy },
-    });
-
-    // Giải phóng thợ cũ nếu có
-    if (oldTechnicianId && oldTechnicianId !== dto.technicianId) {
-      await this.updateTechnicianStatusAfterJobChange(oldTechnicianId, request.id);
-    }
 
     return {
       success: true,

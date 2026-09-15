@@ -383,6 +383,25 @@ enum TechnicianStatus {
   inactive
 }
 
+enum TechnicianAccountStatus {
+  active
+  inactive
+}
+
+enum TechnicianPresence {
+  on_shift
+  offline
+}
+
+model ServiceArea {
+  id        String           @id
+  name      String
+  isActive  Boolean          @default(true)
+  requests  ServiceRequest[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
 model ServiceCategory {
   id          String           @id // e.g. "sua-dieu-hoa", "ve-sinh-dieu-hoa"
   name        String
@@ -405,7 +424,10 @@ model Technician {
   rating         Decimal          @db.Decimal(3, 2) @default(5.0)
   skills         Json             // Array of service category IDs, e.g. ["sua-dieu-hoa"]
   workingAreas   Json             // Array of districts, e.g. ["Quận Cầu Giấy"]
+  workingAreaIds Json             // Array of stable ServiceArea IDs
   status         TechnicianStatus @default(available)
+  accountStatus  TechnicianAccountStatus @default(active)
+  presence       TechnicianPresence @default(on_shift)
   completedCount Int              @default(0)
   requests       ServiceRequest[]
   createdAt      DateTime         @default(now())
@@ -420,6 +442,8 @@ model ServiceRequest {
   customerPhone        String
   customerAddress      String
   district             String
+  areaId               String?
+  area                 ServiceArea? @relation(fields: [areaId], references: [id])
   priority             ServiceRequestPriority @default(medium)
   applianceType        String
   issueDescription     String                 @db.Text
@@ -452,6 +476,7 @@ model ServiceRequest {
   @@index([serviceCategoryId])
   @@index([assignedTechnicianId])
   @@index([userId, createdAt])
+  @@index([areaId])
 }
 
 model ServiceQuote {
@@ -544,6 +569,7 @@ model SystemSetting {
   address               String
   shippingFee           Decimal  @db.Decimal(12, 2) @default(30000)
   freeShippingThreshold Decimal  @db.Decimal(12, 2) @default(10000000)
+  businessConfig        Json?
   updatedAt             DateTime @updatedAt
 }
 

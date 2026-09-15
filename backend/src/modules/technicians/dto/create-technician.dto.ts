@@ -1,5 +1,4 @@
 import { IsString, IsNotEmpty, IsEmail, IsOptional, IsArray, IsEnum, Min, Max, IsNumber, Matches } from 'class-validator';
-import { TechnicianStatus } from '@prisma/client';
 
 export class CreateTechnicianDto {
   @IsString()
@@ -25,11 +24,15 @@ export class CreateTechnicianDto {
 
   @IsArray({ message: 'Địa bàn hoạt động không được để trống' })
   @IsNotEmpty({ each: true, message: 'Địa bàn hoạt động không được để trống' })
-  workingAreas: string[];
+  workingAreaIds: string[];
 
-  @IsEnum(TechnicianStatus, { message: 'Trạng thái hoạt động không hợp lệ' })
+  @IsEnum(['active', 'inactive'], { message: 'Trạng thái tài khoản không hợp lệ' })
   @IsOptional()
-  status?: TechnicianStatus;
+  accountStatus?: 'active' | 'inactive';
+
+  @IsEnum(['on_shift', 'offline'], { message: 'Trạng thái hiện diện không hợp lệ' })
+  @IsOptional()
+  presence?: 'on_shift' | 'offline';
 
   @IsNumber({}, { message: 'Điểm đánh giá phải là số' })
   @Min(0, { message: 'Điểm đánh giá phải từ 0 đến 5' })

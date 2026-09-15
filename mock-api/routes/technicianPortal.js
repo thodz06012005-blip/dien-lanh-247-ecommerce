@@ -8,7 +8,7 @@ const router = express.Router();
 const sessions = new Map();
 const PIN = process.env.TECHNICIAN_DEMO_PIN || '123456';
 
-const publicTech = (tech) => ({ id: tech.id, name: tech.name, phone: tech.phone, avatar: tech.avatar, rating: tech.rating, skills: tech.skills, workingAreas: tech.workingAreas, status: tech.status, completedCount: tech.completedCount });
+const publicTech = (tech) => ({ id: tech.id, name: tech.name, phone: tech.phone, avatar: tech.avatar, rating: tech.rating, skills: tech.skills, workingAreaIds: tech.workingAreaIds || [], accountStatus: tech.accountStatus || (tech.status === 'inactive' ? 'inactive' : 'active'), presence: tech.presence || (tech.status === 'offline' ? 'offline' : 'on_shift'), completedCount: tech.completedCount });
 const auth = (req, res, next) => {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   const session = sessions.get(token);
@@ -24,7 +24,7 @@ router.post('/technician/auth/login', (req, res) => {
   const pin = String(req.body?.pin || '');
   if (!isValidPhone(phone) || pin.length !== 6) return respondError(res, 400, 'Số điện thoại hoặc mã PIN không hợp lệ', 'INVALID_LOGIN');
   const db = readDB();
-  const tech = (db.technicians || []).find(item => !item.deletedAt && item.phone.replace(/\s/g, '') === phone && item.status !== 'inactive');
+  const tech = (db.technicians || []).find(item => !item.deletedAt && item.phone.replace(/\s/g, '') === phone && (item.accountStatus || (item.status === 'inactive' ? 'inactive' : 'active')) === 'active');
   if (!tech || pin !== PIN) return respondError(res, 401, 'Thông tin đăng nhập không chính xác', 'INVALID_CREDENTIALS');
   const token = crypto.randomBytes(32).toString('hex');
   sessions.set(token, { technicianId: tech.id, expiresAt: Date.now() + 12 * 60 * 60 * 1000 });
@@ -43,8 +43,8 @@ router.patch('/technician/jobs/:id/decision', auth, (req, res) => {
   const db = readDB(); const job = (db.serviceRequests || []).find(item => item.id === req.params.id && item.assignedTechnicianId === req.technicianId); const tech = (db.technicians || []).find(item => item.id === req.technicianId);
   if (!job || !tech) return respondError(res, 404, 'Không tìm thấy công việc', 'JOB_NOT_FOUND');
   if (!['assigned', 'confirmed'].includes(job.status)) return respondError(res, 400, 'Công việc không còn chờ phản hồi', 'INVALID_JOB_STATUS');
-  if (decision === 'rejected') { const reason = String(req.body?.reason || '').trim(); if (reason.length < 3) return respondError(res, 400, 'Vui lòng nhập lý do từ chối', 'REASON_REQUIRED'); job.assignedTechnicianId = null; job.status = 'confirmed'; job.technicianDecision = 'rejected'; tech.status = 'available'; log(job, 'Kỹ thuật viên từ chối công việc', tech.name, reason); }
-  else { job.technicianDecision = 'accepted'; job.acceptedAt = new Date().toISOString(); tech.status = 'busy'; log(job, 'Kỹ thuật viên đã nhận công việc', tech.name); }
+  if (decision === 'rejected') { const reason = String(req.body?.reason || '').trim(); if (reason.length < 3) return respondError(res, 400, 'Vui lòng nhập lý do từ chối', 'REASON_REQUIRED'); job.assignedTechnicianId = null; job.status = 'confirmed'; job.technicianDecision = 'rejected'; log(job, 'Kỹ thuật viên từ chối công việc', tech.name, reason); }
+  else { job.technicianDecision = 'accepted'; job.acceptedAt = new Date().toISOString(); log(job, 'Kỹ thuật viên đã nhận công việc', tech.name); }
   job.updatedAt = new Date().toISOString(); writeDB(db); return respondSuccess(res, job, decision === 'accepted' ? 'Đã nhận công việc' : 'Đã từ chối công việc');
 });
 router.patch('/technician/jobs/:id/progress', auth, (req, res) => {
@@ -66,7 +66,7 @@ router.patch('/technician/jobs/:id/complete', auth, (req, res) => {
   if (photos.some(photo => typeof photo !== 'string' || !photo.startsWith('data:image/') || photo.length > 250000) || photos.reduce((sum, photo) => sum + photo.length, 0) > 800000) return respondError(res, 413, 'Ảnh hoàn thành không hợp lệ hoặc vượt quá dung lượng cho phép', 'PHOTOS_TOO_LARGE');
   const allowed=['finalPrice','completionNote','photos','quoteId','version'];if(Object.keys(req.body||{}).some(k=>!allowed.includes(k)))return respondError(res,400,'Payload hoàn thành có trường không được phép','UNKNOWN_FIELD');
   const db = readDB(); const job = (db.serviceRequests || []).find(item => item.id === req.params.id && item.assignedTechnicianId === req.technicianId); const tech = (db.technicians || []).find(item => item.id === req.technicianId); if (!job || !tech) return respondError(res, 404, 'Không tìm thấy công việc', 'JOB_NOT_FOUND');const quote=(db.serviceQuotes||[]).filter(q=>q.serviceRequestId===job.id).sort((a,b)=>b.version-a.version)[0],approval=quote&&(db.quoteApprovals||[]).find(a=>a.quoteId===quote.id&&a.version===quote.version&&a.decision==='approved');if(!quote||quote.id!==req.body.quoteId||quote.version!==Number(req.body.version)||quote.status!=='approved'||!approval)return respondError(res,400,'Báo giá mới nhất chưa được khách hàng duyệt','QUOTE_NOT_APPROVED');
-  const now = new Date().toISOString(); job.status = 'completed'; job.finalPrice = finalPrice; job.completionNote = completionNote; job.completionPhotos = photos; job.completedAt = now; freezeSnapshot(db,job,quote,now); job.updatedAt = now; job.paymentStatus = job.paymentStatus || 'unpaid'; if (!job.statusHistory) job.statusHistory = []; job.statusHistory.push({ status: 'completed', note: completionNote, updatedBy: 'technician', createdAt: now }); log(job, 'Kỹ thuật viên hoàn thành công việc', tech.name, completionNote); tech.status = (db.serviceRequests || []).some(item => item.id !== job.id && item.assignedTechnicianId === tech.id && ['assigned', 'in_progress'].includes(item.status)) ? 'busy' : 'available'; tech.completedCount = Number(tech.completedCount || 0) + 1; writeDB(db); return respondSuccess(res, job, 'Đã hoàn thành công việc');
+  const now = new Date().toISOString(); job.status = 'completed'; job.finalPrice = finalPrice; job.completionNote = completionNote; job.completionPhotos = photos; job.completedAt = now; freezeSnapshot(db,job,quote,now); job.updatedAt = now; job.paymentStatus = job.paymentStatus || 'unpaid'; if (!job.statusHistory) job.statusHistory = []; job.statusHistory.push({ status: 'completed', note: completionNote, updatedBy: 'technician', createdAt: now }); log(job, 'Kỹ thuật viên hoàn thành công việc', tech.name, completionNote); tech.completedCount = Number(tech.completedCount || 0) + 1; writeDB(db); return respondSuccess(res, job, 'Đã hoàn thành công việc');
 });
 router.get('/technician/earnings', auth, (req, res) => { const db=readDB(),requestIds=new Set((db.serviceRequests||[]).filter(item=>item.assignedTechnicianId===req.technicianId).map(item=>item.id)),items=(db.serviceFinanceSnapshots||[]).filter(item=>requestIds.has(item.serviceRequestId)).map(item=>({id:item.serviceRequestId,completedAt:item.completedAt,revenue:Number(item.revenue),earning:Number(item.technicianPay)})),month=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit'}).format(new Date());return respondSuccess(res,{total:items.reduce((sum,item)=>sum+item.earning,0),thisMonth:items.filter(item=>item.completedAt&&new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit'}).format(new Date(item.completedAt))===month).reduce((sum,item)=>sum+item.earning,0),jobs:items});});
 module.exports = router;

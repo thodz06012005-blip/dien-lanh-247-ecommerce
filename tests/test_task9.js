@@ -62,6 +62,7 @@ async function runTests() {
     email: 'testspace@gmail.com',
     city: 'Hà Nội',
     district: 'Cầu Giấy',
+    areaId: 'cau-giay',
     addressDetail: '123 Test St',
     note: 'Call before delivery',
     items: [
@@ -94,6 +95,7 @@ async function runTests() {
     customerPhone: ' 0912 345 678', // has leading and middle spaces
     customerAddress: '456 Test Road',
     district: 'Cầu Giấy',
+    areaId: 'cau-giay',
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa treo tường',
     issueDescription: 'Bụi bẩn cần vệ sinh',

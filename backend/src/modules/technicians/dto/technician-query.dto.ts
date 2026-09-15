@@ -4,7 +4,7 @@ import { PaginationDto } from '../../../common/dto/pagination.dto';
 export class TechnicianQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
-  @IsEnum(['available', 'busy', 'inactive', 'AVAILABLE', 'BUSY', 'INACTIVE'], {
+  @IsEnum(['available', 'busy', 'offline', 'inactive', 'AVAILABLE', 'BUSY', 'OFFLINE', 'INACTIVE'], {
     message: 'Trạng thái hoạt động không hợp lệ'
   })
   status?: string;
@@ -15,7 +15,7 @@ export class TechnicianQueryDto extends PaginationDto {
 
   @IsOptional()
   @IsString()
-  workingArea?: string;
+  workingArea?: string; // Stable ServiceArea.id
 
   @IsOptional()
   @IsString()

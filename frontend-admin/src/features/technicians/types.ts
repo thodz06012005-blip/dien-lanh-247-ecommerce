@@ -7,8 +7,11 @@ export interface Technician {
   avatar?: string;
   rating: number;
   skills: string[]; // e.g. ['sua-dieu-hoa', 've-sinh-dieu-hoa']
-  workingAreas: string[]; // e.g. ['Cầu Giấy', 'Đống Đa']
-  status: 'available' | 'busy' | 'offline' | 'inactive';
+  workingAreaIds: string[];
+  accountStatus: 'active' | 'inactive';
+  presence: 'on_shift' | 'offline';
+  busy: boolean;
+  operationalStatus: 'available' | 'busy' | 'offline' | 'inactive';
   completedCount: number;
   todayJobs?: number;
   currentJob?: {

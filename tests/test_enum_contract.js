@@ -145,6 +145,7 @@ async function runTests() {
     customerPhone: '0912345678',
     customerAddress: '123 Test St',
     district: 'Quận Cầu Giấy',
+    areaId: 'cau-giay',
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa',
     issueDescription: 'Bảo trì',
@@ -168,6 +169,7 @@ async function runTests() {
     phone: '0911222333',
     city: 'Hà Nội',
     district: 'Quận Cầu Giấy',
+    areaId: 'cau-giay',
     addressDetail: '123 Test',
     paymentMethod: 'cod',
     items: [
@@ -189,6 +191,7 @@ async function runTests() {
     phone: '0911222333',
     city: 'Hà Nội',
     district: 'Quận Cầu Giấy',
+    areaId: 'cau-giay',
     addressDetail: '123 Test',
     paymentMethod: 'momo',
     items: [
@@ -209,6 +212,7 @@ async function runTests() {
     customerPhone: '0912345678',
     customerAddress: '123 Test St',
     district: 'Quận Cầu Giấy',
+    areaId: 'cau-giay',
     serviceCategoryId: 've-sinh-dieu-hoa',
     applianceType: 'Điều hòa',
     issueDescription: 'Bảo trì',

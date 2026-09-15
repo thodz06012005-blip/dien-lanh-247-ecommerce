@@ -13,7 +13,6 @@ import { Search, RotateCw, X } from 'lucide-react';
 import type { ServiceRequest, ServiceCategory, ServiceRequestWithKey } from '../features/service-requests/types';
 import ServiceRequestTable from '../features/service-requests/components/ServiceRequestTable';
 import useDebouncedValue from '../hooks/useDebouncedValue';
-import { DISTRICTS } from '../constants/areas';
 
 export default function ServiceRequests() {
   const navigate = useNavigate();
@@ -59,7 +58,7 @@ export default function ServiceRequests() {
       if (debouncedSearch) params.q = debouncedSearch;
       if (statusFilter !== 'all') params.status = statusFilter;
       if (categoryFilter !== 'all') params.serviceCategoryId = categoryFilter;
-      if (areaFilter !== 'all') params.district = areaFilter;
+      if (areaFilter !== 'all') params.areaId = areaFilter;
       if (createdFrom) params.createdFrom = createdFrom; if (createdTo) params.createdTo = createdTo;
       if (scheduledFrom) params.scheduledFrom = scheduledFrom; if (scheduledTo) params.scheduledTo = scheduledTo;
       const res = await api.get('/admin/service-requests', { params });
@@ -76,6 +75,7 @@ export default function ServiceRequests() {
       return res.data;
     },
   });
+  const { data: areasData } = useQuery({ queryKey: ['service-areas'], queryFn: async () => (await api.get('/service-areas')).data });
 
   // Mutation for quick confirming requests
   const confirmMutation = useMutation({
@@ -198,7 +198,7 @@ export default function ServiceRequests() {
               ]}
             />
           </div>
-          <Select value={areaFilter} onChange={(e) => { setAreaFilter(e.target.value); setPage(1); }} className="h-10 w-full bg-slate-50 border-slate-200" options={[{ value: 'all', label: 'Tất cả khu vực' }, ...DISTRICTS.map((area) => ({ value: area, label: area }))]} />
+          <Select value={areaFilter} onChange={(e) => { setAreaFilter(e.target.value); setPage(1); }} className="h-10 w-full bg-slate-50 border-slate-200" options={[{ value: 'all', label: 'Tất cả khu vực' }, ...(areasData?.data || []).map((area: { id: string; name: string }) => ({ value: area.id, label: area.name }))]} />
           <label className="text-xs font-semibold text-slate-600">Ngày tạo từ<Input type="date" aria-label="Ngày tạo từ" value={createdFrom} onChange={(e) => { setCreatedFrom(e.target.value); setPage(1); }} className="mt-1 h-10 bg-slate-50" /></label>
           <label className="text-xs font-semibold text-slate-600">Ngày tạo đến<Input type="date" aria-label="Ngày tạo đến" value={createdTo} onChange={(e) => { setCreatedTo(e.target.value); setPage(1); }} className="mt-1 h-10 bg-slate-50" /></label>
           <label className="text-xs font-semibold text-slate-600">Lịch hẹn từ<Input type="date" aria-label="Lịch hẹn từ" value={scheduledFrom} onChange={(e) => { setScheduledFrom(e.target.value); setPage(1); }} className="mt-1 h-10 bg-slate-50" /></label>

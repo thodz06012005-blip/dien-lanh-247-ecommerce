@@ -16,7 +16,6 @@ interface TechnicianFormModalProps {
   editingTech: Partial<Technician> | null;
   skillsOptions: Option[];
   districtOptions: Option[];
-  statusOptions: Option[];
   isSaving: boolean;
   onSave: (payload: Partial<Technician>) => void;
 }
@@ -27,7 +26,6 @@ export default function TechnicianFormModal({
   editingTech,
   skillsOptions,
   districtOptions,
-  statusOptions,
   isSaving,
   onSave
 }: TechnicianFormModalProps) {
@@ -38,14 +36,15 @@ export default function TechnicianFormModal({
     email: editingTech?.email || '',
     avatar: editingTech?.avatar || '',
     rating: editingTech?.rating || 5.0,
-    status: editingTech?.status || 'available',
+    accountStatus: editingTech?.accountStatus || 'active',
+    presence: editingTech?.presence || 'on_shift',
   });
 
   const [selectedFormSkills, setSelectedFormSkills] = useState<string[]>(
     editingTech?.skills || []
   );
   const [selectedFormAreas, setSelectedFormAreas] = useState<string[]>(
-    editingTech?.workingAreas || []
+    editingTech?.workingAreaIds || []
   );
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -62,7 +61,7 @@ export default function TechnicianFormModal({
       errors.skills = 'Vui lòng chọn ít nhất một kỹ năng';
     }
     if (selectedFormAreas.length === 0) {
-      errors.workingAreas = 'Vui lòng chọn ít nhất một khu vực hoạt động';
+      errors.workingAreaIds = 'Vui lòng chọn ít nhất một khu vực hoạt động';
     }
 
     setFormErrors(errors);
@@ -76,7 +75,7 @@ export default function TechnicianFormModal({
     const payload = {
       ...formValues,
       skills: selectedFormSkills,
-      workingAreas: selectedFormAreas,
+      workingAreaIds: selectedFormAreas,
     };
 
     onSave(payload);
@@ -127,12 +126,8 @@ export default function TechnicianFormModal({
             value={formValues.email}
             onChange={(e) => setFormValues(prev => ({ ...prev, email: e.target.value }))}
           />
-          <Select
-            label="Trạng thái làm việc"
-            value={formValues.status}
-            onChange={(e) => setFormValues(prev => ({ ...prev, status: e.target.value as 'available' | 'busy' | 'offline' | 'inactive' }))}
-            options={statusOptions}
-          />
+          <Select label="Trạng thái tài khoản" value={formValues.accountStatus} onChange={(e) => setFormValues(prev => ({ ...prev, accountStatus: e.target.value as 'active' | 'inactive' }))} options={[{ value: 'active', label: 'Đang hoạt động' }, { value: 'inactive', label: 'Ngừng hoạt động' }]} />
+          <Select label="Hiện diện" value={formValues.presence} onChange={(e) => setFormValues(prev => ({ ...prev, presence: e.target.value as 'on_shift' | 'offline' }))} options={[{ value: 'on_shift', label: 'Trong ca' }, { value: 'offline', label: 'Ngoại tuyến' }]} />
         </div>
 
         <Input
@@ -189,8 +184,8 @@ export default function TechnicianFormModal({
               );
             })}
           </div>
-          {formErrors.workingAreas && (
-            <span className="text-[11px] font-bold text-red-500">{formErrors.workingAreas}</span>
+          {formErrors.workingAreaIds && (
+            <span className="text-[11px] font-bold text-red-500">{formErrors.workingAreaIds}</span>
           )}
         </div>
 

@@ -21,6 +21,7 @@ const publicCore = (row: RequestRecord) => {
   preferredDate: row.preferredDate,
   preferredTimeSlot: row.preferredTimeSlot,
   district: row.district,
+  areaId: row.areaId,
   status: row.status,
   estimatedPrice: numberValue(row.estimatedPrice),
   finalPrice: numberValue(row.finalPrice),

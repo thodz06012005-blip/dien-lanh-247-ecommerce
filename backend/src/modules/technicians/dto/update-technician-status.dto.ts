@@ -1,8 +1,11 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
-import { TechnicianStatus } from '@prisma/client';
+import { IsEnum, IsOptional } from 'class-validator';
 
 export class UpdateTechnicianStatusDto {
-  @IsEnum(TechnicianStatus, { message: 'Trạng thái hoạt động không hợp lệ' })
-  @IsNotEmpty({ message: 'Trạng thái hoạt động không được để trống' })
-  status: TechnicianStatus;
+  @IsEnum(['active', 'inactive'], { message: 'Trạng thái tài khoản không hợp lệ' })
+  @IsOptional()
+  accountStatus?: 'active' | 'inactive';
+
+  @IsEnum(['on_shift', 'offline'], { message: 'Trạng thái hiện diện không hợp lệ' })
+  @IsOptional()
+  presence?: 'on_shift' | 'offline';
 }

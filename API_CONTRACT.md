@@ -468,3 +468,11 @@ Completion accepts `status=completed`, `finalPrice`, `completionNote`, `quoteId`
 Completion creates exactly one immutable `ServiceFinanceSnapshot` containing the approved quote/version, revenue, parts cost, technician pay, policy inputs, and `completedAt`. Finance report GETs are read-only: revenue belongs to the Vietnam business month of snapshot `completedAt`, while cash belongs to the Vietnam business month of entry `occurredAt`. Refunds and adjustments affect cash in their actual period and never rewrite completion time or a prior snapshot.
 
 Legacy snapshot migration is an explicit operator action. Run `npm --prefix backend run finance:backfill:dry-run` before `finance:backfill:apply`; Mock provides the same scripts. Neither reports nor technician earnings perform implicit backfill.
+
+## Stable technician identity and availability (Stage 5.1–5.2)
+
+`ServiceArea.id` and `ServiceCategory.id` are the only matching keys. Technician writes accept `skills: serviceCategoryId[]` and `workingAreaIds: ServiceArea.id[]`; unknown or inactive IDs return `400`. A service request persists `areaId` for matching and retains `district` only as the historical label snapshot, so renaming an area never breaks an existing assignment.
+
+Technician availability has independent `accountStatus=active|inactive` and `presence=on_shift|offline`. `busy` and `operationalStatus` are response-only values derived from active assigned jobs; clients cannot PATCH `status=busy`. Assignment requires an active, on-shift technician with matching IDs and no job in the same appointment slot. Assignment/completion never changes presence.
+
+`GET /service-areas` and `GET /service-categories` provide live form/filter options. Admin must refetch these queries after Settings changes rather than shipping static area or skill lists.

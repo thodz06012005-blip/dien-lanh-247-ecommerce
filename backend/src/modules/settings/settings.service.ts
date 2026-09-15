@@ -31,6 +31,8 @@ export class SettingsService {
 
   async getPublicSettings() {
     const settings = await this.getOrCreateDefaultSettings();
+    const serviceAreas = await (this.prisma as any).serviceArea.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+    const businessConfig = (settings as any).businessConfig || { appliances: [], timeSlots: [], pricing: { inspectionFee: 0, emergencySurcharge: 0, showPriceRanges: false, disclaimer: '' }, serviceAreas: [] };
     return {
       success: true,
       data: {
@@ -40,24 +42,36 @@ export class SettingsService {
         address: settings.address,
         shippingFee: Number(settings.shippingFee),
         freeShippingThreshold: Number(settings.freeShippingThreshold),
+        businessConfig: { ...businessConfig, serviceAreas: serviceAreas.map((area: any) => ({ id: area.id, name: area.name, active: area.isActive, travelFee: businessConfig.serviceAreas?.find((item: any) => item.id === area.id)?.travelFee || 0 })) },
       },
     };
   }
 
   async getAdminSettings() {
     const settings = await this.getOrCreateDefaultSettings();
+    const serviceAreas = await (this.prisma as any).serviceArea.findMany({ orderBy: { name: 'asc' } });
+    const businessConfig = (settings as any).businessConfig || { appliances: [], timeSlots: [], pricing: {}, serviceAreas: [] };
     return {
       success: true,
       data: {
         ...settings,
         shippingFee: Number(settings.shippingFee),
         freeShippingThreshold: Number(settings.freeShippingThreshold),
+        businessConfig: { ...businessConfig, serviceAreas: serviceAreas.map((area: any) => ({ id: area.id, name: area.name, active: area.isActive, travelFee: businessConfig.serviceAreas?.find((item: any) => item.id === area.id)?.travelFee || 0 })) },
       },
     };
   }
 
   async updateSettings(dto: UpdateSettingsDto) {
     await this.getOrCreateDefaultSettings();
+
+    const serviceAreas = dto.businessConfig?.serviceAreas;
+    if (Array.isArray(serviceAreas)) {
+      for (const area of serviceAreas) {
+        if (!area?.id || !area?.name) continue;
+        await (this.prisma as any).serviceArea.upsert({ where: { id: area.id }, update: { name: area.name, isActive: area.active !== false }, create: { id: area.id, name: area.name, isActive: area.active !== false } });
+      }
+    }
 
     const updated = await this.prisma.systemSetting.update({
       where: { id: 'default' },
@@ -69,6 +83,7 @@ export class SettingsService {
         address: dto.address,
         shippingFee: dto.shippingFee,
         freeShippingThreshold: dto.freeShippingThreshold,
+        businessConfig: dto.businessConfig,
       },
     });
 

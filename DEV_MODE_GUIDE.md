@@ -169,3 +169,7 @@ Chạy `npm run test:quote-contract` để kiểm tra inspection không thể gi
 ## Kiểm tra ledger và finance snapshot
 
 Chạy `npm run test:finance-ledger`. Bộ kiểm thử xác nhận idempotency, trạng thái unpaid/partial/paid dẫn xuất, refund, phân kỳ doanh thu/dòng tiền theo `Asia/Ho_Chi_Minh`, và GET report không ghi dữ liệu. Backfill luôn chạy dry-run trước: `npm --prefix backend run finance:backfill:dry-run`; chỉ dùng `finance:backfill:apply` sau khi đã duyệt kết quả.
+
+## Kiểm tra matching và trạng thái thợ
+
+Chạy `npm run test:technician-stage5` để kiểm tra ID khu vực/kỹ năng động, từ chối ID không tồn tại, cấm PATCH busy, loại thợ offline khỏi phân công và phát hiện lịch trùng. `presence` là thao tác ca làm việc; trạng thái bận luôn do server suy ra từ công việc active.

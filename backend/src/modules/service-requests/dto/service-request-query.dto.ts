@@ -26,6 +26,10 @@ export class ServiceRequestQueryDto extends PaginationDto {
 
   @IsOptional()
   @IsString()
+  areaId?: string;
+
+  @IsOptional()
+  @IsString()
   technicianId?: string;
 
   @IsOptional()

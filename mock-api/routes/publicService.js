@@ -21,5 +21,9 @@ router.get('/settings/public', (req, res) => {
   });
 });
 router.get('/service-categories', (req, res) => respondSuccess(res, readDB().serviceCategories || []));
+router.get('/service-areas', (req, res) => {
+  const config = readDB().settings?.businessConfig || DEFAULT_BUSINESS_CONFIG;
+  return respondSuccess(res, config.serviceAreas.filter(area => area.active).map(({ id, name, active }) => ({ id, name, isActive: active })));
+});
 
 module.exports = router;

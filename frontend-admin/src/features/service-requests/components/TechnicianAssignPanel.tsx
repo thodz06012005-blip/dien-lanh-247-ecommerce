@@ -7,8 +7,8 @@ import type { Technician } from '../../technicians/types';
 
 // Helper check matched technician
 const isTechnicianMatched = (tech: Technician, request: ServiceRequest) => {
-  return tech.status === 'available' &&
-         tech.workingAreas?.includes(request.district) &&
+  return tech.operationalStatus === 'available' &&
+         !!request.areaId && tech.workingAreaIds?.includes(request.areaId) &&
          tech.skills?.includes(request.serviceCategoryId);
 };
 
@@ -130,7 +130,7 @@ export default function TechnicianAssignPanel({
                       options={[
                         { label: '-- Chọn thợ kỹ thuật --', value: '' },
                         ...matchedTechs.map((tech: Technician) => ({
-                          label: `${tech.name} (${tech.workingAreas.join(', ')})`,
+                          label: `${tech.name} (${tech.workingAreaIds.join(', ')})`,
                           value: tech.id
                         }))
                       ]}

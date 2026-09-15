@@ -24,7 +24,7 @@ const { auditSuccess, auditFailure, auditRateLimited } = require('./utils/auditL
 const SERVICE_ONLY = process.env.SERVICE_ONLY !== 'false';
 
 const publicServiceRoutes = require('./routes/publicService');
-const { router: serviceRequestRouter, updateTechnicianStatusAfterJobChange } = require('./routes/serviceRequests');
+const { router: serviceRequestRouter } = require('./routes/serviceRequests');
 const { adminUsers, adminSessions, requireAdminAuth, isDemoAccountsEnabled, parseCookies } = require('./utils/auth');
 const technicianRouter = require('./routes/technicians');
 const ordersRouter = SERVICE_ONLY ? null : require('./routes/orders');

@@ -150,6 +150,7 @@ async function runTests() {
     email: 'test@gmail.com',
     city: 'Hà Nội',
     district: 'Cầu Giấy',
+    areaId: 'cau-giay',
     addressDetail: '123 Test St',
     note: 'Call before delivery',
     items: [
