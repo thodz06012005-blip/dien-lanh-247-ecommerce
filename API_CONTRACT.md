@@ -459,4 +459,12 @@ All list screens debounce search, include every server parameter in the React Qu
 
 Each quote has an immutable `(serviceRequestId, version)` identity. Creating a new quote after a sent/approved quote marks the former version `superseded` and invalidates its approval for completion. Customer decisions use `POST /me/service-quotes/:id/decision` with ownership enforcement. Guest decisions use `POST /service-quotes/:id/guest-decision` with the request-scoped Lookup token. Staff phone confirmation is a distinct privileged action requiring `channel=phone` and evidence note.
 
-Completion accepts `status=completed`, `finalPrice`, `completionNote`, `quoteId` and `version`. The latest quote and that exact version must have a valid approval. Completion never marks a request paid. Collection uses `POST /admin/service-requests/:id/payments` with `{ amount, method, reference? }`, creates an immutable payment entry and derives the read-only payment summary.
+Completion accepts `status=completed`, `finalPrice`, `completionNote`, `quoteId` and `version`. The latest quote and that exact version must have a valid approval. Completion never marks a request paid. Collection, refund and correction use the append-only `/payment-entries` contract below.
+
+## Payment ledger and finance recognition (Stage 4.4–4.5)
+
+`POST /admin/service-requests/:id/payment-entries` appends an immutable `collection`, `refund`, or `adjustment` entry with `amount`, `method`, `occurredAt`, actor, optional reference, and required `idempotencyKey`. Reusing the key returns the original entry without duplicating cash. `GET /admin/service-requests/:id/payment-entries` returns the privileged ledger and a derived `{ total, collected, debt, status }` summary. Customer DTOs expose only that summary; mutable legacy payment fields are not authoritative.
+
+Completion creates exactly one immutable `ServiceFinanceSnapshot` containing the approved quote/version, revenue, parts cost, technician pay, policy inputs, and `completedAt`. Finance report GETs are read-only: revenue belongs to the Vietnam business month of snapshot `completedAt`, while cash belongs to the Vietnam business month of entry `occurredAt`. Refunds and adjustments affect cash in their actual period and never rewrite completion time or a prior snapshot.
+
+Legacy snapshot migration is an explicit operator action. Run `npm --prefix backend run finance:backfill:dry-run` before `finance:backfill:apply`; Mock provides the same scripts. Neither reports nor technician earnings perform implicit backfill.

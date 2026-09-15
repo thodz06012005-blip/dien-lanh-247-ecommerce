@@ -21,7 +21,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "finance:backfill:dry-run": "ts-node scripts/backfill-finance-snapshots.ts",
+    "finance:backfill:apply": "ts-node scripts/backfill-finance-snapshots.ts --apply"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.3.7",

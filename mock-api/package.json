@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env server.js",
     "start": "node --env-file-if-exists=.env server.js",
-    "reset-db": "node scripts/reset-db.js"
+    "reset-db": "node scripts/reset-db.js",
+    "finance:backfill:dry-run": "node scripts/backfill-finance-snapshots.js",
+    "finance:backfill:apply": "node scripts/backfill-finance-snapshots.js --apply"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -513,11 +513,11 @@ export default function MyServiceDetail() {
                 <div className="flex justify-between items-center border-t border-slate-100 pt-3.5">
                   <span className="font-bold text-slate-700">Thanh toán:</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                    request.paymentStatus === 'paid'
+                    request.paymentSummary.status === 'paid'
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : 'bg-amber-50 text-amber-700 border-amber-200'
                   }`}>
-                    {request.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                    {request.paymentSummary.status === 'paid' ? 'Đã thanh toán' : request.paymentSummary.status === 'partial' ? `Đã thu ${formatCurrency(request.paymentSummary.collected)} · Còn ${formatCurrency(request.paymentSummary.debt)}` : 'Chưa thanh toán'}
                   </span>
                 </div>
               </div>

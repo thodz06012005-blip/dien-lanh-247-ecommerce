@@ -165,3 +165,7 @@ Chạy `npm run test:service-contract` để kiểm tra cách ly ownership giữ
 Chạy `npm run test:list-contract` để kiểm tra trang cuối với 35 yêu cầu/15 kỹ thuật viên, tìm kiếm server-side, `meta.total/totalPages`, và ranh giới ngày tạo 23:30/00:30 theo múi giờ Việt Nam. UI Admin không được tính KPI hoặc tổng kết bằng `data.length` của một trang.
 
 Chạy `npm run test:quote-contract` để kiểm tra inspection không thể giả mạo xác nhận khách, ownership khi duyệt, version supersede, completion bắt buộc đúng approval mới nhất và thu tiền qua payment entry riêng. Không gửi `paymentStatus` trong payload hoàn thành.
+
+## Kiểm tra ledger và finance snapshot
+
+Chạy `npm run test:finance-ledger`. Bộ kiểm thử xác nhận idempotency, trạng thái unpaid/partial/paid dẫn xuất, refund, phân kỳ doanh thu/dòng tiền theo `Asia/Ho_Chi_Minh`, và GET report không ghi dữ liệu. Backfill luôn chạy dry-run trước: `npm --prefix backend run finance:backfill:dry-run`; chỉ dùng `finance:backfill:apply` sau khi đã duyệt kết quả.

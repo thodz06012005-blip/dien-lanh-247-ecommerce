@@ -98,6 +98,7 @@ export class ServiceRequestsService {
       include: {
         serviceCategory: true,
         assignedTechnician: true,
+        paymentEntries: true,
       },
     });
 
@@ -114,6 +115,7 @@ export class ServiceRequestsService {
       include: {
         serviceCategory: true,
         assignedTechnician: true,
+        paymentEntries: true,
       },
     });
     if (!request) {
@@ -132,6 +134,7 @@ export class ServiceRequestsService {
       include: {
         serviceCategory: true,
         assignedTechnician: true,
+        paymentEntries: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -277,6 +280,7 @@ export class ServiceRequestsService {
       }
     }
 
+    let completionSnapshot: Record<string, unknown> | null = null;
     const updateData: any = {
       status: newStatus,
     };
@@ -293,15 +297,19 @@ export class ServiceRequestsService {
       const approved = latestQuote?.id === dto.quoteId && latestQuote.version === dto.version && latestQuote.status === 'approved' && latestQuote.approvals.some(item => item.version === dto.version && item.decision === 'approved');
       if (!approved) throw new BadRequestException('Báo giá mới nhất chưa được khách hàng duyệt');
       updateData.finalPrice = dto.finalPrice;
-      updateData.paymentStatus = request.paymentStatus || 'unpaid';
+      updateData.completedAt = new Date();
+      const partsCost = Number(latestQuote!.parts);
+      const technicianPayRate = Number(process.env.TECHNICIAN_PAY_RATE || 40);
+      completionSnapshot = {
+        approvedQuoteId: latestQuote!.id,
+        approvedVersion: latestQuote!.version,
+        revenue: dto.finalPrice,
+        partsCost,
+        technicianPay: Math.round(Math.max(0, dto.finalPrice - partsCost) * technicianPayRate / 100),
+        policySnapshot: { technicianPayType: 'percentage', technicianPayRate, includePartsInCommission: false },
+        completedAt: updateData.completedAt,
+      };
 
-      // Tăng completedCount của thợ
-      await this.prisma.technician.update({
-        where: { id: request.assignedTechnicianId },
-        data: {
-          completedCount: { increment: 1 },
-        },
-      });
     }
 
     // Ghi status history
@@ -320,13 +328,26 @@ export class ServiceRequestsService {
     updateData.statusHistory = newHistory;
     updateData.updatedAt = new Date();
 
-    const updatedRequest = await this.prisma.serviceRequest.update({
-      where: { id },
-      data: updateData,
-      include: {
-        serviceCategory: true,
-        assignedTechnician: true,
-      },
+    const updatedRequest = await this.prisma.$transaction(async tx => {
+      const updated = await tx.serviceRequest.update({
+        where: { id },
+        data: updateData,
+        include: {
+          serviceCategory: true,
+          assignedTechnician: true,
+        },
+      });
+      // Completion and its immutable policy snapshot commit atomically. GET never backfills.
+      if (completionSnapshot) {
+        await (tx as any).serviceFinanceSnapshot.create({
+          data: { serviceRequestId: id, ...completionSnapshot },
+        });
+        await tx.technician.update({
+          where: { id: request.assignedTechnicianId! },
+          data: { completedCount: { increment: 1 } },
+        });
+      }
+      return updated;
     });
 
     // Giải phóng thợ nếu hoàn thành hoặc hủy

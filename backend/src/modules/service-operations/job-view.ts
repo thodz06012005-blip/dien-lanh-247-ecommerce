@@ -1,4 +1,5 @@
 type RequestRecord = Record<string, any>;
+import { paymentSummary } from '../../domain/finance';
 
 const numberValue = (value: unknown) => Number(value || 0);
 const technician = (value: RequestRecord | null | undefined, includePhone = false) => value ? {
@@ -10,7 +11,9 @@ const technician = (value: RequestRecord | null | undefined, includePhone = fals
   skills: value.skills,
 } : null;
 
-const publicCore = (row: RequestRecord) => ({
+const publicCore = (row: RequestRecord) => {
+  const summary = paymentSummary(numberValue(row.finalPrice), row.paymentEntries || []);
+  return ({
   id: row.id,
   serviceCategoryId: row.serviceCategoryId,
   applianceType: row.applianceType,
@@ -21,10 +24,12 @@ const publicCore = (row: RequestRecord) => ({
   status: row.status,
   estimatedPrice: numberValue(row.estimatedPrice),
   finalPrice: numberValue(row.finalPrice),
-  paymentStatus: row.paymentStatus,
+  paymentStatus: summary.status,
+  paymentSummary: summary,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
-});
+  });
+};
 
 export const toCustomerDetail = (row: RequestRecord) => ({
   ...publicCore(row),

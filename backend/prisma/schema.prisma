@@ -363,6 +363,12 @@ enum QuoteApprovalDecision {
   rejected
 }
 
+enum ServicePaymentEntryType {
+  collection
+  refund
+  adjustment
+}
+
 enum ServiceRequestPriority {
   low
   medium
@@ -438,7 +444,9 @@ model ServiceRequest {
   assignedTechnician   Technician?            @relation(fields: [assignedTechnicianId], references: [id])
   lookupGrants         ServiceLookupGrant[]
   quotes               ServiceQuote[]
-  payments             ServicePayment[]
+  paymentEntries       ServicePaymentEntry[]
+  financeSnapshot      ServiceFinanceSnapshot?
+  completedAt          DateTime?
 
   @@index([status])
   @@index([serviceCategoryId])
@@ -482,17 +490,35 @@ model QuoteApproval {
   @@index([quoteId, decision])
 }
 
-model ServicePayment {
+model ServicePaymentEntry {
   id               String         @id @default(cuid())
   serviceRequestId String
   serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
   amount           Decimal        @db.Decimal(12, 2)
+  type             ServicePaymentEntryType @default(collection)
   method           String
   reference        String?
   receivedBy       String
   receivedAt       DateTime       @default(now())
+  idempotencyKey   String         @unique
 
   @@index([serviceRequestId, receivedAt])
+}
+
+model ServiceFinanceSnapshot {
+  id                String         @id @default(cuid())
+  serviceRequestId  String         @unique
+  serviceRequest    ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  approvedQuoteId   String
+  approvedVersion   Int
+  revenue           Decimal        @db.Decimal(12, 2)
+  partsCost         Decimal        @db.Decimal(12, 2)
+  technicianPay     Decimal        @db.Decimal(12, 2)
+  policySnapshot    Json
+  completedAt       DateTime
+  createdAt         DateTime       @default(now())
+
+  @@index([completedAt])
 }
 
 model ServiceLookupGrant {

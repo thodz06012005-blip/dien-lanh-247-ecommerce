@@ -45,7 +45,8 @@ export interface ServiceRequest {
   customerApprovedAt?: string | null;
   indicativePriceRange?: { min: number; max: number; disclaimer: string } | null;
   finalPrice: number;
-  paymentStatus: 'unpaid' | 'paid';
+  paymentStatus: 'unpaid' | 'partial' | 'paid';
+  paymentSummary: { total: number; collected: number; debt: number; status: 'unpaid' | 'partial' | 'paid' };
   statusHistory: StatusHistoryEntry[];
   createdAt: string;
   updatedAt: string;
