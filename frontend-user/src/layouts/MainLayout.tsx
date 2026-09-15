@@ -18,7 +18,11 @@ export default function MainLayout() {
       <a href="#main-content" className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition focus:translate-y-0">Bỏ qua đến nội dung chính</a>
       <Header />
       <main id="main-content" className="flex-grow pt-[72px] md:pt-[104px] pb-20 md:pb-0" tabIndex={-1}>
+<<<<<<< HEAD
         <div key={location.pathname} className="page-route"><Outlet /></div>
+=======
+        <Outlet />
+>>>>>>> origin/codex/edit-file-zvjidd
       </main>
       <ToastContainer />
       <Footer />
