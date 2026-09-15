@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+      - refactor/service-only-production
       - security/*
   pull_request:
     branches:
       - main
+      - refactor/service-only-production
 
 jobs:
   verify:
